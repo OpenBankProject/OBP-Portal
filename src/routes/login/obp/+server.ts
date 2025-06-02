@@ -11,7 +11,6 @@ export function GET(event: RequestEvent) {
     try {
         const auth_endpoint = obp_oauth.OIDCConfig?.authorization_endpoint
 
-        console.debug("CONFIG AUTH ENDPOINT", obp_oauth.OIDCConfig)
         if (!auth_endpoint) {
             throw new Error("Authorization endpoint not found in OIDC configuration.");
         }

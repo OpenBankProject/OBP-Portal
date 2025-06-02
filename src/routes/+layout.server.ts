@@ -2,12 +2,10 @@ import type { RequestEvent } from "@sveltejs/kit";
 
 export async function load(event: RequestEvent) {
     const { session } = event.locals;
-
-    const user = session.data.currentUserData;
-    if (user && user.user_id) {
+    if (session.data.user) {
         return {
-            userId: user?.user_id,
-            email: user?.email
+            userId: session.data.user.user_id,
+            email: session.data.user.email
         }
     } else {
         return {}

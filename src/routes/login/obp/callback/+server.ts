@@ -37,7 +37,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		tokens = await obp_oauth.validateAuthorizationCode(token_endpoint, code, null);
 	} catch (e) {
         console.error("Error validating authorization code:", e);
-		return new Response("Please restart the process.", {
+		return new Response("Log in failed, please restart the process.", {
 			status: 400
 		});
 	}
@@ -56,13 +56,21 @@ export async function GET(event: RequestEvent): Promise<Response> {
             status: 500
         });
     }
-    const currentUserData = await currentUserResponse.json();
+    const user = await currentUserResponse.json();
+    console.log("Current user data:", user);
 
-    if (currentUserData && currentUserData.user_id) {
+    if (user.user_id && user.email) {
         // Store user data in session
         const { session } = event.locals;
-        await session.setData({ currentUserData: currentUserData });
+        await session.setData({ 
+            user: user,
+            oauth: {
+                access_token: obpAccessToken,
+                refresh_token: tokens.refreshToken()
+            }
+        });
         await session.save();
+        console.log("Session data set:", session.data);
         return new Response(null, {
             status: 302,
             headers: {
