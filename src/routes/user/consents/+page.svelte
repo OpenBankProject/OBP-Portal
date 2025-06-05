@@ -1,6 +1,7 @@
 <script lang="ts">
     let { data } = $props();
 
+
 </script>
 
 <h1>This is the consents page</h1>
@@ -14,10 +15,10 @@
                 <form method="post" action="?/delete">
                     <input type="hidden" name="consent_id" value={consent.consent_id} />
                     <h2>{consent.consent_id}</h2>
+                    <p>{consent.status}</p>
                     <button type="submit" class="text-red-500 hover:text-red-700">Delete Consent</button>
                 </form>
             </div>
-            
         </li>
     {/each}
 </ul>

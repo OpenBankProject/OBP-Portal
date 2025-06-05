@@ -4,15 +4,15 @@ class OBPRequests {
     base_url: string;
 
     constructor(base_url: string) {
-        console.group("--------------OBPRequests----------------");
+        console.log(`${this.constructor.name}: `);
         this.base_url = base_url
 
         console.log("OBPRequests initialized.");
-        console.groupEnd();
+        
     }
 
     async get(endpoint: string, accessToken: string): Promise<any> {
-        console.group("--------------OBPRequests----------------");
+        console.log(`--------------------------------\n${this.constructor.name}: `);
         console.debug("GET ", endpoint);
         const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
             headers: {
@@ -28,9 +28,104 @@ class OBPRequests {
 
         const data = await response.json();
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
-        console.groupEnd();
+        console.log(`--------------------------------`);
         return data;
     }
+
+    async post(endpoint: string, accessToken: string, body: any): Promise<any> {
+        console.log(`${this.constructor.name}: `);
+        console.debug("POST ", endpoint, body);
+        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            console.error("Failed to post OBP data:", response.statusText);
+            throw new Error(`Error posting OBP data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.debug(`Response from OBP:\n`, response.status, response.statusText);
+        console.log(`--------------------------------`);
+        return data;
+    }
+
+    async delete(endpoint: string, accessToken: string): Promise<any> {
+        console.log(`${this.constructor.name}: `);
+        console.debug("DELETE ", endpoint);
+        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Failed to delete OBP data:", response.statusText, data);
+            throw new Error(`Error deleting OBP data: ${response.statusText}`);
+        }
+        
+        console.debug(`Response from OBP:\n`, response.status, response.statusText);
+        console.log(`--------------------------------`);
+        return data;
+    }
+
+    async put(endpoint: string, accessToken: string, body: any): Promise<any> {
+        console.log(`${this.constructor.name}: `);
+        console.debug("PUT ", endpoint, body);
+        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            console.error("Failed to put OBP data:", response.statusText);
+            throw new Error(`Error putting OBP data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.debug(`Response from OBP:\n`, response.status, response.statusText);
+        console.log(`--------------------------------`);
+        return data;
+    }
+
+    async patch(endpoint: string, accessToken: string, body: any): Promise<any> {
+        console.log(`${this.constructor.name}: `);
+        console.debug("PATCH ", endpoint, body);
+        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            console.error("Failed to patch OBP data:", response.statusText);
+            throw new Error(`Error patching OBP data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.debug(`Response from OBP:\n`, response.status, response.statusText);
+        console.log(`--------------------------------`);
+        return data;
+    }
+
+
 }
 
 export const obp_requests = new OBPRequests(OBP_BASE_URL);
