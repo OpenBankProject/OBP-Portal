@@ -1,10 +1,11 @@
 import { OAuth2Client } from "arctic";
 import { OBP_OAUTH_CLIENT_ID, OBP_OAUTH_CLIENT_SECRET, OBP_OAUTH_WELL_KNOWN_URL, APP_CALLBACK_URL } from "$env/static/private";
 import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
+import { jwtDecode } from "jwt-decode";
 
-class OAuth2ClientWithConfig extends OAuth2Client {
-    OIDCConfig?: OpenIdConnectConfiguration;
+export class OAuth2ClientWithConfig extends OAuth2Client {
     wellKnownUrl: string;
+    OIDCConfig?: OpenIdConnectConfiguration;
 
     constructor(clientId: string, clientSecret: string, redirectUri: string, wellKnownUrl: string) {
         super(clientId, clientSecret, redirectUri);
@@ -18,6 +19,7 @@ class OAuth2ClientWithConfig extends OAuth2Client {
         console.group("--------------OAuth2Client----------------")
         console.log("Initializing OIDC configuration from well-known URL:", this.wellKnownUrl);
         try {
+            // Get the OIDC configuration from the well-known URL, this is OAuth2.1 compliant
             const response = await fetch(this.wellKnownUrl);
             if (!response.ok) {
                 throw new Error(`Failed to fetch OIDC config: ${response.statusText}`);
@@ -40,7 +42,7 @@ class OAuth2ClientWithConfig extends OAuth2Client {
     async checkAccessTokenExpiration(accessToken: string): Promise<boolean> {
         console.debug("Checking access token expiration...");
         try {
-            const payload = await this.decodeAccessToken<OAuth2AccessTokenPayload>(accessToken);
+            const payload = jwtDecode(accessToken) as OAuth2AccessTokenPayload;
             if (!payload || !payload.exp) {
                 console.warn("Access token payload is invalid or missing expiration.");
                 return false;

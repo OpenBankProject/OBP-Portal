@@ -5,6 +5,7 @@ import RedisStore from 'svelte-kit-connect-redis';
 import { Redis } from 'ioredis';
 import { REDIS_HOST, REDIS_PORT } from '$env/static/private';
 import { obp_oauth } from '$lib/oauth/client';
+import { refreshAccessTokenInSession } from '$lib/oauth/session';
 
 
 // Init Redis
@@ -29,8 +30,39 @@ if (!REDIS_HOST || !REDIS_PORT) {
 const checkAuthorization: Handle = async ({ event, resolve }) => {
     const session = event.locals.session;
 
+    // We should check against a list of protected routes here
     if (event.url.pathname.startsWith('/user')) {
         console.debug('Checking authorization for user route:', event.url.pathname);
+        // Check token expiration
+        const accessToken = session?.data.oauth?.access_token;
+        if (!accessToken) {
+            console.warn('No access token found in session. Redirecting to login.');
+            return new Response(null, {
+                status: 302,
+                headers: {
+                    Location: '/login'
+                }
+            });
+        }
+
+        // Check if the access token is expired, 
+        // if it is, attempt to refresh it
+        if (await obp_oauth.checkAccessTokenExpiration(accessToken)) {
+            // will return true if the token is expired
+            try {
+                await refreshAccessTokenInSession(session, obp_oauth)
+            } catch (error) {
+                console.error('Error refreshing access token:', error);
+                // If the refresh fails, redirect to login
+                return new Response(null, {
+                    status: 302,
+                    headers: {
+                        Location: '/login'
+                    }
+                });
+            }
+        }
+
         if (!session || !session.data.user) {
             // Redirect to login page if not authenticated
             return new Response(null, {
