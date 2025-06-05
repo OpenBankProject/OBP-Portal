@@ -1,7 +1,7 @@
 import type { RequestEvent, Actions } from "@sveltejs/kit";
 import { error } from "@sveltejs/kit";
-import type { OBPConsent } from "$lib/types/obp";
-import { obp_requests } from "$lib/server/obp";
+import type { OBPConsent } from "$lib/obp/types";
+import { obp_requests } from "$lib/obp/requests";
 
 const displayConsent = (consent: OBPConsent): boolean => {
     // We want to display the consent if it is revoked and not more than a day old

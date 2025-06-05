@@ -1,49 +1,6 @@
 import { OAuth2Client } from "arctic";
 import { OBP_OAUTH_CLIENT_ID, OBP_OAUTH_CLIENT_SECRET, OBP_OAUTH_WELL_KNOWN_URL, APP_CALLBACK_URL } from "$env/static/private";
-
-interface OpenIdConnectConfiguration {
-    issuer: string;
-    authorization_endpoint: string;
-    token_endpoint: string;
-    userinfo_endpoint: string;
-    jwks_uri: string;
-    revocation_endpoint?: string;
-    introspection_endpoint?: string;
-    device_authorization_endpoint?: string;
-    end_session_endpoint?: string;
-    check_session_iframe?: string;
-    frontchannel_logout_supported?: boolean;
-    frontchannel_logout_session_required?: boolean;
-    backchannel_logout_supported?: boolean;
-    backchannel_logout_session_required?: boolean;
-    scopes_supported?: string[];
-    response_types_supported: string[];
-    response_modes_supported?: string[];
-    grant_types_supported: string[];
-    acr_values_supported?: string[];
-    subject_types_supported: string[];
-    id_token_signing_alg_values_supported: string[];
-    id_token_encryption_alg_values_supported?: string[];
-    id_token_encryption_enc_values_supported?: string[];
-    userinfo_signing_alg_values_supported?: string[];
-    userinfo_encryption_alg_values_supported?: string[];
-    userinfo_encryption_enc_values_supported?: string[];
-    request_object_signing_alg_values_supported?: string[];
-    request_object_encryption_alg_values_supported?: string[];
-    request_object_encryption_enc_values_supported?: string[];
-    token_endpoint_auth_methods_supported?: string[];
-    token_endpoint_auth_signing_alg_values_supported?: string[];
-    display_values_supported?: string[];
-    claim_types_supported?: string[];
-    claims_supported?: string[];
-    service_documentation?: string;
-    claims_locales_supported?: string[];
-    ui_locales_supported?: string[];
-    op_policy_uri?: string;
-    op_tos_uri?: string;
-    registration_endpoint?: string;
-    dpop_signing_alg_values_supported?: string[];
-  }
+import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
 
 class OAuth2ClientWithConfig extends OAuth2Client {
     OIDCConfig?: OpenIdConnectConfiguration;
@@ -78,6 +35,23 @@ class OAuth2ClientWithConfig extends OAuth2Client {
             throw error;
         }
         console.groupEnd();
+    }
+
+    async checkAccessTokenExpiration(accessToken: string): Promise<boolean> {
+        console.debug("Checking access token expiration...");
+        try {
+            const payload = await this.decodeAccessToken<OAuth2AccessTokenPayload>(accessToken);
+            if (!payload || !payload.exp) {
+                console.warn("Access token payload is invalid or missing expiration.");
+                return false;
+            }
+            const isExpired = Date.now() >= payload.exp * 1000;
+            console.debug(`Access token is ${isExpired ? "expired" : "valid"}.`);
+            return isExpired;
+        } catch (error) {
+            console.error("Error decoding access token:", error);
+            throw error;
+        }
     }
 
     createAuthorizationURL(authEndpoint: string, state: string, scopes: string[]): URL {

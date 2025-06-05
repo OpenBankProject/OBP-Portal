@@ -1,4 +1,4 @@
-import { obp_oauth } from "$lib/server/oauth";
+import { obp_oauth } from "$lib/oauth/client";
 
 import type { OAuth2Tokens } from "arctic";
 import type { RequestEvent } from "@sveltejs/kit";

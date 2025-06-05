@@ -1,4 +1,5 @@
 import { OBP_BASE_URL } from '$env/static/private';
+import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
 
 class OBPRequests {
     base_url: string;
@@ -21,12 +22,19 @@ class OBPRequests {
             }
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-            console.error("Failed to fetch OBP data:", response.statusText);
-            throw new Error(`Error fetching OBP data: ${response.statusText}`);
+            console.error("Failed to fetch OBP data:", { statusText: response.statusText, data });
+            
+            if (data && data.code && data.message) {
+                throw new OBPRequestError(data.code, data.message);
+            } else {
+                throw new OBPErrorBase(`Error fetching OBP data: ${response.statusText}`);
+            }
+            
         }
 
-        const data = await response.json();
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
         console.log(`--------------------------------`);
         return data;
@@ -44,12 +52,18 @@ class OBPRequests {
             body: JSON.stringify(body)
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            console.error("Failed to post OBP data:", response.statusText);
-            throw new Error(`Error posting OBP data: ${response.statusText}`);
+            console.error("Failed to post OBP data:", { statusText: response.statusText, data });
+            
+            if (data && data.code && data.message) {
+                throw new OBPRequestError(data.code, data.message);
+            } else {
+                throw new OBPErrorBase(`Error posting OBP data: ${response.statusText}`);
+            }
         }
 
-        const data = await response.json();
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
         console.log(`--------------------------------`);
         return data;
@@ -71,7 +85,11 @@ class OBPRequests {
 
         if (!response.ok) {
             console.error("Failed to delete OBP data:", response.statusText, data);
-            throw new Error(`Error deleting OBP data: ${response.statusText}`);
+            if (data && data.code && data.message) {
+                throw new OBPRequestError(data.code, data.message);
+            } else {
+                throw new OBPErrorBase(`Error deleting OBP data: ${response.statusText}`);
+            }
         }
         
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
@@ -91,12 +109,18 @@ class OBPRequests {
             body: JSON.stringify(body)
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            console.error("Failed to put OBP data:", response.statusText);
-            throw new Error(`Error putting OBP data: ${response.statusText}`);
+            console.error("Failed to put OBP data:", { statusText: response.statusText, data });
+            if (data && data.code && data.message) {
+                throw new OBPRequestError(data.code, data.message);
+            } else {
+                throw new OBPErrorBase(`Error putting OBP data: ${response.statusText}`);
+            }
         }
 
-        const data = await response.json();
+        
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
         console.log(`--------------------------------`);
         return data;
@@ -114,12 +138,17 @@ class OBPRequests {
             body: JSON.stringify(body)
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            console.error("Failed to patch OBP data:", response.statusText);
-            throw new Error(`Error patching OBP data: ${response.statusText}`);
+            console.error("Failed to patch OBP data:", { statusText: response.statusText, data });
+            if (data && data.code && data.message) {
+                throw new OBPRequestError(data.code, data.message);
+            } else {
+                throw new OBPErrorBase(`Error patching OBP data: ${response.statusText}`);
+            }
         }
 
-        const data = await response.json();
         console.debug(`Response from OBP:\n`, response.status, response.statusText);
         console.log(`--------------------------------`);
         return data;

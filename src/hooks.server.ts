@@ -4,7 +4,7 @@ import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
 import { Redis } from 'ioredis';
 import { REDIS_HOST, REDIS_PORT } from '$env/static/private';
-import { obp_oauth } from '$lib/server/oauth';
+import { obp_oauth } from '$lib/oauth/client';
 
 
 // Init Redis
