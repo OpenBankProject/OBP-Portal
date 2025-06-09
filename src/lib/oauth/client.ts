@@ -40,6 +40,7 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
     }
 
     async checkAccessTokenExpiration(accessToken: string): Promise<boolean> {
+        // Returns true if the access token is expired, false if it is valid
         console.debug("Checking access token expiration...");
         try {
             const payload = jwtDecode(accessToken) as OAuth2AccessTokenPayload;
