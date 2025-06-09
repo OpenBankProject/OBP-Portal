@@ -5,12 +5,19 @@
 	// Lucide Icons
 	import { Menu, X } from '@lucide/svelte';
 
-	let { data, children } = $props();
+	interface LayoutData {
+		email?: string;
+		userId?: string;
+		username?: string;
+		apiExplorerUrl?: string;
+	}
+
+	let { data, children } = $props<{ data: LayoutData }>();
 
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
 
-	if (!data.email) {
+	if (data.email) {
 		isAuthenticated = false;
 	} else {
 		isAuthenticated = true;
@@ -19,6 +26,19 @@
 	function toggleMobileMenu() {
 		isMobileMenuOpen = !isMobileMenuOpen;
 	}
+
+	const headerLinks = $state([
+		{ href: '/', label: 'Home'},
+		{ href: '/user/consents', label: 'Consents' },
+		{ href: '/user/transactions', label: 'Transactions' },
+		{ href: '/user/accounts', label: 'Accounts' },
+		{ href: '/user/obp', label: 'OBP' }
+	]);
+
+	if (data.apiExplorerUrl) {
+		headerLinks.push({ href: data.apiExplorerUrl, label: 'API Explorer' });
+	}
+
 </script>
 
 <AppBar leadClasses="hidden sm:block">
@@ -34,16 +54,11 @@
 	{#snippet headline()}{/snippet}
 	{#snippet trail()}
 		<div class="hidden flex-wrap items-center justify-end space-x-2 sm:flex rtl:space-x-reverse">
-			<button type="button" class="btn hover:preset-tonal"
-				><a href="/user/consents">Consents</a></button
-			>
-			<button type="button" class="btn hover:preset-tonal"
-				><a href="/user/transactions">Transactions</a></button
-			>
-			<button type="button" class="btn hover:preset-tonal"
-				><a href="/user/accounts">Accounts</a></button
-			>
-			<button type="button" class="btn hover:preset-tonal"><a href="/user/obp">OBP</a></button>
+			{#each headerLinks as link}
+				<button type="button" class="btn hover:preset-tonal"
+					><a href={link.href}>{link.label}</a></button
+				>
+			{/each}
 		</div>
 
 		<button type="button" class="btn-icon btn-lg block sm:hidden" onclick={toggleMobileMenu}>
@@ -63,19 +78,22 @@
 			>
 		{:else}
 			<button type="button" class="btn preset-filled-primary-500"
-				><a href="/login/obp">Login</a></button
+				><a href="/login/obp">Log on</a></button
 			>
 		{/if}
 	{/snippet}
 </AppBar>
 
 {#if isMobileMenuOpen}
-    <div class="sm:hidden fixed top-16 left-0 right-0 bg-surface-500/95 shadow-lg z-50 p-4 flex flex-col space-y-2 transition-all duration-200 ease-in-out">
-        <a href="/user/consents" class="btn variant-filled-surface w-full text-center py-3">Consents</a>
-        <a href="/user/transactions" class="btn variant-filled-surface w-full text-center py-3">Transactions</a>
-        <a href="/user/accounts" class="btn variant-filled-surface w-full text-center py-3">Accounts</a>
-        <a href="/user/obp" class="btn variant-filled-surface w-full text-center py-3">OBP</a>
-    </div>
+	<div
+		class="bg-surface-500/95 fixed top-16 right-0 left-0 z-50 flex flex-col space-y-2 p-4 shadow-lg transition-all duration-200 ease-in-out sm:hidden"
+	>
+		{#each headerLinks as link}
+			<a href="{link.href}" class="btn variant-filled-surface w-full py-3 text-center"
+				>{link.label}</a
+			>
+		{/each}
+	</div>
 {/if}
 
 {@render children()}
