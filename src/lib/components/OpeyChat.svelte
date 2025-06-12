@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { OpeyChatState } from "$lib/opey/types";
+    import {v4 as uuidv4} from 'uuid';
 
     // Interface for chat options
     interface OpeyChatOptions {
@@ -26,9 +27,14 @@
     let opeyChatState = $state<OpeyChatState>({
         messages: [],
         currentAssistantMessage: {
+            role: 'assistant',
             content: `Welcome to the Open Bank Project, let me know if you've got any questions!`,
-
-        }
+            toolCalls: [],
+            id: uuidv4(),
+        },
+        userIsAuthenticated: false,
+        status: 'ready',
+        threadId: uuidv4(),
     });
 </script>
 
