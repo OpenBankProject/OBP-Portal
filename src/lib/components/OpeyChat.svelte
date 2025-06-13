@@ -1,41 +1,58 @@
 <script lang="ts">
-    import type { OpeyChatState } from "$lib/opey/types";
-    import {v4 as uuidv4} from 'uuid';
+    import { onMount } from "svelte";
+    import { CookieAuthStrategy } from "$lib/opey/services/AuthStrategy";
+    import { ChatState, type ChatStateSnapshot } from "$lib/opey/state/ChatState";
+    import { RestChatService } from "$lib/opey/services/RestChatService";
+    import { ChatController } from "$lib/opey/controllers/ChatController";
+    import { SessionState, type SessionSnapshot } from "$lib/opey/state/SessionState";
+    import { ConsentSessionService } from "$lib/opey/services/ConsentSessionService";
+    import { SessionController } from "$lib/opey/controllers/SessionController";
+
 
     // Interface for chat options
     interface OpeyChatOptions {
+        baseUrl: string; // Base Opey URL
         displayHeader: boolean; // Whether to display the header with the logo and title
         displaySuggestions: boolean; // Whether to display the suggested questions as 'pills' above the input line
-        
     }
-
     interface Props {
         opeyChatOptions?: Partial<OpeyChatOptions>; // Optional chat options to customize the component
     }
-
     // Default chat options
     const defaultChatOptions: OpeyChatOptions = {
+        baseUrl: "http://localhost:5000",
         displayHeader: true,
         displaySuggestions: false,
     };
-
     let { opeyChatOptions }: Props = $props();
-
     // Merge default options with the provided options
     const options = { ...defaultChatOptions, ...opeyChatOptions };
 
-    let opeyChatState = $state<OpeyChatState>({
-        messages: [],
-        currentAssistantMessage: {
-            role: 'assistant',
-            content: `Welcome to the Open Bank Project, let me know if you've got any questions!`,
-            toolCalls: [],
-            id: uuidv4(),
-        },
-        userIsAuthenticated: false,
-        status: 'ready',
-        threadId: uuidv4(),
-    });
+    // Initialize session state and services
+    const sessionState = new SessionState()
+    const sessionService = new ConsentSessionService(options.baseUrl)
+    const sessionController = new SessionController(sessionService, sessionState)
+
+    const chatState = new ChatState()
+    const chatService = new RestChatService(options.baseUrl, new CookieAuthStrategy())
+    const chatController = new ChatController(chatService, chatState)
+
+    let session: SessionSnapshot
+    let chat: ChatStateSnapshot
+
+    onMount(async () => {
+        sessionState.subscribe(s => session = s)
+
+        await sessionController.init()
+
+        chatState.subscribe(c => chat = c)
+        // now you have a cookie, chatService.send() will include it
+        // hook up your UI to chatState
+    })
+
+    async function sendMessage(text: string) {
+        await chatController.send(text)
+    }
 </script>
 
 <!-- Header -->
