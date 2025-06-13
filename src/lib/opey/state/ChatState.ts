@@ -7,7 +7,7 @@ export interface ChatStateSnapshot {
 }
 
 export class ChatState {
-    private threadId: string // Optional thread ID if needed
+    private threadId: string
     private messages: BaseMessage[] = [];
     private subscribers: Array<(snapshot: ChatStateSnapshot) => void> = [];
 

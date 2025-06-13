@@ -6,6 +6,8 @@ import type { SessionService } from "./SessionService";
 export class ConsentSessionService implements SessionService {
     constructor(private baseUrl: string) { }
 
+    // Allows posting without a consent JWT, i.e. anonyous session for the portal homepage
+    // These should be rate-limited somehow, i guess on Opey's side
     async createSession(consentJwt?: string) {
         const headers: Record<string, string> = {};
         if (consentJwt) headers['Consent-JWT'] = consentJwt;
