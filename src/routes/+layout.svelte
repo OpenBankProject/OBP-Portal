@@ -18,9 +18,9 @@
 	let isMobileMenuOpen = $state(false);
 
 	if (data.email) {
-		isAuthenticated = false;
-	} else {
 		isAuthenticated = true;
+	} else {
+		isAuthenticated = false;
 	}
 
 	function toggleMobileMenu() {
@@ -29,10 +29,9 @@
 
 	const headerLinks = $state([
 		{ href: '/', label: 'Home'},
-		{ href: '/user/consents', label: 'Consents' },
-		{ href: '/user/transactions', label: 'Transactions' },
-		{ href: '/user/accounts', label: 'Accounts' },
-		{ href: '/user/obp', label: 'OBP' }
+		{ href: '/consumers/register', label: 'Get API Key'},
+		{ href: '/intro', label: 'Getting Started'},
+		{ href: '/support', label: 'Support' },
 	]);
 
 	if (data.apiExplorerUrl) {
@@ -72,7 +71,7 @@
 		<span class="vr"></span>
 
 		{#if isAuthenticated}
-			<span class="mx-10 my-auto font-bold text-white">{data.email}</span>
+			<span class="mx-10 my-auto font-bold text-white hover:text-tertiary-400"><a href="/user">{data.email}</a></span>
 			<button type="button" class="btn preset-outlined-primary-500"
 				><a href="/logout">Logout</a></button
 			>
