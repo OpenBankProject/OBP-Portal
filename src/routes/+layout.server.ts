@@ -1,5 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { API_EXPLORER_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 export async function load(event: RequestEvent) {
     const { session } = event.locals;
@@ -7,9 +7,9 @@ export async function load(event: RequestEvent) {
     let data = {}
 
     // If API_EXPLORER_URL is defined, include it in the data object to display the header link
-    if (API_EXPLORER_URL) {
+    if (env.API_EXPLORER_URL) {
         data = {
-            apiExplorerUrl: API_EXPLORER_URL,
+            apiExplorerUrl: env.API_EXPLORER_URL,
         }
     }
 

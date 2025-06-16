@@ -3,7 +3,7 @@ import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
 import { Redis } from 'ioredis';
-import { REDIS_HOST, REDIS_PORT } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { obp_oauth } from '$lib/oauth/client';
 import { refreshAccessTokenInSession } from '$lib/oauth/session';
 
@@ -11,7 +11,7 @@ import { refreshAccessTokenInSession } from '$lib/oauth/session';
 // Init Redis
 let client: Redis
 
-if (!REDIS_HOST || !REDIS_PORT) {
+if (!env.REDIS_HOST || !env.REDIS_PORT) {
     console.warn('Redis host or port is not set. Using defaults.');
 
     client = new Redis({
@@ -19,11 +19,18 @@ if (!REDIS_HOST || !REDIS_PORT) {
         port: 6379
     });
 } else {
-    console.debug('Connecting to Redis at:', REDIS_HOST, REDIS_PORT);
-    client = new Redis({
-        host: REDIS_HOST,
-        port: REDIS_PORT
-    });
+    console.debug('Connecting to Redis at:', env.REDIS_HOST, env.REDIS_PORT);
+    console.debug('Redis password provided:', !!env.REDIS_PASSWORD);
+    
+    const redisConfig: any = {
+        host: env.REDIS_HOST,
+        port: parseInt(env.REDIS_PORT),
+    };
+    if (env.REDIS_PASSWORD) {
+        redisConfig.password = env.REDIS_PASSWORD;
+    }
+
+    client = new Redis(redisConfig);
 }
 
 // Define all protected routes here

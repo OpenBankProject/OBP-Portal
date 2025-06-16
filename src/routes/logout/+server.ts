@@ -1,6 +1,5 @@
 import { obp_oauth } from "$lib/oauth/client";
 import type { RequestEvent } from "@sveltejs/kit";
-import { OBP_BASE_URL } from "$env/static/private";
 // Response is a global type, no need to import it
 
 export async function GET(event: RequestEvent): Promise<Response> {

@@ -1,5 +1,5 @@
 import { OAuth2Client } from "arctic";
-import { OBP_OAUTH_CLIENT_ID, OBP_OAUTH_CLIENT_SECRET, OBP_OAUTH_WELL_KNOWN_URL, APP_CALLBACK_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
 import { jwtDecode } from "jwt-decode";
 
@@ -63,4 +63,4 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 }
 
 
-export const obp_oauth = new OAuth2ClientWithConfig(OBP_OAUTH_CLIENT_ID, OBP_OAUTH_CLIENT_SECRET, APP_CALLBACK_URL, OBP_OAUTH_WELL_KNOWN_URL);
+export const obp_oauth = new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL, env.OBP_OAUTH_WELL_KNOWN_URL);

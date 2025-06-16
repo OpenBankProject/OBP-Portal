@@ -1,4 +1,4 @@
-import { OBP_BASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
 
 class OBPRequests {
@@ -15,7 +15,7 @@ class OBPRequests {
     async get(endpoint: string, accessToken: string): Promise<any> {
         console.log(`--------------------------------\n${this.constructor.name}: `);
         console.debug("GET ", endpoint);
-        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.base_url}${endpoint}`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
@@ -43,7 +43,7 @@ class OBPRequests {
     async post(endpoint: string, accessToken: string, body: any): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("POST ", endpoint, body);
-        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -72,7 +72,7 @@ class OBPRequests {
     async delete(endpoint: string, accessToken: string): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("DELETE ", endpoint);
-        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -100,7 +100,7 @@ class OBPRequests {
     async put(endpoint: string, accessToken: string, body: any): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("PUT ", endpoint, body);
-        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -129,7 +129,7 @@ class OBPRequests {
     async patch(endpoint: string, accessToken: string, body: any): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("PATCH ", endpoint, body);
-        const response = await fetch(`${OBP_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -157,4 +157,4 @@ class OBPRequests {
 
 }
 
-export const obp_requests = new OBPRequests(OBP_BASE_URL);
+export const obp_requests = new OBPRequests(env.OBP_BASE_URL);
