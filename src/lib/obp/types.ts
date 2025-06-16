@@ -23,3 +23,12 @@ export interface OBPConsent {
     api_standard: string;
     api_version: string;
 }
+
+export interface OBPConsumerRequestBody {
+    app_type: 'public' | 'confidential',
+    app_name: string,
+    redirect_url: string,
+    developer_email: string,
+    description: string,
+    company: string
+}
