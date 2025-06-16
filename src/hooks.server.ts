@@ -33,19 +33,17 @@ if (!env.REDIS_HOST || !env.REDIS_PORT) {
     client = new Redis(redisConfig);
 }
 
-// Define all protected routes here
-const protectedRoutes = [
-    '/user',
-    '/consumers'
-    // Add more protected routes as needed
-];
 
+function needsAuthorization(routeId: string): boolean {
+    // protected routes are put in the /(protected)/ route group
+    return routeId.startsWith('/(protected)/')
+}
 // Middleware to check user authorization
 const checkAuthorization: Handle = async ({ event, resolve }) => {
     const session = event.locals.session;
+    const routeId = event.route.id;
 
-    // We should check against a list of protected routes here
-    if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
+    if (!!routeId && needsAuthorization(routeId)) {
         console.debug('Checking authorization for user route:', event.url.pathname);
         // Check token expiration
         const accessToken = session?.data.oauth?.access_token;
