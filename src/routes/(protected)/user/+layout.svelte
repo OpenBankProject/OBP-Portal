@@ -22,11 +22,11 @@
 	}
 </script>
 
-<div class="card border-surface-100-900 bg-fill-primary-500 grid h-[760px] w-full grid-cols-[auto_1fr] border-[1px]">
+<div class="grid h-[760px] w-full grid-cols-[auto_1fr] ">
 	<!-- Component -->
 	<Navigation.Rail value={currentTab} onValueChange={(newTab) => (currentTab = newTab)} expanded={isExpanded}>
 		{#snippet header()}
-			<Navigation.Tile labelExpanded="Menu" onclick={toggleExpand} title="Toggle Menu Width"
+			<Navigation.Tile labelExpanded="Menu" onclick={toggleExpand} title="Toggle Menu Width" active="none"
 				><MenuIcon /></Navigation.Tile
 			>
 		{/snippet}
@@ -37,6 +37,7 @@
                     labelExpanded={item.label}
                     href={item.href}
                     title={item.label}
+					active="preset-filled-surface-50-950 border border-solid-secondary-500"
                     ><svelte:component this={item.iconComponent} /></Navigation.Tile
                 >
             {/each}

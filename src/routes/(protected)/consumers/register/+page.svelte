@@ -6,11 +6,11 @@
 <div
 	class="card preset-filled-surface-100-900 border-surface-200-800 divide-surface-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 >
-	<header>
+	<header class="py-4">
 		<h1 class="h4 text-center">Register a consumer</h1>
 	</header>
 	<article class="space-y-4 p-4">
-		<form class="mx-auto w-full max-w-md space-y-4" method="POST">
+		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
 			<label class="label">
 				<span class="label-text">Application Type</span>
 				<select class="select" name="app_type" required>
@@ -45,11 +45,7 @@
 				<input type="text" class="input" name="company" placeholder="Enter Company Name" required/>
 			</label>
 
-            <button type="submit" aria-label="submit" class="btn preset-outline-primary w-full">Submit</button>
+            <button type="submit" aria-label="submit" class="btn preset-filled-primary-500 w-full mt-5">Submit</button>
 		</form>
 	</article>
-	<footer class="flex items-center justify-between gap-4 p-4">
-		<small class="opacity-60">By Alex</small>
-		<small class="opacity-60">On {new Date().toLocaleDateString()}</small>
-	</footer>
 </div>
