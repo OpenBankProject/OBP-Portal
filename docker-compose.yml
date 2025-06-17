@@ -24,7 +24,7 @@ services:
     restart: always
     ports:
       - '6378:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass "very secret password change it123"
+    command: redis-server --save 20 1 --loglevel warning
     volumes: 
       - redis-cache:/data
 
