@@ -49,6 +49,9 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
         const accessToken = session?.data.oauth?.access_token;
         if (!accessToken) {
             console.warn('No access token found in session. Redirecting to login.');
+            
+            await session.destroy();
+            
             return new Response(null, {
                 status: 302,
                 headers: {
@@ -66,6 +69,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
             } catch (error) {
                 console.error('Error refreshing access token:', error);
                 // If the refresh fails, redirect to login
+                // Destroy the session
+                console.warn('Destroying session due to failed token refresh.');
+                await session.destroy();
+
                 return new Response(null, {
                     status: 302,
                     headers: {
