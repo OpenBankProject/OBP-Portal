@@ -4,8 +4,9 @@ export type Role = 'user' | 'assistant' | 'tool'
 export interface BaseMessage {
     id: string; // i.e. UUID4
     role: Role;
-    content: string;
+    message: string;
     timestamp: Date; // ISO string
+    isStreaming?: boolean 
     error?: string;
 }
 

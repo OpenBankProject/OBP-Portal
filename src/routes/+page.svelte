@@ -7,6 +7,7 @@
 
     let opeyChatOptions = {
         displayHeader: false,
+        initialAssistantMessage: `Hello ${name}, how can I assist you today?`,
     }
 
 </script>

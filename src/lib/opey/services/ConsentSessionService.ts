@@ -11,13 +11,14 @@ export class ConsentSessionService implements SessionService {
     async createSession(consentJwt?: string) {
         const headers: Record<string, string> = {};
         if (consentJwt) headers['Consent-JWT'] = consentJwt;
-        const res = await fetch(`${this.baseUrl}/consent-session`, {
+        const res = await fetch(`${this.baseUrl}/create-session`, {
             method: 'POST',
             headers,
             credentials: 'include',
         })
+
         if (!res.ok) {
-            throw new Error(`Failed to create session: ${res.statusText}`);
+            throw new Error(`Failed to create session: ${await res.text()}`);
         }
     }
 

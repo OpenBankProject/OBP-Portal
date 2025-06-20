@@ -3,7 +3,7 @@ import { obp_oauth } from "$lib/oauth/client";
 import type { OAuth2Tokens } from "arctic";
 import type { RequestEvent } from "@sveltejs/kit";
 
-import { env } from "$env/dynamic/private";
+import { PUBLIC_OBP_BASE_URL } from "$env/static/public";
 
 
 export async function GET(event: RequestEvent): Promise<Response> {
@@ -45,7 +45,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
     const obpAccessToken = tokens.accessToken();
 
 
-    const currentUserUrl = `${env.OBP_BASE_URL}/obp/v5.1.0/users/current`;
+    const currentUserUrl = `${PUBLIC_OBP_BASE_URL}/obp/v5.1.0/users/current`;
     const currentUserRequest = new Request(currentUserUrl)
 
     currentUserRequest.headers.set("Authorization", `Bearer ${obpAccessToken}`);

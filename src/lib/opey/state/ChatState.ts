@@ -26,15 +26,52 @@ export class ChatState {
         this.messages = []
         this.emit(); // Notify subscribers about the change
     }
-    
+
     addMessage(message: BaseMessage): void {
         this.messages.push(message)
         this.emit()
     }
 
+    appendToMessage(messageId: string, text: string): void {
+        const message = this.messages.find(msg => msg.id === messageId);
+        if (message) {
+            message.message += text; // Append text to the existing message
+            this.emit(); // Notify subscribers about the change
+        } else {
+            console.warn(`Message with ID ${messageId} not found.`);
+        }
+    }
+
+    markMessageComplete(messageId: string): void {
+        const message = this.messages.find(msg => msg.id === messageId);
+        if (message) {
+            if (message.isStreaming === undefined) {
+                console.warn(`Message with ID ${messageId} does not have isStreaming property.`);
+            } else if (message.isStreaming === false) {
+                console.debug(`Message with ID ${messageId} is already marked as complete.`);
+            } else {
+                message.isStreaming = false; // Mark the message as complete
+                this.emit(); // Notify subscribers about the change
+            }
+        } else {
+            console.warn(`Message with ID ${messageId} not found.`);
+        }
+    }
+
+    updateMessage(messageId: string, updates: Partial<BaseMessage>): void {
+        const message = this.messages.find(msg => msg.id === messageId);
+        if (message) {
+            Object.assign(message, updates); // Update the message with the provided fields
+            this.emit(); // Notify subscribers about the change
+        } else {
+            console.warn(`Message with ID ${messageId} not found.`);
+        }
+    }
+
     subscribe(fn: (msgs: ChatStateSnapshot) => void): void {
         this.subscribers.push(fn);
-        fn({threadId: this.threadId, messages: this.messages }); // Send current state immediately
+        console.debug("ChatState: Subscribed to messages");
+        fn({ threadId: this.threadId, messages: this.messages }); // Send current state immediately
     }
 
     clear(): void {

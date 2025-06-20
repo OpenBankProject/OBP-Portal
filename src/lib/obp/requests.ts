@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
 import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
 
 class OBPRequests {
@@ -6,6 +6,9 @@ class OBPRequests {
 
     constructor(base_url: string) {
         console.log(`${this.constructor.name}: `);
+        if (!base_url) {
+            throw new OBPErrorBase("Base URL for OBP requests is not defined.");
+        }
         this.base_url = base_url
 
         console.log("OBPRequests initialized.");
@@ -157,4 +160,4 @@ class OBPRequests {
 
 }
 
-export const obp_requests = new OBPRequests(env.OBP_BASE_URL);
+export const obp_requests = new OBPRequests(PUBLIC_OBP_BASE_URL);

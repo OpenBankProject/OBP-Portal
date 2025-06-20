@@ -16,6 +16,7 @@ export class SessionController {
             this.sessionState.setAuth(!!consentJwt)
             this.sessionState.setStatus('ready')
         } catch (error: any) {
+            console.log("SessionController.init error:", error)
             this.sessionState.setStatus('error', error.message)
         }
     }

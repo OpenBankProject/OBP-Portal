@@ -1,8 +1,13 @@
-import type { ChatService } from "./ChatService";
+import type { ChatService, StreamEvent } from "./ChatService";
 import { CookieAuthStrategy, type AuthStrategy } from "./AuthStrategy";
 import type { UserMessage, AssistantMessage, ToolMessage } from "../types";
 
 export class RestChatService implements ChatService {
+    private assistantCallback?: (msg: AssistantMessage) => void;
+    private toolCallback?: (msg: ToolMessage) => void;
+    private errorCallback?: (err: Error) => void;
+    private streamEventCallback?: (event: StreamEvent) => void;
+
     constructor(
         private baseUrl: string,
         private auth: AuthStrategy = new CookieAuthStrategy()
@@ -23,12 +28,39 @@ export class RestChatService implements ChatService {
         // … stream parsing, emit tool/assistant events …
 
         if (!res.ok) {
-            throw new Error(`Failed to send message: ${res.statusText}`);
+            if (res.status === 422) {
+                const errorData = await res.json();
+                console.log("Validation error response:", errorData);
+                console.error(`Validation error: ${errorData.detail[0].msg} {${errorData.detail[0].field}}`);
+            }
+            // System-level error - use onError callback
+            const error = new Error(`Failed to send message: ${res.statusText}`);
+            this.errorCallback?.(error);
+            return;
         }
+
+        const reader = res.body?.getReader();
+        if (!reader)
     }
 
-    onAssistantMessage(fn: (msg: AssistantMessage) => void) { /* subscribe SSE or WebSocket */ }
-    onToolMessage(fn: (msg: ToolMessage) => void) { /* idem */ }
-    onError(fn: (err: Error) => void) { /* idem */ }
+    onAssistantMessage(fn: (msg: AssistantMessage) => void) { 
+        // Register the callback to handle assistant messages
+        this.assistantCallback = fn
+    }
+
+    onStreamEvent(fn: (event: StreamEvent) => void) {
+        this.streamEventCallback = fn
+        // Register the callback to handle streaming events
+    }
+
+    onToolMessage(fn: (msg: ToolMessage) => void) {
+        this.toolCallback = fn
+        // Register the callback to handle tool messages
+    }
+
+    onError(fn: (err: Error) => void) {
+        this.errorCallback = fn
+        // Register the callback to handle errors
+    }
     cancel() { /* abort controller */ }
 }
