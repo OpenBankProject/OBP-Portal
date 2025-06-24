@@ -22,7 +22,6 @@ export interface ChatService {
      */
     onAssistantMessage(fn: (msg: AssistantMessage) => void): void
     
-    onAssistantMessage(fn: (msg: AssistantMessage) => void): void
     onToolMessage(fn: (msg: ToolMessage) => void): void
     onError(fn: (err: Error) => void): void
     cancel(): void

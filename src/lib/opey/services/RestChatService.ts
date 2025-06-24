@@ -75,6 +75,9 @@ export class RestChatService implements ChatService {
                             continue; // Skip this line if parsing fails
                         }
 
+                        // Handle the event based on its type
+                        // This switch takes the eventData type from Opey API and translates it into a StreamEvent
+                        // that is handled by the ChatController
                         switch (eventData.type) {
                             case 'assistant_start':
                                 this.streamEventCallback?.({

@@ -25,10 +25,12 @@
 		"@sveltejs/kit": "^2.16.0",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@tailwindcss/forms": "^0.5.9",
-		"@tailwindcss/typography": "^0.5.15",
+		"@tailwindcss/typography": "^0.5.16",
 		"@tailwindcss/vite": "^4.0.0",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
+		"@types/markdown-it": "^14.1.2",
+		"@types/prismjs": "^1.26.5",
 		"jsdom": "^26.0.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
@@ -48,6 +50,8 @@
 		"ioredis": "^5.6.1",
 		"jwt-decode": "^4.0.0",
 		"langchain": "^0.3.27",
+		"markdown-it": "^14.1.0",
+		"prismjs": "^1.30.0",
 		"svelte-kit-connect-redis": "^0.1.0",
 		"svelte-kit-sessions": "^0.4.0"
 	}
