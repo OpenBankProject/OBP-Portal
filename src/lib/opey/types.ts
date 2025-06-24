@@ -1,6 +1,6 @@
 // import type { ToolCall as LangChainToolCall } from '@langchain/core/messages/tool'
 
-export type Role = 'user' | 'assistant' | 'tool'
+export type Role = 'user' | 'assistant' | 'tool' | 'error';
 export interface BaseMessage {
     id: string; // i.e. UUID4
     role: Role;
@@ -20,9 +20,19 @@ export interface AssistantMessage extends BaseMessage {
     // Probably we will need some fields here for tool call/ tool call approval requests
 }
 
+export interface ErrorMessage extends BaseMessage {
+    role: "error";
+    // Additional fields specific to error messages can be added here
+    error: string; // Error message text
+}
+
 export interface ToolMessage extends BaseMessage {
     role: 'tool'
-    toolCall: ToolCall
+    toolName: string; // Name of the tool being called
+    toolCallId: string
+    toolInput: Record<string, any>; // Input parameters for the tool call
+    status?: 'success' | 'error' 
+    toolOutput?: any; // Output from the tool call, if available
 }
 
 export interface ToolCall {

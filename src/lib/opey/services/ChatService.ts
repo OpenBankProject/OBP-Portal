@@ -32,7 +32,7 @@ export type StreamEvent =
     | { type: 'assistant_start', messageId: string, timestamp: Date }
     | { type: 'assistant_token', messageId: string, token: string }
     | { type: 'assistant_complete', messageId: string }
-    | { type: 'tool_start', messageId: string, toolName: string }
-    | { type: 'tool_token', messageId: string, token: string }
-    | { type: 'tool_complete', messageId: string, result: any }
+    | { type: 'tool_start', toolCallId: string, toolName: string, toolInput: Record<string, any> }
+    | { type: 'tool_token', toolCallId: string, token: string }
+    | { type: 'tool_complete', toolCallId: string, toolName: string, toolOutput: any, status: 'success' | 'error' }
     | { type: 'error', messageId?: string, error: string }

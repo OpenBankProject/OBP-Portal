@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { BaseMessage } from "../types";
+import type { BaseMessage, ToolMessage} from "../types";
 
 export interface ChatStateSnapshot {
     threadId: string
@@ -32,6 +32,11 @@ export class ChatState {
         this.emit()
     }
 
+    addToolMessage(toolMessage: ToolMessage): void {
+        this.messages.push(toolMessage);
+        this.emit();
+    }
+
     appendToMessage(messageId: string, text: string): void {
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
@@ -50,6 +55,7 @@ export class ChatState {
             } else if (message.isStreaming === false) {
                 console.debug(`Message with ID ${messageId} is already marked as complete.`);
             } else {
+                console.log(`Marking message with ID ${messageId} as complete.`);
                 message.isStreaming = false; // Mark the message as complete
                 this.emit(); // Notify subscribers about the change
             }
@@ -65,6 +71,16 @@ export class ChatState {
             this.emit(); // Notify subscribers about the change
         } else {
             console.warn(`Message with ID ${messageId} not found.`);
+        }
+    }
+
+    updateToolMessage(toolCallId: string, updates: Partial<ToolMessage>): void {
+        const toolMessage = this.messages.find(msg => msg.role === 'tool' && msg.id === toolCallId) as ToolMessage | undefined;
+        if (toolMessage) {
+            Object.assign(toolMessage, updates); // Update the tool message with the provided fields
+            this.emit(); // Notify subscribers about the change
+        } else {
+            console.warn(`Tool message with ID ${toolCallId} not found.`);
         }
     }
 

@@ -10,7 +10,13 @@ export class ConsentSessionService implements SessionService {
     // These should be rate-limited somehow, i guess on Opey's side
     async createSession(consentJwt?: string) {
         const headers: Record<string, string> = {};
-        if (consentJwt) headers['Consent-JWT'] = consentJwt;
+        if (consentJwt) {
+            console.log("ConsentSessionService: Creating session with consent JWT");
+            headers['Consent-JWT'] = consentJwt
+        } else {
+            console.log("ConsentSessionService: Creating anonymous session");
+            // No Consent-JWT header means anonymous session
+        }
         const res = await fetch(`${this.baseUrl}/create-session`, {
             method: 'POST',
             headers,
@@ -19,6 +25,8 @@ export class ConsentSessionService implements SessionService {
 
         if (!res.ok) {
             throw new Error(`Failed to create session: ${await res.text()}`);
+        } else {
+            console.log("ConsentSessionService: Session created successfully");
         }
     }
 
