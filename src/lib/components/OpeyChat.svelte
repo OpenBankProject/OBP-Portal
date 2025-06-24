@@ -90,6 +90,11 @@
 				throw new Error(data.error || 'Failed to initialize session');
 			}
 
+			console.debug('Opey session initialized:', data);
+			if (data.error) {
+				console.warn('Opey session initialization warning:', data.error);
+			}
+
 			// Update session state based on response
 			sessionState.setAuth(data.authenticated);
 			sessionState.setStatus('ready');
