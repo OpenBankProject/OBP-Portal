@@ -6,6 +6,8 @@ class OBPRequests {
 
     constructor(base_url: string) {
         console.log(`${this.constructor.name}: `);
+        console.log("Initializing OBPRequests with base URL:", base_url);
+
         if (!base_url) {
             throw new OBPErrorBase("Base URL for OBP requests is not defined.");
         }
