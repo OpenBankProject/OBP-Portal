@@ -4,6 +4,7 @@
 	import { AppBar, Accordion } from '@skeletonlabs/skeleton-svelte';
 	// Lucide Icons
 	import { Menu, X } from '@lucide/svelte';
+	import { env } from '$env/dynamic/public'
 
 	interface LayoutData {
 		email?: string;
@@ -34,6 +35,11 @@
 		{ href: '/support', label: 'Support' },
 	]);
 
+	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
+	const defaultLogoUrl = '/logo2x-1.png';
+
+	const logoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
+
 	if (data.apiExplorerUrl) {
 		headerLinks.push({ href: data.apiExplorerUrl, label: 'API Explorer' });
 	}
@@ -44,9 +50,9 @@
 	{#snippet lead()}
 		<a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
 			<img
-				class="block h-auto w-100 md:object-contain"
-				src="/logo2x-1.png"
-				alt="Open Bank Project Logo"
+				class="block w-auto md:object-contain h-20"
+				src={logoUrl}
+				alt="Logo"
 			/>
 		</a>
 	{/snippet}

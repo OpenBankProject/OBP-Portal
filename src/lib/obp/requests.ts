@@ -1,4 +1,4 @@
-import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
 
 class OBPRequests {
@@ -160,4 +160,4 @@ class OBPRequests {
 
 }
 
-export const obp_requests = new OBPRequests(PUBLIC_OBP_BASE_URL);
+export const obp_requests = new OBPRequests(env.PUBLIC_OBP_BASE_URL);

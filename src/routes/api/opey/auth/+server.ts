@@ -4,6 +4,44 @@ import { DefaultOBPIntegrationService } from "$lib/opey/services/OBPIntegrationS
 import { env } from "$env/dynamic/private";
 import type { Session } from "svelte-kit-sessions";
 
+
+export async function POST(event: RequestEvent) {
+    try {
+        const session = event.locals.session;
+        const accessToken = session?.data?.oauth?.access_token;
+
+        // Check if this is an authenticated request
+        if (accessToken) {
+
+            const opeyConsumerId = env.OPEY_CONSUMER_ID;
+            if (!opeyConsumerId) {
+                // Opey consumer ID is not configured
+                // We will return an anonymous session instead, with a warning/error
+
+                console.warn('Opey consumer ID not configured, returning anonymous session');
+                return await _getAnonymousSession('Opey consumer ID not configured, returning anonymous session instead.');
+            }
+
+            try {
+                // AUTHENTICATED FLOW - Create consent and authenticated Opey session
+                return await _getAuthenticatedSession(opeyConsumerId, session);
+            } catch (error: any) {
+                console.error('Error creating authenticated Opey session:', error);
+                return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+            }
+
+        } else {
+            // ANONYMOUS FLOW - Create anonymous Opey session
+            return await _getAnonymousSession();
+        }
+
+    } catch (error: any) {
+        console.error('Opey Auth error:', error);
+        return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+
 async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: Session) {
     // AUTHENTICATED FLOW - Create consent and authenticated Opey session
 
@@ -57,40 +95,4 @@ async function _getAnonymousSession(error?: string) {
         responseData,
         setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {}
     );
-}
-
-
-export async function POST(event: RequestEvent) {
-    try {
-        const session = event.locals.session;
-        const accessToken = session?.data?.oauth?.access_token;
-
-        // Check if this is an authenticated request
-        if (accessToken) {
-
-            const opeyConsumerId = env.OPEY_CONSUMER_ID;
-            if (!opeyConsumerId) {
-                // Opey consumer ID is not configured
-                // We will return an anonymous session instead, with a warning/error
-
-                console.warn('Opey consumer ID not configured, returning anonymous session');
-                return await _getAnonymousSession('Opey consumer ID not configured, returning anonymous session instead.');
-            }
-
-            try {
-                // AUTHENTICATED FLOW - Create consent and authenticated Opey session
-                return await _getAuthenticatedSession(opeyConsumerId, session);
-            } catch (error: any) {
-                console.error('Error creating authenticated Opey session:', error);
-                return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-            }
-
-        } else {
-
-        }
-
-    } catch (error: any) {
-        console.error('Opey Auth error:', error);
-        return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-    }
 }

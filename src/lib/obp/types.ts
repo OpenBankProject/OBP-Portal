@@ -31,4 +31,5 @@ export interface OBPConsumerRequestBody {
     developer_email: string,
     description: string,
     company: string
+    enabled: boolean
 }

@@ -6,7 +6,7 @@
 	class="card preset-filled-surface-100-900 border-surface-200-800 divide-surface-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 >
 	<header class="py-4">
-		<h1 class="h4 text-center">Register a consumer</h1>
+		<h1 class="h4 text-center">Register for the Open Bank Project</h1>
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">

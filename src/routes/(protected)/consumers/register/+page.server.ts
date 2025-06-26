@@ -1,9 +1,9 @@
-import type { RequestEvent, Actions } from "@sveltejs/kit";
+import { type RequestEvent, type Actions, redirect } from "@sveltejs/kit";
 import { obp_requests } from "$lib/obp/requests";
 import type { OBPConsumerRequestBody } from "$lib/obp/types";
 
 export const actions = {
-    default: async ({ request, locals }) => {
+    default: async ({ request, locals, cookies }) => {
         const formData = await request.formData()
         
         console.log("Form Data:", Object.fromEntries(formData.entries()));
@@ -16,7 +16,8 @@ export const actions = {
             redirect_url: formEntries.redirect_url as string,
             developer_email: formEntries.developer_email as string,
             description: formEntries.description as string,
-            company: formEntries.company as string
+            company: formEntries.company as string,
+            enabled: true
         };
 
         // Get the access token from the session
@@ -30,13 +31,31 @@ export const actions = {
         }
         // Make request to OBP to register the consumer
         try {
-            const response = await obp_requests.post(`/obp/v5.1.0/management/consumers`, token, requestBody);
+            const response = await obp_requests.post(`/obp/v5.1.0/my/consumers`, token, requestBody);
+
+            
+            console.log("Consumer created successfully:", response);
+
+            // Store the response data in a secure cookie for the success page
+            // Flash Message, will be deleted when the user visits the success page
+            cookies.set('consumer_data', JSON.stringify(response), {
+                path: '/',
+                maxAge: 60, // 1 minute - short lived
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict'
+            });
+            
         } catch (error) {
             console.error("Error registering consumer:", error);
             return {
                 error: "Failed to create consumer"
             };
         }
+
+
+
+        return redirect(303, `/consumers/register/success`);
 
     }
 } satisfies Actions
