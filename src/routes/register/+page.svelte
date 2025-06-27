@@ -1,5 +1,14 @@
 <script lang="ts">
-	
+	let password = $state('');
+    let repeatPassword = $state('');
+
+    function validatePasswords() {
+        if (password !== repeatPassword) {
+            alert('Passwords do not match!');
+            return false;
+        }
+        return true;
+    }
 </script>
 
 <div
@@ -10,39 +19,46 @@
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
-			<label class="label">
-				<span class="label-text">Application Type</span>
-				<select class="select" name="app_type" required>
-					<option value="public">Public</option>
-					<option value="confidential">Confidential</option>
-				</select>
-			</label>
-
 			<!-- --- -->
 			<label class="label">
-				<span class="label-text">Application Name</span>
-				<input type="text" class="input" name="app_name" placeholder="Enter Application Name" required/>
+				<span class="label-text">First Name</span>
+				<input type="text" class="input" name="first_name" placeholder="Alfred" required/>
 			</label>
 			<!-- --- -->
 			<label class="label">
-				<span class="label-text">Redirect Url</span>
-				<input type="url" class="input" name="redirect_url" placeholder="i.e. http://localhost:8080/callback" />
+				<span class="label-text">Last Name</span>
+				<input type="text" class="input" name="last_name" placeholder="Prufrock" required/>
 			</label>
 			<!-- this should be automatically filled out if the user is registered -->
 			<label class="label">
-				<span class="label-text">Developer Email</span>
-				<input type="email" class="input" name="developer_email" placeholder="john@example.com" required/>
+				<span class="label-text">Email Address</span>
+				<input type="email" class="input" name="developer_email" placeholder="alfred.j.prufrock@example.com" required/>
 			</label>
 			<!-- --- -->
 			<label class="label">
-				<span class="label-text">Description</span>
-				<textarea class="input" name="description" placeholder="Enter a short description of the application..." required></textarea>
+				<span class="label-text">Username</span>
+				<input type="text" class="input" name="username" placeholder="coffeespoon123" required/>
 			</label>
 
             <label class="label">
-				<span class="label-text text-left">Company</span>
-				<input type="text" class="input" name="company" placeholder="Enter Company Name" required/>
+				<span class="label-text text-left">Password</span>
+				<input type="password" class="input" name="password" bind:value={password} placeholder="Enter Password" required/>
 			</label>
+
+            <label class="label">
+				<span class="label-text text-left">Password</span>
+				<input type="password" class="input" name="repeat_password" bind:value={repeatPassword} placeholder="Confirm Password" required/>
+			</label>
+
+            <hr class="hr" />
+            <p class="text-center text-sm text-secondary-800-200">
+                By registering, you agree to our <a href="/terms" class="text-primary-500 hover:underline">Terms of Service</a> and <a href="/privacy" class="text-primary-500 hover:underline">Privacy Policy</a>.
+            </p>
+            <label class="label text-center flex flex-row items-center justify-center">
+                <p class="mr-5">I agree to the terms and conditions</p>
+                <input type="checkbox" class="checkbox" name="terms" required />
+            </label>
+            <hr class="hr" />
 
             <button type="submit" aria-label="submit" class="btn preset-filled-primary-500 w-full mt-5">Submit</button>
 		</form>

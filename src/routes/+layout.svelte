@@ -50,7 +50,7 @@
 	{#snippet lead()}
 		<a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
 			<img
-				class="block w-auto md:object-contain h-20"
+				class="block w-auto md:object-contain h-10"
 				src={logoUrl}
 				alt="Logo"
 			/>
@@ -77,11 +77,12 @@
 		<span class="vr"></span>
 
 		{#if isAuthenticated}
-			<span class="mx-10 my-auto font-bold text-white hover:text-tertiary-400"><a href="/user">{data.email}</a></span>
+			<span class="mx-10 my-auto text-white hover:text-tertiary-400"><a href="/user">{data.email}</a></span>
 			<button type="button" class="btn preset-outlined-primary-500"
 				><a href="/logout">Logout</a></button
 			>
 		{:else}
+			<span class="ml-2 my-auto font-bold text-white hover:text-tertiary-400"><a href="/register">Sign Up</a></span>
 			<button type="button" class="btn preset-filled-primary-500"
 				><a href="/login/obp">Log on</a></button
 			>

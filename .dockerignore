@@ -13,7 +13,6 @@ README.md
 .vscode
 .env.example
 .env.docker
-.env-docker
 node_modules
 build
 package
