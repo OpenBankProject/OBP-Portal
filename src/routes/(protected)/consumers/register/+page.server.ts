@@ -31,7 +31,7 @@ export const actions = {
         }
         // Make request to OBP to register the consumer
         try {
-            const response = await obp_requests.post(`/obp/v5.1.0/my/consumers`, token, requestBody);
+            const response = await obp_requests.post(`/obp/v5.1.0/my/consumers`, requestBody, token);
 
             
             console.log("Consumer created successfully:", response);

@@ -33,3 +33,11 @@ export interface OBPConsumerRequestBody {
     company: string
     enabled: boolean
 }
+
+export interface OBPUserRegistrationRequestBody {
+    email: string;
+    username: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+}

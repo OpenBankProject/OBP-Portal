@@ -17,14 +17,17 @@ class OBPRequests {
         
     }
 
-    async get(endpoint: string, accessToken: string): Promise<any> {
+    async get(endpoint: string, accessToken?: string): Promise<any> {
         console.log(`--------------------------------\n${this.constructor.name}: `);
         console.debug("GET ", endpoint);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${this.base_url}${endpoint}`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
+            headers
         });
 
         const data = await response.json();
@@ -45,15 +48,18 @@ class OBPRequests {
         return data;
     }
 
-    async post(endpoint: string, accessToken: string, body: any): Promise<any> {
+    async post(endpoint: string, body: any, accessToken?: string): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("POST ", endpoint, body);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
+            headers,
             body: JSON.stringify(body)
         });
 
@@ -74,15 +80,18 @@ class OBPRequests {
         return data;
     }
 
-    async delete(endpoint: string, accessToken: string): Promise<any> {
+    async delete(endpoint: string, accessToken?: string): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("DELETE ", endpoint);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
+            headers
         });
 
 
@@ -102,15 +111,18 @@ class OBPRequests {
         return data;
     }
 
-    async put(endpoint: string, accessToken: string, body: any): Promise<any> {
+    async put(endpoint: string, body: any, accessToken?: string): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("PUT ", endpoint, body);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
+            headers,
             body: JSON.stringify(body)
         });
 
@@ -131,15 +143,18 @@ class OBPRequests {
         return data;
     }
 
-    async patch(endpoint: string, accessToken: string, body: any): Promise<any> {
+    async patch(endpoint: string, body: any, accessToken?: string): Promise<any> {
         console.log(`${this.constructor.name}: `);
         console.debug("PATCH ", endpoint, body);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${this.base_url}${endpoint}`, {
             method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
+            headers,
             body: JSON.stringify(body)
         });
 
