@@ -138,7 +138,7 @@
 							<p class="text-s font-bold">{options.currentlyActiveUserName}</p>
 							<Avatar
 								name={options.currentlyActiveUserName}
-								classes="w-7 h-7 border p-1 bg-secondary-50 border-surface-500"
+								classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
 							/>
 						</div>
 						<div class="preset-filled-tertiary-500 max-w-3/5 rounded-2xl p-2 text-white">
@@ -151,7 +151,7 @@
 							<Avatar
 								src="/opey-icon-white.png"
 								name="opey"
-								classes="w-7 h-7 border p-1 bg-secondary-50 border-surface-500"
+								classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
 							/>
 							<p class="text-s font-bold">Opey</p>
 						</div>

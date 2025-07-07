@@ -23,7 +23,7 @@
 </script>
 
 <div
-	class="card preset-filled-surface-100-900 border-surface-200-800 divide-surface-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
+	class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 >
 	<header class="py-4">
 		<h1 class="h4 text-center">Consumer registration success</h1>
@@ -35,7 +35,7 @@
         <p class="text-center text-warning-400">
             You will not be able to retrieve them again.
         </p>
-        <div class="preset-filled-surface-50-950 shadow-md rounded-lg p-4 m-1.5">
+        <div class="preset-filled-primary-50-950 shadow-md rounded-lg p-4 m-1.5">
             <ul class="list-inside space-y-2">
                 {#each Object.entries(consumerData) as [key, value]}
                     {#if key === 'created_by_user'}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Dialog, ScrollArea } from 'bits-ui';
+	import { Dialog } from 'bits-ui';
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 
@@ -78,7 +78,7 @@
 		/>
 
 		<Dialog.Content
-			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex max-h-[90vh] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] flex-col rounded-lg border bg-surface-100-900 shadow-lg"
+			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex max-h-[90vh] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] flex-col rounded-lg border bg-primary-100-900 shadow-lg"
 		>
 			<div class="flex items-center justify-between border-b p-6">
 				<Dialog.Title class="text-lg font-semibold">
@@ -117,7 +117,7 @@
 				{/if}
 			</div>
 
-			<div class="flex items-center justify-between border-t bg-surface-50-950 p-6">
+			<div class="flex items-center justify-between border-t bg-primary-50-950 p-6">
 				<div class="flex items-center space-x-2">
 					{#if !hasScrolledToBottom}
 						<svg class="h-4 w-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">

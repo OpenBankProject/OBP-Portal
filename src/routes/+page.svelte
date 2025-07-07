@@ -21,6 +21,6 @@
 
 </script>
 
-<div class="w-full text-center mx-auto h-150">
+<!-- <div class="w-full text-center mx-auto h-150">
     <OpeyChat {opeyChatOptions}/>
-</div>
+</div> -->
