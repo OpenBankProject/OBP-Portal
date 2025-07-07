@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LegalDocumentModal from '$lib/components/LegalDocumentModal.svelte';
 	import type { PageProps } from './$types';
+	import { Eye, EyeOff } from '@lucide/svelte';
 
 	let { form }: PageProps = $props();
 
@@ -8,14 +9,40 @@
 	let repeatPassword = $state('');
 	let termsAccepted = $state(false);
 	let privacyAccepted = $state(false);
+	let showPassword = $state(false);
+	let passwordVisibilityType = $derived.by(() => (showPassword ? 'text' : 'password'));
 
-	function validatePasswords() {
+	function checkPasswordAgainstPolicy(password: string): boolean {
+		// Check if password meets policy: either strong (10+ chars with mixed case, numbers, special chars) or long (16-512 chars)
+		if (password.length > 16 && password.length <= 512) {
+			return true;
+		}
+
+		if (password.length >= 10) {
+			const hasUpperCase = /[A-Z]/.test(password);
+			const hasLowerCase = /[a-z]/.test(password);
+			const hasNumbers = /\d/.test(password);
+			const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+			return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChars;
+		}
+
+		return false;
+	}
+
+	function togglePasswordVisibility() {
+		showPassword = !showPassword;
+	}
+
+	function checkPasswordsMatching() {
 		if (password !== repeatPassword) {
-			alert('Passwords do not match!');
 			return false;
 		}
 		return true;
 	}
+
+	let isPasswordValid = $derived(checkPasswordAgainstPolicy(password));
+	let arePasswordsMatching = $derived(checkPasswordsMatching());
 
 	function handleSubmit(event: Event) {
 		if (!termsAccepted || !privacyAccepted) {
@@ -24,7 +51,12 @@
 			return;
 		}
 
-		if (!validatePasswords()) {
+		if (!arePasswordsMatching) {
+			event.preventDefault();
+			return;
+		}
+
+		if (!isPasswordValid) {
 			event.preventDefault();
 			return;
 		}
@@ -80,26 +112,63 @@
 
 			<label class="label">
 				<span class="label-text text-left">Password</span>
-				<input
-					type="password"
-					class="input"
-					name="password"
-					bind:value={password}
-					placeholder="Enter Password"
-					required
-				/>
+				<div class="relative">
+					<input
+						type={passwordVisibilityType}
+						class="input pr-10"
+						name="password"
+						bind:value={password}
+						placeholder="Enter Password"
+						required
+					/>
+					<button
+						type="button"
+						class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+						onclick={togglePasswordVisibility}
+					>
+						{#if showPassword}
+							<EyeOff class="h-5 w-5" />
+						{:else}
+							<Eye class="h-5 w-5" />
+						{/if}
+					</button>
+				</div>
+
+				{#if password.length > 0 && !isPasswordValid}
+					<p class="text-error-500 text-xs">
+						Password must be at least 10 characters long with mixed case, numbers, and special
+						characters, or between 16 and 512 characters long.
+					</p>
+				{/if}
+
+				{#if password.length > 0 && repeatPassword.length > 0 && !arePasswordsMatching}
+					<p class="text-error-500 text-xs">Passwords do not match!</p>
+				{/if}
 			</label>
 
 			<label class="label">
-				<span class="label-text text-left">Password</span>
-				<input
-					type="password"
-					class="input"
-					name="repeat_password"
-					bind:value={repeatPassword}
-					placeholder="Confirm Password"
-					required
-				/>
+				<span class="label-text text-left">Confirm Password</span>
+				<div class="relative">
+					<input
+						type={passwordVisibilityType}
+						class="input pr-10"
+						name="repeat_password"
+						bind:value={repeatPassword}
+						placeholder="Confirm Password"
+						required
+					/>
+					<button
+						type="button"
+						class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+						onclick={togglePasswordVisibility}
+					>
+						{#if showPassword}
+							<EyeOff class="h-5 w-5" />
+						{:else}
+							<Eye class="h-5 w-5" />
+						{/if}
+					</button>
+				</div>
 			</label>
 
 			<hr class="hr" />
