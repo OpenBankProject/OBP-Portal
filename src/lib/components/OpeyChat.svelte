@@ -7,25 +7,28 @@
 	import { ChatController } from '$lib/opey/controllers/ChatController';
 	import { SessionState, type SessionSnapshot } from '$lib/opey/state/SessionState';
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
-	import { SessionController } from '$lib/opey/controllers/SessionController';
-	import { DefaultOBPIntegrationService } from '$lib/opey/services/OBPIntegrationService';
 	import type { ToolMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
 	import { Check, Hammer, LoaderCircle } from '@lucide/svelte';
-
+	import type { Snippet } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
 
 	// Interface for chat options
-	interface OpeyChatOptions {
+	export interface OpeyChatOptions {
 		baseUrl: string; // Base Opey URL
 		displayHeader: boolean; // Whether to display the header with the logo and title
 		currentlyActiveUserName: string; // Optional name of the currently active user
 		suggestedQuestions: string[]; // List of suggested questions to display
 		initialAssistantMessage?: string;
+		headerClasses?: string; // Optional classes for the header
+		footerClasses?: string;
+		bodyClasses?: string;
 	}
 	interface Props {
 		opeyChatOptions?: Partial<OpeyChatOptions>; // Optional chat options to customize the component
 		userAuthenticated?: boolean; // Optional prop to indicate if the user is authenticated
+		splash?: Snippet; // If set, will render the splash screen snippet until the first message is sent
+		// upon which the splash screen will dissapear
 	}
 	// Default chat options
 	const defaultChatOptions: OpeyChatOptions = {
@@ -35,7 +38,7 @@
 		suggestedQuestions: []
 	};
 
-	let { opeyChatOptions, userAuthenticated = false }: Props = $props();
+	let { opeyChatOptions, userAuthenticated = false, splash }: Props = $props();
 	// Merge default options with the provided options
 	const options = { ...defaultChatOptions, ...opeyChatOptions };
 
@@ -51,6 +54,10 @@
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
 	let isConnecting = false;
+
+	let splashScreenDisplay = $derived.by(() => {
+		return splash && chat.messages.length === 0;
+	});
 
 	onMount(async () => {
 		console.debug('OpeyChat component mounted with options:', options);
@@ -120,16 +127,20 @@
 	let messageInput = $state('');
 </script>
 
-<div class="flex h-full flex-col">
-	<!-- Header -->
+{#snippet header()}
 	{#if options.displayHeader}
-		<header class="align-center preset-filled-secondary-300-700 flex flex-shrink-0 justify-between">
+		<header
+			class="align-center preset-filled-secondary-300-700 flex flex-shrink-0 justify-between {options.bodyClasses ||
+				''}"
+		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
 			<h1 class="h4 p-2">Chat With Opey</h1>
 		</header>
 	{/if}
+{/snippet}
 
-	<article class="preset-filled-secondary-50-950 flex-1 space-y-4 overflow-auto p-4">
+{#snippet body()}
+	<article class="flex-1 space-y-4 overflow-auto p-4 {options.bodyClasses || ''}">
 		<div class="space-y-2">
 			{#each chat.messages as message (message.id)}
 				{#if message.role === 'user'}
@@ -215,26 +226,10 @@
 			{/each}
 		</div>
 	</article>
+{/snippet}
 
-	<!--Display Suggested question 'pills'-->
-	{#if options.suggestedQuestions.length > 0 && !(chat.messages.length > 1)}
-		<div class="preset-filled-secondary-50-950 flex-shrink-0 p-4">
-			<p class="mb-2 ml-0 text-left text-xs">Try one of these questions:</p>
-			<div class="flex flex-wrap gap-2">
-				{#each options.suggestedQuestions as question}
-					<button
-						class="btn preset-filled-tertiary-500 text-s rounded-full px-3 py-1"
-						onclick={() => sendMessage(question)}
-						disabled={session?.status !== 'ready'}
-					>
-						{question}
-					</button>
-				{/each}
-			</div>
-		</div>
-	{/if}
-
-	<footer class="preset-filled-secondary-300-700 flex-shrink-0 p-4">
+{#snippet footer()}
+	<footer class="w-full p-4 {options.footerClasses || ''}">
 		<div class="flex gap-2">
 			<input
 				bind:value={messageInput}
@@ -255,4 +250,42 @@
 			</button>
 		</div>
 	</footer>
+{/snippet}
+
+<div class="flex h-full flex-col items-center">
+	<!-- Header -->
+
+	{#if splashScreenDisplay && splash}
+		{@render splash()}
+	{/if}
+
+	{#if !splashScreenDisplay && options.displayHeader}
+		<div class="flex-shrink-0 {options.headerClasses || ''}">
+			{@render header()}
+		</div>
+	{/if}
+
+	{#if !splashScreenDisplay}
+		{@render body()}
+	{/if}
+
+	{@render footer()}
+
+	<!--Display Suggested question 'pills'-->
+	{#if options.suggestedQuestions.length > 0 && !(chat.messages.length > 1)}
+		<div class="preset-filled-secondary-50-950 flex-shrink-0 p-4">
+			<p class="mb-2 ml-0 text-left text-xs">Try one of these questions:</p>
+			<div class="flex flex-wrap gap-2">
+				{#each options.suggestedQuestions as question}
+					<button
+						class="btn preset-filled-tertiary-500 text-s rounded-full px-3 py-1"
+						onclick={() => sendMessage(question)}
+						disabled={session?.status !== 'ready'}
+					>
+						{question}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>

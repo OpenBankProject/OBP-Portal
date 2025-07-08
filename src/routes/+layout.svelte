@@ -12,7 +12,8 @@
 		Star,
 		SquareTerminal,
 		UserPlus,
-		MessageCircleQuestion
+		MessageCircleQuestion,
+		ShieldUser
 	} from '@lucide/svelte';
 	import { env } from '$env/dynamic/public';
 
@@ -49,18 +50,19 @@
 			? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 			: []),
 		{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
-		{ label: 'Consent Simulator', href: '/support', iconComponent: Compass },
-		{ label: 'FAQs', href: '/support', iconComponent: MessageCircleQuestion },
+		{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
+		{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
 		...(data.API_MANAGER_URL
 			? [{ href: data.API_MANAGER_URL, label: 'API Manager', iconComponent: SquareTerminal }]
 			: [])
 	]);
 
-	const headerLinks = $state([
-		{ href: '/', label: 'Home' },
-		{ href: '/consumers/register', label: 'Get API Key' },
-		{ href: '/intro', label: 'Getting Started' },
-		{ href: '/support', label: 'Support' }
+	let footerLinks = $state([
+		{ href: '/privacy', label: 'Privacy Policy' },
+		{ href: 'https://github.com/OpenBankProject', label: 'GitHub' },
+		{ href: '/terms', label: 'Terms of Service' },
+		{ href: '/support', label: 'Support' },
+		{ href: '/sitemap', label: 'Sitemap' }
 	]);
 
 	let currentTab = $state('home');
@@ -71,7 +73,7 @@
 	const logoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
 </script>
 
-<div class="grid h-screen w-full divide-x divide-solid divide-surface-100-900 grid-cols-[auto_1fr]">
+<div class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid">
 	<div class="h-full">
 		<Navigation.Rail
 			value={currentTab}
@@ -79,12 +81,14 @@
 			expanded={true}
 			background="preset-filled-primary-50-950"
 			tilesJustify="justify-start"
-			tilesClasses="pt-10"
-			headerClasses="px-4 pb-4 pt-2"
+			tilesClasses="pt-5"
+			footerClasses="p-4"
+			tilesGap="gap-2"
+			headerClasses="p-4"
 		>
 			{#snippet header()}
-				<a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-					<img class="block w-full md:object-contain" src={logoUrl} alt="Logo" />
+				<a href="/" class="flex w-full items-center">
+					<img class="block w-full" src={logoUrl} alt="Logo" />
 				</a>
 			{/snippet}
 			{#snippet tiles()}
@@ -98,33 +102,43 @@
 						><item.iconComponent /></Navigation.Tile
 					>
 				{/each}
-				<!-- <Navigation.Tile id="consents" labelExpanded="Manage Consents" href="?/consents">
-			<IconFolder />
-		</Navigation.Tile>
-		<Navigation.Tile labelExpanded="Browse Images" href="?/account">
-			<IconImage />
-		</Navigation.Tile>
-		<Navigation.Tile labelExpanded="Browse Music" href="#/music">
-			<IconMusic />
-		</Navigation.Tile>
-		<Navigation.Tile labelExpanded="Browse Videos" href="#/videos">
-			<IconVideo />
-		</Navigation.Tile>
-		<Navigation.Tile labelExpanded="Browse Games" href="/games">
-			<IconGames />
-		</Navigation.Tile> -->
 			{/snippet}
-			<!-- {#snippet footer()}
-		<Navigation.Tile labelExpanded="Settings" href="/settings" title="Settings"
-			><IconSettings /></Navigation.Tile
-		>
-	{/snippet} -->
+			{#snippet footer()}
+				<div class="text-surface-800-200 flex flex-wrap items-center gap-3 text-xs">
+					{#each footerLinks as link, index}
+						<a href={link.href} class="hover:text-tertiary-400 flex items-center gap-2">
+							{#if link.label === 'GitHub'}
+								<img class="h-4" alt="github logo" src="/github-mark-white.svg" />
+							{/if}
+							{link.label}
+						</a>
+					{/each}
+					<span> Open Bank Project © 2011-2025 </span>
+				</div>
+			{/snippet}
 		</Navigation.Rail>
-
-		
 	</div>
-	<div class="flex items-center justify-center bg-primary-50-950">
-		{@render children()}
+	<div class="flex h-full flex-col">
+		<div class="bg-opacity-0 flex items-center justify-end p-4">
+			{#if isAuthenticated}
+				<span class="hover:text-tertiary-400 mx-4 text-white"><a href="/user">{data.email}</a></span
+				>
+				<button type="button" class="btn preset-outlined-primary-500"
+					><a href="/logout">Logout</a></button
+				>
+			{:else}
+				<span class="hover:text-tertiary-400 mx-4 text-white"
+					><a href="/register">Register</a>
+				</span>
+				<button type="button" class="btn preset-filled-surface-950-50"
+					><a href="/login/obp">Log on</a></button
+				>
+			{/if}
+		</div>
+
+		<div class="flex-1 overflow-auto">
+			{@render children()}
+		</div>
 	</div>
 </div>
 
