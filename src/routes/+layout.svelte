@@ -118,26 +118,28 @@
 			{/snippet}
 		</Navigation.Rail>
 	</div>
-	<div class="flex h-full flex-col">
-		<div class="bg-opacity-0 flex items-center justify-end p-4">
-			{#if isAuthenticated}
-				<span class="hover:text-tertiary-400 mx-4 text-white"><a href="/user">{data.email}</a></span
-				>
-				<button type="button" class="btn preset-outlined-primary-500"
-					><a href="/logout">Logout</a></button
-				>
-			{:else}
-				<span class="hover:text-tertiary-400 mx-4 text-white"
-					><a href="/register">Register</a>
-				</span>
-				<button type="button" class="btn preset-filled-surface-950-50"
-					><a href="/login/obp">Log on</a></button
-				>
-			{/if}
-		</div>
+	<div class="flex h-full flex-col bg-conic-250 dark:from-primary-950 from-30% dark:via-secondary-500/70 via-40% dark:to-primary-950 to-50%">
+		<div class="backdrop-blur-2xl h-full flex flex-col">
+			<div class="bg-opacity-0 flex items-center justify-end p-4">
+				{#if isAuthenticated}
+					<span class="hover:text-tertiary-400 mx-4 text-white"><a href="/user">{data.email}</a></span
+					>
+					<button type="button" class="btn preset-outlined-primary-500"
+						><a href="/logout">Logout</a></button
+					>
+				{:else}
+					<span class="hover:text-tertiary-400 mx-4 text-white"
+						><a href="/register">Register</a>
+					</span>
+					<button type="button" class="btn preset-filled-surface-950-50"
+						><a href="/login/obp">Log on</a></button
+					>
+				{/if}
+			</div>
 
-		<div class="flex-1 overflow-auto">
-			{@render children()}
+			<div class="flex-1 overflow-auto">
+				{@render children()}
+			</div>
 		</div>
 	</div>
 </div>

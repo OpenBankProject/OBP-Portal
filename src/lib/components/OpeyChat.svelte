@@ -9,16 +9,21 @@
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
 	import type { ToolMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
-	import { Check, Hammer, LoaderCircle } from '@lucide/svelte';
+	import { Check, CircleArrowUp, Hammer, LoaderCircle, type Icon as IconType } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
 
 	// Interface for chat options
+	export type SuggestedQuestion = {
+		questionString: string, // the actual question that will be sent to the chatbot i.e. 'How do I authenticate?'
+		pillTitle: string, // the title that will appear in the UI i.e 'Authentication'
+		icon?: typeof IconType // Optional, an icon to display in the pill
+	}
 	export interface OpeyChatOptions {
 		baseUrl: string; // Base Opey URL
 		displayHeader: boolean; // Whether to display the header with the logo and title
 		currentlyActiveUserName: string; // Optional name of the currently active user
-		suggestedQuestions: string[]; // List of suggested questions to display
+		suggestedQuestions: SuggestedQuestion[]; // List of suggested questions to display
 		initialAssistantMessage?: string;
 		headerClasses?: string; // Optional classes for the header
 		footerClasses?: string;
@@ -230,29 +235,31 @@
 
 {#snippet footer()}
 	<footer class="w-full p-4 {options.footerClasses || ''}">
-		<div class="flex gap-2">
+		<div class="relative">
 			<input
 				bind:value={messageInput}
 				type="text"
 				placeholder={session?.isAuthenticated
 					? 'Ask about your banking...'
 					: 'Connect your banking data to start chatting'}
-				class="input flex-1"
+				class="input bg-primary-400-600 rounded-lg h-15 flex-1 pr-10"
 				disabled={session?.status !== 'ready'}
 				onkeydown={(e) => e.key === 'Enter' && sendMessage(messageInput) && (messageInput = '')}
 			/>
-			<button
-				class="btn btn-primary"
-				disabled={session?.status !== 'ready' || !messageInput.trim()}
-				onclick={() => sendMessage(messageInput) && (messageInput = '')}
-			>
-				Send
-			</button>
+			{#if messageInput.length > 0}
+				<button
+					class="btn btn-primary absolute top-1/2 right-3 -translate-y-1/2 "
+					disabled={session?.status !== 'ready' || !messageInput.trim()}
+					onclick={() => sendMessage(messageInput) && (messageInput = '')}
+				>
+					<CircleArrowUp fill="white" class="h-7 w-7" />
+				</button>
+			{/if}
 		</div>
 	</footer>
 {/snippet}
 
-<div class="flex h-full flex-col items-center">
+<div class="my-auto flex flex-col items-center">
 	<!-- Header -->
 
 	{#if splashScreenDisplay && splash}
@@ -273,16 +280,18 @@
 
 	<!--Display Suggested question 'pills'-->
 	{#if options.suggestedQuestions.length > 0 && !(chat.messages.length > 1)}
-		<div class="preset-filled-secondary-50-950 flex-shrink-0 p-4">
-			<p class="mb-2 ml-0 text-left text-xs">Try one of these questions:</p>
+		<div class="flex-shrink-0 p-4">
 			<div class="flex flex-wrap gap-2">
 				{#each options.suggestedQuestions as question}
 					<button
-						class="btn preset-filled-tertiary-500 text-s rounded-full px-3 py-1"
-						onclick={() => sendMessage(question)}
+						class="btn flex items-center bg--primary-50-950 border border-solid text-s rounded-lg px-3 py-1"
+						onclick={() => sendMessage(question.questionString)}
 						disabled={session?.status !== 'ready'}
 					>
-						{question}
+						{#if question.icon}
+							<question.icon />
+						{/if}
+						{question.pillTitle}
 					</button>
 				{/each}
 			</div>
