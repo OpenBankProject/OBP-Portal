@@ -18,7 +18,7 @@
 	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
-	import { fly } from 'svelte/transition'
+	import { fly } from 'svelte/transition';
 
 	// Interface for chat options
 	export type SuggestedQuestion = {
@@ -95,10 +95,10 @@
 	}
 
 	function handleSendMessage(text: string) {
-        if (!text.trim()) return;
-        sendMessage(text);
-        messageInput = '';
-    }
+		if (!text.trim()) return;
+		sendMessage(text);
+		messageInput = '';
+	}
 
 	function handleKeyPress(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
@@ -165,16 +165,19 @@
 
 {#snippet body()}
 	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
-		<div class="space-y-2">
-			{#each chat.messages as message (message.id)}
+		<div class="space-y-4">
+			{#each chat.messages as message, index (message.id)}
 				{#if message.role === 'user'}
 					<div class="flex flex-col items-end justify-start">
 						<div class="mb-2 flex items-center gap-2">
-							<p class="text-s font-bold">{options.currentlyActiveUserName}</p>
-							<Avatar
-								name={options.currentlyActiveUserName}
-								classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
-							/>
+							<!-- if the last message was a user message, no need to draw another avatar -->
+							{#if !(chat.messages[index - 1]?.role === 'user')}
+								<p class="text-s font-bold">{options.currentlyActiveUserName}</p>
+								<Avatar
+									name={options.currentlyActiveUserName}
+									classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
+								/>
+							{/if}
 						</div>
 						<div class="preset-filled-tertiary-500 max-w-3/5 rounded-2xl p-2 text-white">
 							{message.message}
@@ -182,22 +185,35 @@
 					</div>
 				{:else if message.role === 'assistant'}
 					<div class="flex flex-col items-start justify-start">
-						<div class="mb-2 flex items-center gap-2">
-							<Avatar
-								src="/opey-icon-white.png"
-								name="opey"
-								classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
-							/>
-							<p class="text-s font-bold">Opey</p>
-						</div>
-						<div
-							class="prose dark:prose-invert preset-filled-secondary-50-950 max-w-3/5 rounded-2xl p-2 text-left"
-						>
+						{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
+							<div class="mb-2 flex items-center gap-2">
+								<Avatar
+									src="/opey-icon-white.png"
+									name="opey"
+									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
+								/>
+								<p class="text-s font-bold">Opey</p>
+							</div>
+							<hr class="hr" />
+						{/if}
+						<div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
 							{@html renderMarkdown(message.message)}
 						</div>
 					</div>
 				{:else if message.role === 'tool'}
-					<Accordion collapsible classes="max-w-3/5">
+					<!-- if the last message was a tool message, no need to draw another avatar -->
+					{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
+						<div class="mb-2 flex items-center gap-2">
+							<Avatar
+								src="/opey-icon-white.png"
+								name="opey"
+								classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
+							/>
+							<p class="text-s font-bold">Opey</p>
+						</div>
+						<hr class="hr" />
+					{/if}
+					<Accordion collapsible classes="max-w-full">
 						<Accordion.Item value={message.id}>
 							{#snippet lead()}<Hammer />{/snippet}
 							{#snippet control()}
@@ -216,7 +232,7 @@
 										{#snippet lead()}<Hammer />{/snippet}
 										{#snippet control()}Tool Input{/snippet}
 										{#snippet panel()}
-											<div class="preset-filled-secondary-500 max-w-3/5 rounded-2xl p-2 text-white">
+											<div class="preset-filled-primary-500 max-w-3/5 rounded-2xl p-2 text-white">
 												{JSON.stringify((message as ToolMessage).toolInput)}
 											</div>
 										{/snippet}
@@ -234,11 +250,12 @@
 											</div>
 										{/snippet}
 										{#snippet panel()}
-											<div class="preset-filled-secondary-500 max-w-3/5 rounded-2xl p-2 text-white">
-												<strong>Tool Output:</strong>
-												{JSON.stringify((message as ToolMessage).toolOutput)
-													? JSON.stringify((message as ToolMessage).toolOutput)
-													: 'No output available'}
+											<div class="preset-filled-primary-500 max-w-full rounded-2xl p-2 text-white">
+												<div class="overflow-x-auto">
+													{JSON.stringify((message as ToolMessage).toolOutput)
+														? JSON.stringify((message as ToolMessage).toolOutput)
+														: 'No output available'}
+												</div>
 											</div>
 										{/snippet}
 									</Accordion.Item>
@@ -253,48 +270,50 @@
 {/snippet}
 
 {#snippet suggestedQuestions()}
-    {#if options.suggestedQuestions.length > 0 && chat.messages.length <= 1}
-        <div class="flex flex-wrap gap-2 justify-center p-4">
-            {#each options.suggestedQuestions as question}
-                <button
-                    class="btn bg-primary-50-950 border-primary-500 text-s flex items-center rounded-lg border border-solid px-3"
-                    onclick={() => handleSendMessage(question.questionString)}
-                    disabled={session?.status !== 'ready'}
-                >
-                    {#if question.icon}
-                        <question.icon />
-                    {/if}
-                    {question.pillTitle}
-                </button>
-            {/each}
-        </div>
-    {/if}
+	{#if options.suggestedQuestions.length > 0 && chat.messages.length <= 1}
+		<div class="flex flex-wrap justify-center gap-2 p-4">
+			{#each options.suggestedQuestions as question}
+				<button
+					class="btn bg-primary-50-950 border-primary-500 text-s flex items-center rounded-lg border border-solid px-3"
+					onclick={() => handleSendMessage(question.questionString)}
+					disabled={session?.status !== 'ready'}
+				>
+					{#if question.icon}
+						<question.icon />
+					{/if}
+					{question.pillTitle}
+				</button>
+			{/each}
+		</div>
+	{/if}
 {/snippet}
 
 {#snippet inputField()}
-    <div class="relative w-full">
-        <input
-            bind:value={messageInput}
-            type="text"
-            placeholder={session?.isAuthenticated
-                ? 'Ask about your banking...'
-                : 'Connect your banking data to start chatting'}
-            class="input bg-primary-400-600 h-15 w-full rounded-lg pr-10"
-            disabled={session?.status !== 'ready'}
-            onkeydown={handleKeyPress}
-        />
-        {#if messageInput.length > 0}
-            <button
-                class="btn btn-primary absolute top-1/2 right-3 -translate-y-1/2"
-                disabled={session?.status !== 'ready' || !messageInput.trim()}
-                onclick={() => handleSendMessage(messageInput)}
-            >
-                <CircleArrowUp fill="white" class="h-7 w-7" />
-            </button>
-        {/if}
-    </div>
+	<div class="relative w-full">
+		<img
+			src="/opey_avatar.png"
+			alt="Opey Avatar"
+			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
+		/>
+		<input
+			bind:value={messageInput}
+			type="text"
+			placeholder="Ask me about the Open Bank Project API"
+			class="input bg-primary-400-600 h-15 w-full rounded-lg p-5 pr-7"
+			disabled={session?.status !== 'ready'}
+			onkeydown={handleKeyPress}
+		/>
+		{#if messageInput.length > 0}
+			<button
+				class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
+				disabled={session?.status !== 'ready' || !messageInput.trim()}
+				onclick={() => handleSendMessage(messageInput)}
+			>
+				<CircleArrowUp class="h-7 w-7" />
+			</button>
+		{/if}
+	</div>
 {/snippet}
-
 
 <div class="flex h-full w-full flex-col">
 	<!-- Header -->
@@ -309,9 +328,9 @@
 		{#if splashScreenDisplay && splash}
 			<!-- Splash layout: centered content with input directly below -->
 			<div class="flex flex-1 flex-col items-center justify-center space-y-6">
-					{@render splash()}
+				{@render splash()}
 
-				<div class="w-full max-w-md px-4 {options.footerClasses || ''}">
+				<div class="w-full max-w-3xl px-4 {options.footerClasses || ''} mb-0">
 					{@render inputField()}
 				</div>
 

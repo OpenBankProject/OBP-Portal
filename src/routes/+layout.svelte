@@ -132,7 +132,7 @@
 						><a href="/register">Register</a>
 					</span>
 					<button type="button" class="btn preset-filled-surface-950-50"
-						><a href="/login/obp">Log on</a></button
+						><a href="/login/obp">Login</a></button
 					>
 				{/if}
 			</div>

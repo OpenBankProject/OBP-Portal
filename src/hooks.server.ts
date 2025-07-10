@@ -7,7 +7,7 @@ import { env } from '$env/dynamic/private';
 import { obp_oauth } from '$lib/oauth/client';
 import { refreshAccessTokenInSession } from '$lib/oauth/session';
 
-
+// Startup scripts
 // Init Redis
 let client: Redis
 
@@ -31,6 +31,12 @@ if (!env.REDIS_HOST || !env.REDIS_PORT) {
     }
 
     client = new Redis(redisConfig);
+}
+
+// Init OAuth client
+try { await obp_oauth.initOIDCConfig() } catch (error) {
+    console.error('Failed to initialize OAuth client:', error);
+    throw error; // rethrow the error to prevent the app from starting
 }
 
 
@@ -123,9 +129,3 @@ declare module 'svelte-kit-sessions' {
 	}
 }
 
-
-// Init OAuth client
-try { await obp_oauth.initOIDCConfig() } catch (error) {
-    console.error('Failed to initialize OAuth client:', error);
-    throw error; // rethrow the error to prevent the app from starting
-}
