@@ -9,16 +9,23 @@
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
 	import type { ToolMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
-	import { Check, CircleArrowUp, Hammer, LoaderCircle, type Icon as IconType } from '@lucide/svelte';
+	import {
+		Check,
+		CircleArrowUp,
+		Hammer,
+		LoaderCircle,
+		type Icon as IconType
+	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
+	import { fly } from 'svelte/transition'
 
 	// Interface for chat options
 	export type SuggestedQuestion = {
-		questionString: string, // the actual question that will be sent to the chatbot i.e. 'How do I authenticate?'
-		pillTitle: string, // the title that will appear in the UI i.e 'Authentication'
-		icon?: typeof IconType // Optional, an icon to display in the pill
-	}
+		questionString: string; // the actual question that will be sent to the chatbot i.e. 'How do I authenticate?'
+		pillTitle: string; // the title that will appear in the UI i.e 'Authentication'
+		icon?: typeof IconType; // Optional, an icon to display in the pill
+	};
 	export interface OpeyChatOptions {
 		baseUrl: string; // Base Opey URL
 		displayHeader: boolean; // Whether to display the header with the logo and title
@@ -87,6 +94,18 @@
 		await chatController.send(text);
 	}
 
+	function handleSendMessage(text: string) {
+        if (!text.trim()) return;
+        sendMessage(text);
+        messageInput = '';
+    }
+
+	function handleKeyPress(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			handleSendMessage(messageInput);
+		}
+	}
+
 	async function initializeOpeySession() {
 		try {
 			sessionState.setStatus('loading');
@@ -145,7 +164,7 @@
 {/snippet}
 
 {#snippet body()}
-	<article class="flex-1 space-y-4 overflow-auto p-4 {options.bodyClasses || ''}">
+	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
 		<div class="space-y-2">
 			{#each chat.messages as message (message.id)}
 				{#if message.role === 'user'}
@@ -233,38 +252,52 @@
 	</article>
 {/snippet}
 
-{#snippet footer()}
-	<footer class="w-full p-4 {options.footerClasses || ''}">
-		<div class="relative">
-			<input
-				bind:value={messageInput}
-				type="text"
-				placeholder={session?.isAuthenticated
-					? 'Ask about your banking...'
-					: 'Connect your banking data to start chatting'}
-				class="input bg-primary-400-600 rounded-lg h-15 flex-1 pr-10"
-				disabled={session?.status !== 'ready'}
-				onkeydown={(e) => e.key === 'Enter' && sendMessage(messageInput) && (messageInput = '')}
-			/>
-			{#if messageInput.length > 0}
-				<button
-					class="btn btn-primary absolute top-1/2 right-3 -translate-y-1/2 "
-					disabled={session?.status !== 'ready' || !messageInput.trim()}
-					onclick={() => sendMessage(messageInput) && (messageInput = '')}
-				>
-					<CircleArrowUp fill="white" class="h-7 w-7" />
-				</button>
-			{/if}
-		</div>
-	</footer>
+{#snippet suggestedQuestions()}
+    {#if options.suggestedQuestions.length > 0 && chat.messages.length <= 1}
+        <div class="flex flex-wrap gap-2 justify-center p-4">
+            {#each options.suggestedQuestions as question}
+                <button
+                    class="btn bg-primary-50-950 border-primary-500 text-s flex items-center rounded-lg border border-solid px-3"
+                    onclick={() => handleSendMessage(question.questionString)}
+                    disabled={session?.status !== 'ready'}
+                >
+                    {#if question.icon}
+                        <question.icon />
+                    {/if}
+                    {question.pillTitle}
+                </button>
+            {/each}
+        </div>
+    {/if}
 {/snippet}
 
-<div class="my-auto flex flex-col items-center">
-	<!-- Header -->
+{#snippet inputField()}
+    <div class="relative w-full">
+        <input
+            bind:value={messageInput}
+            type="text"
+            placeholder={session?.isAuthenticated
+                ? 'Ask about your banking...'
+                : 'Connect your banking data to start chatting'}
+            class="input bg-primary-400-600 h-15 w-full rounded-lg pr-10"
+            disabled={session?.status !== 'ready'}
+            onkeydown={handleKeyPress}
+        />
+        {#if messageInput.length > 0}
+            <button
+                class="btn btn-primary absolute top-1/2 right-3 -translate-y-1/2"
+                disabled={session?.status !== 'ready' || !messageInput.trim()}
+                onclick={() => handleSendMessage(messageInput)}
+            >
+                <CircleArrowUp fill="white" class="h-7 w-7" />
+            </button>
+        {/if}
+    </div>
+{/snippet}
 
-	{#if splashScreenDisplay && splash}
-		{@render splash()}
-	{/if}
+
+<div class="flex h-full w-full flex-col">
+	<!-- Header -->
 
 	{#if !splashScreenDisplay && options.displayHeader}
 		<div class="flex-shrink-0 {options.headerClasses || ''}">
@@ -272,29 +305,29 @@
 		</div>
 	{/if}
 
-	{#if !splashScreenDisplay}
-		{@render body()}
-	{/if}
+	<div class="flex min-h-0 flex-1 flex-col">
+		{#if splashScreenDisplay && splash}
+			<!-- Splash layout: centered content with input directly below -->
+			<div class="flex flex-1 flex-col items-center justify-center space-y-6">
+					{@render splash()}
 
-	{@render footer()}
+				<div class="w-full max-w-md px-4 {options.footerClasses || ''}">
+					{@render inputField()}
+				</div>
 
-	<!--Display Suggested question 'pills'-->
-	{#if options.suggestedQuestions.length > 0 && !(chat.messages.length > 1)}
-		<div class="flex-shrink-0 p-4">
-			<div class="flex flex-wrap gap-2">
-				{#each options.suggestedQuestions as question}
-					<button
-						class="btn flex items-center bg--primary-50-950 border border-solid text-s rounded-lg px-3 py-1"
-						onclick={() => sendMessage(question.questionString)}
-						disabled={session?.status !== 'ready'}
-					>
-						{#if question.icon}
-							<question.icon />
-						{/if}
-						{question.pillTitle}
-					</button>
-				{/each}
+				{@render suggestedQuestions()}
 			</div>
-		</div>
-	{/if}
+		{:else}
+			<!--Main Chat Layout: messages fill space, input at bottom-->
+			<div class="flex-1 overflow-hidden">
+				{@render body()}
+			</div>
+
+			{@render suggestedQuestions()}
+
+			<div class="flex-shrink-0 p-4 {options.footerClasses || ''}">
+				{@render inputField()}
+			</div>
+		{/if}
+	</div>
 </div>

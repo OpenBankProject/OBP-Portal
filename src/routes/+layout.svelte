@@ -137,9 +137,7 @@
 				{/if}
 			</div>
 
-			<div class="flex-1 overflow-auto">
 				{@render children()}
-			</div>
 		</div>
 	</div>
 </div>
