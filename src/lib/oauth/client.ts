@@ -4,23 +4,20 @@ import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/
 import { jwtDecode } from "jwt-decode";
 
 export class OAuth2ClientWithConfig extends OAuth2Client {
-    wellKnownUrl: string;
     OIDCConfig?: OpenIdConnectConfiguration;
 
-    constructor(clientId: string, clientSecret: string, redirectUri: string, wellKnownUrl: string) {
+    constructor(clientId: string, clientSecret: string, redirectUri: string) {
         super(clientId, clientSecret, redirectUri);
 
         // get the OIDC configuration from the well-known URL if provided
-        this.wellKnownUrl = wellKnownUrl;
 
     }
 
-    async initOIDCConfig(): Promise<void> {
-        console.group("--------------OAuth2Client----------------")
-        console.log("Initializing OIDC configuration from well-known URL:", this.wellKnownUrl);
+    async initOIDCConfig(OIDCConfigUrl: string): Promise<void> {
+        console.log("OAuth2Client: Initializing OIDC configuration from OIDC Config URL:", OIDCConfigUrl);
         try {
             // Get the OIDC configuration from the well-known URL, this is OAuth2.1 compliant
-            const response = await fetch(this.wellKnownUrl);
+            const response = await fetch(OIDCConfigUrl);
             if (!response.ok) {
                 throw new Error(`Failed to fetch OIDC config: ${response.statusText}`);
             }
@@ -28,31 +25,31 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
             if (!config.authorization_endpoint || !config.token_endpoint) {
                 throw new Error("Invalid OIDC config: Missing required endpoints.");
             }
-            console.debug("Fetched OIDC config success.")
+            
             // try to validate the config using the OpenID Connect specification
             this.OIDCConfig = config as OpenIdConnectConfiguration;
+            console.log("OAuth2Client: OIDC config initialization success.")
 
         } catch (error) {
-            console.error("Error fetching OIDC config:", error);
+            console.error("OAuth2Client: Error fetching OIDC config:", error);
             throw error;
         }
-        console.groupEnd();
     }
 
     async checkAccessTokenExpiration(accessToken: string): Promise<boolean> {
         // Returns true if the access token is expired, false if it is valid
-        console.debug("Checking access token expiration...");
+        console.debug("OAuth2Client: Checking access token expiration...");
         try {
             const payload = jwtDecode(accessToken) as OAuth2AccessTokenPayload;
             if (!payload || !payload.exp) {
-                console.warn("Access token payload is invalid or missing expiration.");
+                console.warn("OAuth2Client: Access token payload is invalid or missing expiration.");
                 return false;
             }
             const isExpired = Date.now() >= payload.exp * 1000;
-            console.debug(`Access token is ${isExpired ? "expired" : "valid"}.`);
+            console.debug(`OAuth2Client: Access token is ${isExpired ? "expired" : "valid"}.`);
             return isExpired;
         } catch (error) {
-            console.error("Error decoding access token:", error);
+            console.error("OAuth2Client: Error decoding access token:", error);
             throw error;
         }
     }
@@ -63,4 +60,4 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 }
 
 
-export const obp_oauth = new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL, env.OBP_OAUTH_WELL_KNOWN_URL);
+export const obp_oauth = new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL);
