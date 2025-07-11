@@ -45,7 +45,7 @@
             {#snippet splash()}
                 <div class="flex w-2/3 flex-col justify-center items-center text-center">
                     <h1 class="h3 text-surface-700-300 mb-2">Welcome!</h1>
-                    <h1 class="h3 mb-4">What can I help you with?</h1>
+                    <h1 class="h3 mb-4">How can I help?</h1>
                     <p class="text-surface-700-300 mb-7 text-sm">
                         Welcome to OBP sandbox! This space provides developers, innovators and start-ups with
                         APIs, documentation and access to localized data.

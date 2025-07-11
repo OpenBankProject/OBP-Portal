@@ -76,7 +76,7 @@
 </script>
 
 <div
-	class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
+	class="card dark:preset-filled-primary-500/50 backdrop-blur-3xl border-primary-200-800 divide-primary-200-800 mx-auto my-10 md:px-15 flex flex-col divide-y border-[1px] shadow-lg max-w-[90%] lg:max-w-4xl"
 >
 	<header class="py-4">
 		<h1 class="h4 text-center">Register for the Open Bank Project</h1>

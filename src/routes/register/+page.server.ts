@@ -43,6 +43,10 @@ export const actions = {
                     return {
                         error: error.message
                     }
+                } else if (error.obpErrorCode === 'OBP-10001') {
+                    return {
+                        error: "Invalid Username"
+                    }
                 }
             }
             console.error("Error registering user:", error);

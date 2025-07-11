@@ -299,7 +299,7 @@
 			bind:value={messageInput}
 			type="text"
 			placeholder="Ask me about the Open Bank Project API"
-			class="input bg-primary-400-600 h-15 w-full rounded-lg p-5 pr-7"
+			class="input bg-primary-50 dark:bg-primary-600 h-15 w-full rounded-lg p-5 pr-7"
 			disabled={session?.status !== 'ready'}
 			onkeydown={handleKeyPress}
 		/>

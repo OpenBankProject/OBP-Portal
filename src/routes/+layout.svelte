@@ -24,9 +24,10 @@
 	}
 
 	let { data, children } = $props<{ data: LayoutData }>();
-
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
+
+	let displayMode: 'dark' | 'light' = $state('dark')
 
 	if (data.email) {
 		isAuthenticated = true;
@@ -48,28 +49,38 @@
 		...(data.SUBSCRIPTIONS_URL
 			? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 			: []),
-		{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
-		{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
-		{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
+		//{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
+		//{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
+		//{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
 		...(data.API_MANAGER_URL
 			? [{ href: data.API_MANAGER_URL, label: 'API Manager', iconComponent: SquareTerminal }]
 			: [])
 	]);
 
 	let footerLinks = $state([
-		{ href: '/privacy', label: 'Privacy Policy' },
+		//{ href: '/privacy', label: 'Privacy Policy' },
 		{ href: 'https://github.com/OpenBankProject', label: 'GitHub' },
-		{ href: '/terms', label: 'Terms of Service' },
-		{ href: '/support', label: 'Support' },
-		{ href: '/sitemap', label: 'Sitemap' }
+		//{ href: '/terms', label: 'Terms of Service' },
+		//{ href: '/support', label: 'Support' },
+		//{ href: '/sitemap', label: 'Sitemap' }
 	]);
 
 	let currentTab = $state('home');
 
 	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
 	const defaultLogoUrl = '/logo2x-1.png';
+	const defaultDarkLogoUrl = '/obp_logo.png'
 
-	const logoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
+	let lightLogoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
+	if (!env.PUBLIC_DARK_LOGO_URL) {
+		// If no dark logo URL is provided, use the same as light logo
+		env.PUBLIC_DARK_LOGO_URL = env.PUBLIC_LOGO_URL || defaultLogoUrl;
+	}
+	let darkLogoUrl = $state(env.PUBLIC_DARK_LOGO_URL || defaultDarkLogoUrl)
+
+	let logoUrl = $derived.by(() => {
+		return displayMode === 'dark' ? darkLogoUrl : lightLogoUrl;
+	});
 </script>
 
 <div class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid">
@@ -112,7 +123,7 @@
 							{link.label}
 						</a>
 					{/each}
-					<span> Open Bank Project © 2011-2025 </span>
+					<span> Open Bank Project © TESOBE 2011-2025 </span>
 				</div>
 			{/snippet}
 		</Navigation.Rail>
@@ -120,15 +131,15 @@
 	<div class="flex h-full flex-col bg-conic-250 dark:from-primary-950 from-30% dark:via-secondary-500/70 via-40% dark:to-primary-950 to-50%">
 		<div class="backdrop-blur-2xl h-full flex flex-col">
 			<div class="bg-opacity-0 flex items-center justify-end p-4">
-				<LightSwitch />
+				<LightSwitch bind:mode={displayMode}/>
 				{#if isAuthenticated}
-					<span class="hover:text-tertiary-400 mx-4 text-white"><a href="/user">{data.email}</a></span
+					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.email}</a></span
 					>
 					<button type="button" class="btn preset-outlined-primary-500"
 						><a href="/logout">Logout</a></button
 					>
 				{:else}
-					<span class="hover:text-tertiary-400 mx-4 text-white"
+					<span class="hover:text-tertiary-400 mx-4"
 						><a href="/register">Register</a>
 					</span>
 					<button type="button" class="btn preset-filled-surface-950-50"

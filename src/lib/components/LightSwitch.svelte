@@ -1,25 +1,30 @@
 <script lang="ts">
 	import { Switch, Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { onMount } from 'svelte';
 
 	// Icons
 	import IconMoon from '@lucide/svelte/icons/moon';
 	import IconSun from '@lucide/svelte/icons/sun';
 
-	let checked = $state(false);
-    let toolTipString = $derived(checked? 'Toggle Light Mode' : 'Toggle Dark Mode')
+	interface LightSwitchProps {
+		mode?: 'dark' | 'light';
+	}
 
-	let tooltipOpenState = $state(false);
+	let { mode = $bindable('dark') }: LightSwitchProps = $props();
 
-	$effect(() => {
-		const mode = localStorage.getItem('mode') || 'dark';
-		checked = mode === 'dark';
+	let checked = $derived(mode === 'dark');
+	let toolTipString = $derived(checked ? 'Toggle Light Mode' : 'Toggle Dark Mode');
+
+	onMount(() => {
+		const storedMode = localStorage.getItem('mode') || 'dark';
+		mode = storedMode as 'dark' | 'light';
+		document.documentElement.setAttribute('data-mode', mode);
 	});
 
 	const onCheckedChange = (event: { checked: boolean }) => {
-		const mode = event.checked ? 'dark' : 'light';
+		mode = event.checked ? 'dark' : 'light';
 		document.documentElement.setAttribute('data-mode', mode);
 		localStorage.setItem('mode', mode);
-		checked = event.checked;
 	};
 </script>
 
@@ -37,7 +42,7 @@
 			{#snippet activeChild()}<IconSun size="14" />{/snippet}
 		</Switch>
 	{/snippet}
-    {#snippet content()}
-        {toolTipString}
-    {/snippet}
+	{#snippet content()}
+		{toolTipString}
+	{/snippet}
 </Tooltip>
