@@ -1,7 +1,5 @@
 <script lang="ts">
 	import '../app.css';
-	// SkeletonUI Components
-	import { AppBar, Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	// Lucide Icons
 	import {
@@ -16,6 +14,7 @@
 		ShieldUser
 	} from '@lucide/svelte';
 	import { env } from '$env/dynamic/public';
+	import LightSwitch from '$lib/components/LightSwitch.svelte';
 
 	interface LayoutData {
 		email?: string;
@@ -121,6 +120,7 @@
 	<div class="flex h-full flex-col bg-conic-250 dark:from-primary-950 from-30% dark:via-secondary-500/70 via-40% dark:to-primary-950 to-50%">
 		<div class="backdrop-blur-2xl h-full flex flex-col">
 			<div class="bg-opacity-0 flex items-center justify-end p-4">
+				<LightSwitch />
 				{#if isAuthenticated}
 					<span class="hover:text-tertiary-400 mx-4 text-white"><a href="/user">{data.email}</a></span
 					>

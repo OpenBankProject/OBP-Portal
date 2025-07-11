@@ -11,3 +11,6 @@
 /* Make sure to resolve the relative path. */
 /* Note the .css extension is optional. */
 @import '../obp-theme.css';
+
+/* for dark mode toggling */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
