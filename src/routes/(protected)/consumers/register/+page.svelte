@@ -3,13 +3,13 @@
 </script>
 
 <div
-	class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
+	class="card dark:bg-primary-500/50 backdrop-blur-3xl border-primary-200-800 divide-primary-200-800 mx-auto my-10 md:px-15 flex flex-col divide-y shadow-lg w-[90%] lg:max-w-3xl"
 >
 	<header class="py-4">
 		<h1 class="h4 text-center">Register a consumer</h1>
 	</header>
 	<article class="space-y-4 p-4">
-		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
+		<form class="w-full space-y-6 pb-10" method="POST">
 			<label class="label">
 				<span class="label-text">Application Type</span>
 				<select class="select" name="app_type" required>

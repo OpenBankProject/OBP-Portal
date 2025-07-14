@@ -110,13 +110,13 @@ try {
 }
 
 // Get WebUI props from OBP
-try {
-    const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
-    console.debug('WebUI props fetched successfully:', webuiProps);
-} catch (error) {
-    // Handle the error as needed, e.g., log it, throw it, etc.
-    throw error
-}
+// try {
+//     const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
+//     console.debug('WebUI props fetched successfully:', webuiProps);
+// } catch (error) {
+//     // Handle the error as needed, e.g., log it, throw it, etc.
+//     throw error
+// }
 
 
 function needsAuthorization(routeId: string): boolean {
