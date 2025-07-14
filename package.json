@@ -13,8 +13,15 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
 		"test:e2e": "playwright test",
-		"test": "npm run test:e2e && npm run test:unit -- --run",
-		"test:unit": "vitest"
+		"test": "npm run test:unit -- --run && npm run test:e2e",
+		"test:unit": "vitest",
+		"test:unit:watch": "vitest --watch",
+		"test:unit:coverage": "vitest --coverage",
+		"test:oauth": "vitest test/unit/oauth test/integration/oauth-flow.test.ts",
+		"test:routes": "vitest test/unit/routes",
+		"test:integration": "vitest test/integration",
+		"test:all": "vitest --run test/",
+		"test:watch": "vitest --watch test/"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.49.1",
