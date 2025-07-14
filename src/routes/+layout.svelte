@@ -46,9 +46,9 @@
 			? [{ href: data.API_EXPLORER_URL, label: 'API Explorer', iconComponent: Compass }]
 			: []), // unpacks a conditional list so we can add menu items where we want
 		{ label: 'Get API Key', href: '/consumers/register', iconComponent: KeyRound },
-		...(data.SUBSCRIPTIONS_URL
-			? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
-			: []),
+		// ...(data.SUBSCRIPTIONS_URL
+		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
+		// 	: []),
 		//{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
 		//{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
 		//{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
@@ -118,7 +118,7 @@
 					{#each footerLinks as link, index}
 						<a href={link.href} class="hover:text-tertiary-400 flex items-center gap-2">
 							{#if link.label === 'GitHub'}
-								<img class="h-4" alt="github logo" src="/github-mark-white.svg" />
+								<img class="h-4" alt="github logo" src={displayMode === 'dark' ? "/github-mark-white.svg" : "/github-mark.svg"} />
 							{/if}
 							{link.label}
 						</a>
