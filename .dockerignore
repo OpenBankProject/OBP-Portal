@@ -12,7 +12,6 @@ README.md
 .svelte-kit
 .vscode
 .env.example
-.env.docker
 node_modules
 build
 package

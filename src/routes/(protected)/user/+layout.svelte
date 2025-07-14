@@ -38,7 +38,7 @@
                     href={item.href}
                     title={item.label}
 					active="preset-filled-primary-50-950 border border-solid-secondary-500"
-                    ><svelte:component this={item.iconComponent} /></Navigation.Tile
+                    ><item.iconComponent /></Navigation.Tile
                 >
             {/each}
 			<!-- <Navigation.Tile id="consents" labelExpanded="Manage Consents" href="?/consents">
