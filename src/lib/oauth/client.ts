@@ -59,7 +59,3 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
         return super.createAuthorizationURL(authEndpoint, state, scopes);
     }
 }
-
-
-
-export const obp_oauth = oauth2ProviderFactory.getPrimaryClient() || new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL);

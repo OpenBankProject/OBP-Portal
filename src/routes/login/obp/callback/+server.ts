@@ -57,8 +57,12 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		});
 	}
 
-    const obpAccessToken = tokens.accessToken();
+    // Get rid of the state cookie
+    event.cookies.delete("obp_oauth_state", {
+        path: "/",
+    })
 
+    const obpAccessToken = tokens.accessToken();
 
     const currentUserUrl = `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/users/current`;
     const currentUserRequest = new Request(currentUserUrl)

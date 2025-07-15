@@ -36,6 +36,9 @@ export async function GET(event: RequestEvent): Promise<Response> {
     // Revoke the access token if it exists
     const accessToken = session.data.oauth?.access_token;
     // Clear the session cookie, destroy the session
+    event.cookies.delete("session", {
+        path: "/",
+    })
     await session.destroy();
 
 
@@ -49,7 +52,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
         });
     } else {
         // Revoke the access token
-        console.debug("Revoking access token:", accessToken);
+        // console.debug("Revoking access token:", accessToken);
         console.log("Revoking access token for user:", session.data.user.user_id);
         sessionOAuth.client.revokeToken(tokenRevokationUrl, accessToken)
     }
