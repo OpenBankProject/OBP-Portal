@@ -4,9 +4,9 @@ import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
 import { Redis } from 'ioredis';
 import { env } from '$env/dynamic/private';
-import { obp_oauth } from '$lib/oauth/client';
 import { obp_requests } from '$lib/obp/requests';
-import { refreshAccessTokenInSession } from '$lib/oauth/session';
+import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
+import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 
 // Startup scripts
 // Init Redis
@@ -34,62 +34,30 @@ if (!env.REDIS_HOST || !env.REDIS_PORT) {
 }
 
 
-/**
- * Initializes OAuth2 providers by fetching well-known configuration URIs from the OBP API
- * and setting up OIDC clients for supported providers.
- * 
- * This function retrieves a list of OAuth2 provider configurations from the OBP well-known
- * endpoint and initializes OIDC clients for each supported provider. Currently supports
- * Keycloak as an OAuth2 provider.
- * 
- * @throws {Error} When no OAuth2 providers can be initialized, preventing user authentication
- * 
- * @remarks
- * - Fetches provider configurations from `/obp/v5.1.0/well-known` endpoint
- * - Currently only supports Keycloak provider initialization
- * - Logs warnings for unsupported providers and errors for failed initializations
- * - Throws an error if no providers are successfully initialized to prevent app startup
- * 
- * @example
- * ```typescript
- * // Initialize OAuth2 providers during application startup
- * await initOauth2Providers();
- * ```
- */
-async function initOauth2Providers() {
-
-    interface WellKnownUri {
-        provider: string;
-        url: string;
+async function fetchWellKnownUris(): Promise<WellKnownUri[]> {
+    try {
+        const response = await obp_requests.get('/obp/v5.1.0/well-known');
+        return response.well_known_uris;
+    } catch (error) {
+        console.error('Failed to fetch well-known URIs:', error);
+        throw error;
     }
+}
+
+async function initOauth2Providers() {
 
     let providers = []
 
     try {
-        const wellKnownUrisResponse = await obp_requests.get('/obp/v5.1.0/well-known');
-        const wellKnownUris: WellKnownUri[] = wellKnownUrisResponse.well_known_uris;
+        const wellKnownUris: WellKnownUri[] = await fetchWellKnownUris();
         console.debug('Well-known URIs fetched successfully:', wellKnownUris);
 
         for (const providerUri of wellKnownUris) {
-            switch (providerUri.provider) {
-                case 'keycloak':
-                    // OBP Uses keycloak at the moment, so init OBP Oauth client
-                    try {
-                        await obp_oauth.initOIDCConfig(providerUri.url);
-
-                        providers.push(providerUri)
-                    } catch (error) {
-                        console.error(`Failed to initialize OAuth2 client for provider ${providerUri.provider}: ${error}`);
-                    }
-                    break;
-                
-                // Add more providers as needed
-                default:
-                    console.warn(`Unsupported OAuth2 provider: ${providerUri.provider}. Skipping initialization.`);
-                    break;
-
-            }   
-        }
+            const oauth2Client = await oauth2ProviderFactory.initializeProvider(providerUri)
+            if (oauth2Client) {
+                providers.push(providerUri)
+            }
+        }   
 
         // If no providers were found, throw an error
         if (providers.length === 0) {
@@ -101,6 +69,18 @@ async function initOauth2Providers() {
         throw error
     }
 }
+
+async function initWebUIProps() {
+    try {
+        const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
+        console.log('WebUI props fetched successfully:', webuiProps);
+        return webuiProps;
+    } catch (error) {
+        console.error('Failed to fetch WebUI props:', error);
+        throw error;
+    }
+}
+
 // Init OAuth2 providers
 try {
     await initOauth2Providers();
@@ -128,15 +108,14 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
     const session = event.locals.session;
     const routeId = event.route.id;
 
+    
     if (!!routeId && needsAuthorization(routeId)) {
         console.debug('Checking authorization for user route:', event.url.pathname);
         // Check token expiration
-        const accessToken = session?.data.oauth?.access_token;
-        if (!accessToken) {
-            console.warn('No access token found in session. Redirecting to login.');
-            
-            await session.destroy();
-            
+        const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
+        if (!sessionOAuth) {
+            console.warn('No valid OAuth data found in session. Redirecting to login.');
+            // Redirect to login page if no OAuth data is found
             return new Response(null, {
                 status: 302,
                 headers: {
@@ -147,10 +126,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
         // Check if the access token is expired, 
         // if it is, attempt to refresh it
-        if (await obp_oauth.checkAccessTokenExpiration(accessToken)) {
+        if (await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)) {
             // will return true if the token is expired
             try {
-                await refreshAccessTokenInSession(session, obp_oauth)
+                await SessionOAuthHelper.refreshAccessToken(session)
             } catch (error) {
                 console.error('Error refreshing access token:', error);
                 // If the refresh fails, redirect to login
@@ -204,6 +183,7 @@ declare module 'svelte-kit-sessions' {
         oauth?: {
             access_token: string;
             refresh_token?: string;
+            provider: string;
         }
 	}
 }

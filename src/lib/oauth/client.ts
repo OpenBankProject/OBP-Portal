@@ -2,6 +2,7 @@ import { OAuth2Client } from "arctic";
 import { env } from "$env/dynamic/private";
 import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
 import { jwtDecode } from "jwt-decode";
+import { oauth2ProviderFactory } from "./providerFactory";
 
 export class OAuth2ClientWithConfig extends OAuth2Client {
     OIDCConfig?: OpenIdConnectConfiguration;
@@ -60,4 +61,5 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 }
 
 
-export const obp_oauth = new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL);
+
+export const obp_oauth = oauth2ProviderFactory.getPrimaryClient() || new OAuth2ClientWithConfig(env.OBP_OAUTH_CLIENT_ID, env.OBP_OAUTH_CLIENT_SECRET, env.APP_CALLBACK_URL);

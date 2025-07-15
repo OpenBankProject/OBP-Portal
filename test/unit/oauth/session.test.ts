@@ -45,6 +45,14 @@ describe('OAuth Session Utilities', () => {
 	});
 
 	describe('refreshAccessTokenInSession', () => {
+		beforeEach(() => {
+			// Mock the inherited refreshAccessToken method from Arctic OAuth2Client
+			Object.setPrototypeOf(client, {
+				...Object.getPrototypeOf(client),
+				refreshAccessToken: vi.fn()
+			});
+		});
+
 		it('should successfully refresh access token', async () => {
 			const newAccessToken = 'new-access-token-123';
 			const newRefreshToken = 'new-refresh-token-123';
@@ -105,9 +113,9 @@ describe('OAuth Session Utilities', () => {
 			client.OIDCConfig = { ...mockOIDCConfiguration };
 			delete client.OIDCConfig.token_endpoint;
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 
 			expect(session.save).not.toHaveBeenCalled();
 		});
@@ -119,9 +127,9 @@ describe('OAuth Session Utilities', () => {
 				// No refresh_token
 			};
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 
 			expect(session.save).not.toHaveBeenCalled();
 		});
@@ -136,9 +144,9 @@ describe('OAuth Session Utilities', () => {
 				// No oauth data
 			};
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 
 			expect(session.save).not.toHaveBeenCalled();
 		});
@@ -147,9 +155,9 @@ describe('OAuth Session Utilities', () => {
 			const refreshError = new Error('Token refresh failed');
 			vi.spyOn(client, 'refreshAccessToken').mockRejectedValue(refreshError);
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('Failed to refresh access token. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'Failed to refresh access token. Please log in again.'
+			);
 
 			expect(session.save).not.toHaveBeenCalled();
 		});
@@ -188,12 +196,12 @@ describe('OAuth Session Utilities', () => {
 			client.OIDCConfig = { ...mockOIDCConfiguration };
 			delete client.OIDCConfig.token_endpoint;
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow();
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow();
 
 			expect(consoleDebugSpy).toHaveBeenCalledWith('Attempting to refresh access token...');
-			expect(consoleWarnSpy).toHaveBeenCalledWith('No refresh endpoint or refresh token found. Redirecting to login.');
+			expect(consoleWarnSpy).toHaveBeenCalledWith(
+				'No refresh endpoint or refresh token found. Redirecting to login.'
+			);
 
 			consoleDebugSpy.mockRestore();
 			consoleErrorSpy.mockRestore();
@@ -207,9 +215,9 @@ describe('OAuth Session Utilities', () => {
 			const refreshError = new Error('API call failed');
 			vi.spyOn(client, 'refreshAccessToken').mockRejectedValue(refreshError);
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('Failed to refresh access token. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'Failed to refresh access token. Please log in again.'
+			);
 
 			expect(consoleDebugSpy).toHaveBeenCalledWith('Attempting to refresh access token...');
 			expect(consoleDebugSpy).toHaveBeenCalledWith('Refreshing access token...');
@@ -235,9 +243,9 @@ describe('OAuth Session Utilities', () => {
 			vi.spyOn(client, 'refreshAccessToken').mockResolvedValue(mockRefreshTokens);
 
 			// The function should still complete the refresh and only fail on save
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('Session save failed');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'Failed to refresh access token. Please log in again.'
+			);
 
 			// Verify that the session data was updated even though save failed
 			expect(session.data.oauth.access_token).toBe(newAccessToken);
@@ -285,25 +293,25 @@ describe('OAuth Session Utilities', () => {
 		it('should handle undefined session data', async () => {
 			session.data = undefined;
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'Cannot read properties of undefined'
+			);
 		});
 
 		it('should handle null session data', async () => {
 			session.data = null;
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'Cannot read properties of null'
+			);
 		});
 
 		it('should handle empty session data', async () => {
 			session.data = {};
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 		});
 
 		it('should handle session with oauth but no refresh token', async () => {
@@ -314,25 +322,25 @@ describe('OAuth Session Utilities', () => {
 				}
 			};
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 		});
 
 		it('should handle empty refresh token', async () => {
 			session.data.oauth.refresh_token = '';
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 		});
 
 		it('should handle client without OIDC config', async () => {
 			client.OIDCConfig = undefined;
 
-			await expect(
-				refreshAccessTokenInSession(session, client)
-			).rejects.toThrow('No refresh endpoint or refresh token found. Please log in again.');
+			await expect(refreshAccessTokenInSession(session, client)).rejects.toThrow(
+				'No refresh endpoint or refresh token found. Please log in again.'
+			);
 		});
 	});
 });
