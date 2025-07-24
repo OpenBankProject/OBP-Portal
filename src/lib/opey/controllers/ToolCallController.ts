@@ -1,5 +1,6 @@
 import type { ToolCall } from '../types';
 
+//WIP
 export interface ToolCallApprover {
     approve(call: ToolCall): Promise<void>;
     reject(call: ToolCall): void
