@@ -6,6 +6,8 @@ export interface WellKnownUri {
     url: string;
 }
 
+// Implement this for other OAuth2 providers as needed
+// Then register them in the OAuth2ProviderFactory
 interface OAuth2ProviderStrategy {
     providerName: string;
     initialize(config: WellKnownUri): Promise<OAuth2ClientWithConfig>;
