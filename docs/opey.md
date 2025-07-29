@@ -25,3 +25,10 @@ Once the user has logged in to the portal, and the OpeyChat component is mounted
 Built with reusability, flexibility, and modularity, we have tried to adhere as best as possible to SOLID design principles, and used [design patterns](https://refactoring.guru/design-patterns) where applicable.
 
 Opey frontend is divided into State, Services, Controllers and Types. On a basic level, controllers orchestrate between services, which _do stuff_ and state which _knows stuff_.
+
+### ChatService and RestChatService
+ChatService is the Abstract class and RestChatService a concrete implementation of it. This is so that we might be able to implement different protocols i.e. WebSocketChatServices if needed in the future.
+
+ChatService implements some key features of chat like sending a message, what to do when recieving a token etc.
+
+Callbacks for streaming and errors are registered in the ChatController class using the .onStreamEvent method.

@@ -34,7 +34,7 @@ You can preview the production build with `npm run preview`.
 ## Deploying in production
 Make sure to deploy the latest commit/docker image.
 
-Look carefully at the `.env.example` (or `.env-docker.example` if using docker) provided, Copy to `.env` (`.env-docker`) and fill out the variables as needed. 
+Look carefully at the `.env.example` provided, Copy to `.env` (`.env-docker`) and fill out the variables as needed. 
 
 A common mistake is to not change the `APP_CALLBACK_URL`, which should be the domain that the portal is deployed to, not `localhost`.
 

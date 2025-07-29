@@ -3,8 +3,6 @@ import { CookieAuthStrategy, type AuthStrategy } from "./AuthStrategy";
 import type { UserMessage, AssistantMessage, ToolMessage } from "../types";
 
 export class RestChatService implements ChatService {
-    private assistantCallback?: (msg: AssistantMessage) => void;
-    private toolCallback?: (msg: ToolMessage) => void;
     private errorCallback?: (err: Error) => void;
     private streamEventCallback?: (event: StreamEvent) => void;
 
@@ -152,19 +150,9 @@ export class RestChatService implements ChatService {
         }
     }
 
-    onAssistantMessage(fn: (msg: AssistantMessage) => void) {
-        // Register the callback to handle assistant messages
-        this.assistantCallback = fn
-    }
-
     onStreamEvent(fn: (event: StreamEvent) => void) {
         this.streamEventCallback = fn
         // Register the callback to handle streaming events
-    }
-
-    onToolMessage(fn: (msg: ToolMessage) => void) {
-        this.toolCallback = fn
-        // Register the callback to handle tool messages
     }
 
     onError(fn: (err: Error) => void) {

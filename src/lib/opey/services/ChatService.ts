@@ -15,14 +15,6 @@ export interface ChatService {
      * Handles token-by-token streaming, tool calls, and message lifecycle events.
      */
     onStreamEvent(fn: (event: StreamEvent) => void): void
-
-    /**
-     * Called when a complete assistant message is received (fallback for non-streaming).
-     * @deprecated Use onStreamEvent for streaming responses
-     */
-    onAssistantMessage(fn: (msg: AssistantMessage) => void): void
-    
-    onToolMessage(fn: (msg: ToolMessage) => void): void
     onError(fn: (err: Error) => void): void
     cancel(): void
 }
