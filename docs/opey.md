@@ -22,7 +22,7 @@ The only currently supported method of authentication is using [consents](https:
 Once the user has logged in to the portal, and the OpeyChat component is mounted (see `lib/components/OpeyChat.svelte`). The user will make a consent at OBP-API, which is sent to Opey in exchange for a session.
 
 ## Architecture
-Built with reusability, flexibility, and modularity, we have tried to adhere as best as possible to SOLID design principles, and used [design patterns](https://refactoring.guru/design-patterns) where applicable.
+Built with reusability, flexibility, and modularity in mind we have tried to adhere as best as possible to SOLID design principles, and used [design patterns](https://refactoring.guru/design-patterns) where applicable.
 
 Opey frontend is divided into State, Services, Controllers and Types. On a basic level, controllers orchestrate between services, which _do stuff_ and state which _knows stuff_.
 
