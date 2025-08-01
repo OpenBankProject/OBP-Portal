@@ -210,7 +210,7 @@
 						</div>
 						<LegalDocumentModal
 							title="Terms of Service"
-							documentName="obp_terms_and_conditions"
+							documentName="webui_terms_and_conditions"
 							triggerText="Read & Accept"
 							onAccept={handleTermsAccept}
 							accepted={termsAccepted}
@@ -248,7 +248,7 @@
 						</div>
 						<LegalDocumentModal
 							title="Privacy Policy"
-							documentName="privacy_policy"
+							documentName="webui_privacy_policy"
 							triggerText="Read & Accept"
 							onAccept={handlePrivacyAccept}
 							accepted={privacyAccepted}
