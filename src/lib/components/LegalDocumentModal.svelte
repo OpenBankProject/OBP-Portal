@@ -2,8 +2,8 @@
 	import { Dialog } from 'bits-ui';
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
-
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
+	import { getLegalMarkdownFromWebUIProps } from '$lib/utils/loadLegalDocumentFromApi';
 
 	interface Props {
 		title: string;
@@ -24,25 +24,21 @@
 
 	onMount(async () => {
 		try {
-			// Import the markdown file
-			const module = await import(`$lib/assets/legal/${documentName}.md?raw`);
-			content = renderMarkdown(module.default);
-			console.log(`Loaded ${documentName} content successfully.`);
-
-			isLoading = false;
+			const rawMarkdown = await getLegalMarkdownFromWebUIProps(documentName);
+			content = renderMarkdown(rawMarkdown);
+			console.log(`Loaded remote content for: ${documentName}`);
 		} catch (error) {
-			console.error(`Failed to load ${documentName}:`, error);
+			console.error(`Failed to fetch remote legal content:`, error);
 			content = '<p>Failed to load document.</p>';
+		} finally {
 			isLoading = false;
 		}
 	});
 
 	function handleScroll() {
 		if (!scrollViewport) return;
-
 		const { scrollTop, scrollHeight, clientHeight } = scrollViewport;
-		const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
-
+		const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 10;
 		if (scrolledToBottom && !hasScrolledToBottom) {
 			hasScrolledToBottom = true;
 		}
@@ -52,14 +48,14 @@
 		if (hasScrolledToBottom) {
 			onAccept();
 			open = false;
-			hasScrolledToBottom = false; // Reset for next time
+			hasScrolledToBottom = false;
 		}
 	}
 
 	function handleOpenChange(newOpen: boolean) {
 		open = newOpen;
 		if (!open) {
-			hasScrolledToBottom = false; // Reset when modal closes
+			hasScrolledToBottom = false;
 		}
 	}
 </script>
@@ -81,24 +77,13 @@
 			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex max-h-[90vh] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] flex-col rounded-lg border bg-primary-100-900 shadow-lg"
 		>
 			<div class="flex items-center justify-between border-b p-6">
-				<Dialog.Title class="text-lg font-semibold">
-					{title}
-				</Dialog.Title>
+				<Dialog.Title class="text-lg font-semibold">{title}</Dialog.Title>
 				<Dialog.Close
 					class="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 				>
-					<svg
-						class="h-4 w-4"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="m18 6-12 12"></path>
-						<path d="m6 6 12 12"></path>
+					<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+						viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path d="M18 6L6 18M6 6l12 12" />
 					</svg>
 					<span class="sr-only">Close</span>
 				</Dialog.Close>
@@ -125,7 +110,7 @@
 								fill-rule="evenodd"
 								d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
 								clip-rule="evenodd"
-							></path>
+							/>
 						</svg>
 						<span class="text-sm text-gray-600">Please read the entire document to continue</span>
 					{:else}
@@ -134,7 +119,7 @@
 								fill-rule="evenodd"
 								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
 								clip-rule="evenodd"
-							></path>
+							/>
 						</svg>
 						<span class="text-sm text-green-600">Ready to accept</span>
 					{/if}
