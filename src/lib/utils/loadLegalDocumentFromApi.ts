@@ -6,23 +6,28 @@ import { obp_requests } from "$lib/obp/requests";
  * @returns A string of raw Markdown content
  * @throws If the property is not found or is not a string
  */
+interface WebUIProp {
+    name: string;
+    value: string;
+}
+
 export async function getLegalMarkdownFromWebUIProps(name: string): Promise<string> {
-	try {
-		const json = await obp_requests.get('/obp/v5.1.0/webui-props');
+    try {
+        const json = await obp_requests.get('/obp/v5.1.0/webui-props');
 
-		if (!json?.webui_props || !Array.isArray(json.webui_props)) {
-			throw new Error('Invalid response format: missing webui_props');
-		}
+        if (!json?.webui_props || !Array.isArray(json.webui_props)) {
+            throw new Error('Invalid response format: missing webui_props');
+        }
 
-		const prop = json.webui_props.find((p: any) => p.name === name);
+        const prop = json.webui_props.find((p: WebUIProp) => p.name === name);
 
-		if (!prop || typeof prop.value !== 'string') {
-			throw new Error(`Property "${name}" not found or not a string`);
-		}
+        if (!prop || typeof prop.value !== 'string') {
+            throw new Error(`Property "${name}" not found or not a string`);
+        }
 
-		return prop.value;
-	} catch (err) {
-		console.error(`Failed to fetch legal markdown for "${name}":`, err);
-		throw new Error(`Failed to fetch legal markdown content`);
-	}
+        return prop.value;
+    } catch (err) {
+        console.error(`Failed to fetch legal markdown for "${name}":`, err);
+        throw new Error(`Failed to fetch legal markdown content`);
+    }
 }
