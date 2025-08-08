@@ -1,4 +1,4 @@
-## Getting Started
+41111## Getting Started
 
 ### Install dependencies
 ```bash
@@ -6,7 +6,7 @@ npm install
 ```
 
 ### Configure Environment
-copy .env.example to .env and fill out as needed 
+copy .env.example to .env and fill out as needed
 
 Make sure you set the `ORIGIN` variable to the domain that you are deploying to i.e. https://obp-portal.openbankproject.com or something like that
 
@@ -16,6 +16,15 @@ Once you've created a project and installed dependencies with `npm install` (or 
 
 ```bash
 npm run dev
+
+# To run on a specific port use:
+# Note: Another port will be used if the target is port is already in use
+npm run dev -- --port 5174
+
+# To force the use of a port use the following (an error will be thrown if the target port is already in use) use:
+npm run dev -- --port 5174 --strictPort
+
+# To see other server options see : https://vite.dev/config/server-options (note remove the word server.)
 
 # or start the server and open the app in a new browser tab
 npm run dev -- --open
@@ -36,11 +45,8 @@ You can preview the production build with `npm run preview`.
 ## Deploying in production
 Make sure to deploy the latest commit/docker image.
 
-Look carefully at the `.env.example` provided, Copy to `.env` (`.env-docker`) and fill out the variables as needed. 
+Look carefully at the `.env.example` provided, Copy to `.env` (`.env-docker`) and fill out the variables as needed.
 
 A common mistake is to not change the `APP_CALLBACK_URL`, which should be the domain that the portal is deployed to, not `localhost`.
 
-Make sure that the `APP_CALLBACK_URL` is registered with the OAuth2/OIDC provider, so that it will properly redirect. Without this the Portal will not work. 
-
-
-
+Make sure that the `APP_CALLBACK_URL` is registered with the OAuth2/OIDC provider, so that it will properly redirect. Without this the Portal will not work.
