@@ -1,3 +1,5 @@
+import { createLogger } from '../../utils/logger';
+const logger = createLogger('RestChatService');
 import type { ChatService, StreamEvent } from "./ChatService";
 import { CookieAuthStrategy, type AuthStrategy } from "./AuthStrategy";
 import type { UserMessage, AssistantMessage, ToolMessage } from "../types";
@@ -29,8 +31,8 @@ export class RestChatService implements ChatService {
             // Debug
             if (res.status === 422) {
                 const errorData = await res.json();
-                console.log("Validation error response:", errorData);
-                console.error(`Validation error: ${errorData.detail[0].msg} {${errorData.detail[0].field}}`);
+                logger.debug("Validation error response:", errorData);
+                logger.error(`Validation error: ${errorData.detail[0].msg} {${errorData.detail[0].field}}`);
             }
 
             // System-level error - use onError callback
@@ -58,7 +60,7 @@ export class RestChatService implements ChatService {
                 buffer = lines.pop() || ''; // Keep the last incomplete line
 
                 for (const line of lines) {
-                    console.log(line)
+                    logger.debug(line)
                     if (line.startsWith('data: ')) {
                         let eventData;
 
@@ -68,7 +70,7 @@ export class RestChatService implements ChatService {
                         try {
                             eventData = JSON.parse(line.slice(6));
                         } catch (error) {
-                            console.error("Failed to parse event data:", error);
+                            logger.error("Failed to parse event data:", error);
                             this.errorCallback?.(new Error(`Failed to parse event data: ${error}`));
                             continue; // Skip this line if parsing fails
                         }
@@ -137,7 +139,7 @@ export class RestChatService implements ChatService {
                                 }
                                 break
                             default:
-                                console.warn(`Unknown event type: ${eventData.type}`);
+                                logger.warn(`Unknown event type: ${eventData.type}`);
                                 break;
                         }
                     }

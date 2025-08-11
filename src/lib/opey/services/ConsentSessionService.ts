@@ -1,3 +1,5 @@
+import { createLogger } from '../../utils/logger';
+const logger = createLogger('ConsentSessionService');
 import type { SessionService } from "./SessionService";
 
 /**
@@ -11,10 +13,10 @@ export class ConsentSessionService implements SessionService {
     async createSession(consentJwt?: string) {
         const headers: Record<string, string> = {};
         if (consentJwt) {
-            console.log("ConsentSessionService: Creating session with consent JWT");
+            logger.info("Creating session with consent JWT");
             headers['Consent-JWT'] = consentJwt
         } else {
-            console.log("ConsentSessionService: Creating anonymous session");
+            logger.info("Creating anonymous session");
             // No Consent-JWT header means anonymous session
         }
         const res = await fetch(`${this.baseUrl}/create-session`, {
@@ -26,7 +28,7 @@ export class ConsentSessionService implements SessionService {
         if (!res.ok) {
             throw new Error(`Failed to create session: ${await res.text()}`);
         } else {
-            console.log("ConsentSessionService: Session created successfully");
+            logger.info("Session created successfully");
         }
     }
 

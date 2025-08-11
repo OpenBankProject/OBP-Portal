@@ -1,3 +1,5 @@
+import { createLogger } from './logger';
+const logger = createLogger('LegalDocLoader');
 import { obp_requests } from "$lib/obp/requests";
 
 /**
@@ -27,7 +29,7 @@ export async function getLegalMarkdownFromWebUIProps(name: string): Promise<stri
 
         return prop.value;
     } catch (err) {
-        console.error(`Failed to fetch legal markdown for "${name}":`, err);
+        logger.error(`Failed to fetch legal markdown for "${name}":`, err);
         throw new Error(`Failed to fetch legal markdown content`);
     }
 }

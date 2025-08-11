@@ -1,3 +1,5 @@
+import { createLogger } from '../utils/logger';
+const logger = createLogger('OBPRequests');
 import { env } from '$env/dynamic/public';
 import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
 
@@ -5,19 +7,18 @@ class OBPRequests {
 	base_url: string;
 
 	constructor(base_url: string) {
-		console.log(`${this.constructor.name}: `);
-		console.log('Initializing OBPRequests with base URL:', base_url);
+		logger.info('Initializing with base URL:', base_url);
 
 		if (!base_url) {
 			throw new OBPErrorBase('Base URL for OBP requests is not defined.');
 		}
 		this.base_url = base_url;
 
-		console.log('OBPRequests initialized.');
+		logger.info('Initialized.');
 	}
 
 	async get(endpoint: string, accessToken?: string): Promise<any> {
-		console.log(`--------------------------------\n${this.constructor.name}: `);
+		logger.debug('GET request');
 		console.debug('GET ', endpoint);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
@@ -32,7 +33,7 @@ class OBPRequests {
 		const data = await response.json();
 
 		if (!response.ok) {
-			console.error('Failed to fetch OBP data:', { statusText: response.statusText, data });
+			logger.error('Failed to fetch OBP data:', { statusText: response.statusText, data });
 
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
@@ -42,12 +43,12 @@ class OBPRequests {
 		}
 
 		console.debug(`Response from OBP:\n`, response.status, response.statusText);
-		console.log(`--------------------------------`);
+		logger.debug('GET done');
 		return data;
 	}
 
 	async post(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		console.log(`${this.constructor.name}: `);
+		logger.debug('POST request');
 		console.debug('POST ', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
@@ -64,7 +65,7 @@ class OBPRequests {
 		const data = await response.json();
 
 		if (!response.ok) {
-			console.error('Failed to post OBP data:', { statusText: response.statusText, data });
+			logger.error('Failed to post OBP data:', { statusText: response.statusText, data });
 
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
@@ -74,12 +75,12 @@ class OBPRequests {
 		}
 
 		console.debug(`Response from OBP:\n`, response.status, response.statusText);
-		console.log(`--------------------------------`);
+		logger.debug('POST done');
 		return data;
 	}
 
 	async delete(endpoint: string, accessToken?: string): Promise<any> {
-		console.log(`${this.constructor.name}: `);
+		logger.debug('DELETE request');
 		console.debug('DELETE ', endpoint);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
@@ -95,7 +96,7 @@ class OBPRequests {
 		const data = await response.json();
 
 		if (!response.ok) {
-			console.error('Failed to delete OBP data:', response.statusText, data);
+			logger.error('Failed to delete OBP data:', response.statusText, data);
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
@@ -104,12 +105,12 @@ class OBPRequests {
 		}
 
 		console.debug(`Response from OBP:\n`, response.status, response.statusText);
-		console.log(`--------------------------------`);
+		logger.debug('DELETE done');
 		return data;
 	}
 
 	async put(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		console.log(`${this.constructor.name}: `);
+		logger.debug('PUT request');
 		console.debug('PUT ', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
@@ -126,7 +127,7 @@ class OBPRequests {
 		const data = await response.json();
 
 		if (!response.ok) {
-			console.error('Failed to put OBP data:', { statusText: response.statusText, data });
+			logger.error('Failed to put OBP data:', { statusText: response.statusText, data });
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
@@ -135,12 +136,12 @@ class OBPRequests {
 		}
 
 		console.debug(`Response from OBP:\n`, response.status, response.statusText);
-		console.log(`--------------------------------`);
+		logger.debug('PUT done');
 		return data;
 	}
 
 	async patch(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		console.log(`${this.constructor.name}: `);
+		logger.debug('PATCH request');
 		console.debug('PATCH ', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
@@ -157,7 +158,7 @@ class OBPRequests {
 		const data = await response.json();
 
 		if (!response.ok) {
-			console.error('Failed to patch OBP data:', { statusText: response.statusText, data });
+			logger.error('Failed to patch OBP data:', { statusText: response.statusText, data });
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
@@ -166,7 +167,7 @@ class OBPRequests {
 		}
 
 		console.debug(`Response from OBP:\n`, response.status, response.statusText);
-		console.log(`--------------------------------`);
+		logger.debug('PATCH done');
 		return data;
 	}
 }
