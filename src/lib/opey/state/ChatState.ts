@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('ChatState');
 import { v4 as uuidv4 } from 'uuid';
 import type { BaseMessage, ToolMessage} from "../types";
 
@@ -43,7 +45,7 @@ export class ChatState {
             message.message += text; // Append text to the existing message
             this.emit(); // Notify subscribers about the change
         } else {
-            console.warn(`Message with ID ${messageId} not found.`);
+            logger.warn(`Message with ID ${messageId} not found.`);
         }
     }
 
@@ -51,16 +53,16 @@ export class ChatState {
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
             if (message.isStreaming === undefined) {
-                console.warn(`Message with ID ${messageId} does not have isStreaming property.`);
-            } else if (message.isStreaming === false) {
-                console.debug(`Message with ID ${messageId} is already marked as complete.`);
+                logger.warn(`Message with ID ${messageId} does not have isStreaming property.`);
+            } else if (!message.isStreaming) {
+                logger.debug(`Message with ID ${messageId} is already marked as complete.`);
             } else {
-                console.log(`Marking message with ID ${messageId} as complete.`);
+                logger.debug(`Marking message with ID ${messageId} as complete.`);
                 message.isStreaming = false; // Mark the message as complete
                 this.emit(); // Notify subscribers about the change
             }
         } else {
-            console.warn(`Message with ID ${messageId} not found.`);
+            logger.warn(`Message with ID ${messageId} not found.`);
         }
     }
 
@@ -70,7 +72,7 @@ export class ChatState {
             Object.assign(message, updates); // Update the message with the provided fields
             this.emit(); // Notify subscribers about the change
         } else {
-            console.warn(`Message with ID ${messageId} not found.`);
+            logger.warn(`Message with ID ${messageId} not found.`);
         }
     }
 
@@ -80,13 +82,13 @@ export class ChatState {
             Object.assign(toolMessage, updates); // Update the tool message with the provided fields
             this.emit(); // Notify subscribers about the change
         } else {
-            console.warn(`Tool message with ID ${toolCallId} not found.`);
+            logger.warn(`Tool message with ID ${toolCallId} not found.`);
         }
     }
 
     subscribe(fn: (msgs: ChatStateSnapshot) => void): void {
         this.subscribers.push(fn);
-        console.debug("ChatState: Subscribed to messages");
+        logger.debug("ChatState: Subscribed to messages");
         fn({ threadId: this.threadId, messages: this.messages }); // Send current state immediately
     }
 

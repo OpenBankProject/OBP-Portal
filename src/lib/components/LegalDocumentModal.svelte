@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
 	import { getLegalMarkdownFromWebUIProps } from '$lib/utils/loadLegalDocumentFromApi';
+	import { createLogger } from '$lib/utils/logger';
+	const logger = createLogger('LegalDocumentModal');
 
 	interface Props {
 		title: string;
@@ -26,9 +27,9 @@
 		try {
 			const rawMarkdown = await getLegalMarkdownFromWebUIProps(documentName);
 			content = renderMarkdown(rawMarkdown);
-			console.log(`Loaded remote content for: ${documentName}`);
+			logger.info(`Loaded remote content for: ${documentName}`);
 		} catch (error) {
-			console.error(`Failed to fetch remote legal content:`, error);
+			logger.error(`Failed to fetch remote legal content:`, error);
 			content = '<p>Failed to load document.</p>';
 		} finally {
 			isLoading = false;
@@ -82,7 +83,8 @@
 					class="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 				>
 					<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none"
-						viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+							 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/2000/svg ">
 						<path d="M18 6L6 18M6 6l12 12" />
 					</svg>
 					<span class="sr-only">Close</span>

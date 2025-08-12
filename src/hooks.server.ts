@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('HooksServer');
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
@@ -12,15 +14,15 @@ import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 // Init Redis
 let client: Redis
 if (!env.REDIS_HOST || !env.REDIS_PORT) {
-    console.warn('Redis host or port is not set. Using defaults.');
+    logger.warn('Redis host or port is not set. Using defaults.');
 
     client = new Redis({
         host: 'localhost',
         port: 6379
     });
 } else {
-    console.debug('Connecting to Redis at:', env.REDIS_HOST, env.REDIS_PORT);
-    console.debug('Redis password provided:', !!env.REDIS_PASSWORD);
+    logger.debug('Connecting to Redis at:', env.REDIS_HOST, env.REDIS_PORT);
+    logger.debug('Redis password provided:', !!env.REDIS_PASSWORD);
     
     const redisConfig: any = {
         host: env.REDIS_HOST,
@@ -39,7 +41,7 @@ async function fetchWellKnownUris(): Promise<WellKnownUri[]> {
         const response = await obp_requests.get('/obp/v5.1.0/well-known');
         return response.well_known_uris;
     } catch (error) {
-        console.error('Failed to fetch well-known URIs:', error);
+        logger.error('Failed to fetch well-known URIs:', error);
         throw error;
     }
 }
@@ -50,7 +52,7 @@ async function initOauth2Providers() {
 
     try {
         const wellKnownUris: WellKnownUri[] = await fetchWellKnownUris();
-        console.debug('Well-known URIs fetched successfully:', wellKnownUris);
+        logger.debug('Well-known URIs fetched successfully:', wellKnownUris);
 
         for (const providerUri of wellKnownUris) {
             const oauth2Client = await oauth2ProviderFactory.initializeProvider(providerUri)
@@ -64,7 +66,7 @@ async function initOauth2Providers() {
             throw new Error('Could no initialize any OAuth2 provider. No way to log in. Please check your OBP configuration.');
         }
     } catch (error) {
-        console.error('Failed to init OAuth2 providers: ', error);
+        logger.error('Failed to init OAuth2 providers: ', error);
         // rethrow the error to prevent the app from starting
         throw error
     }
@@ -73,10 +75,10 @@ async function initOauth2Providers() {
 async function initWebUIProps() {
     try {
         const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
-        console.log('WebUI props fetched successfully:', webuiProps);
+        logger.info('WebUI props fetched successfully:', webuiProps);
         return webuiProps;
     } catch (error) {
-        console.error('Failed to fetch WebUI props:', error);
+        logger.error('Failed to fetch WebUI props:', error);
         throw error;
     }
 }
@@ -85,14 +87,14 @@ async function initWebUIProps() {
 try {
     await initOauth2Providers();
 } catch (error) {
-    console.error('Error initializing OAuth2 providers:', error);
+    logger.error('Error initializing OAuth2 providers:', error);
     throw error
 }
 
 // Get WebUI props from OBP
 // try {
 //     const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
-//     console.debug('WebUI props fetched successfully:', webuiProps);
+//     logger.debug('WebUI props fetched successfully:', webuiProps);
 // } catch (error) {
 //     // Handle the error as needed, e.g., log it, throw it, etc.
 //     throw error
@@ -110,11 +112,11 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
     
     if (!!routeId && needsAuthorization(routeId)) {
-        console.debug('Checking authorization for user route:', event.url.pathname);
+        logger.debug('Checking authorization for user route:', event.url.pathname);
         // Check token expiration
         const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
         if (!sessionOAuth) {
-            console.warn('No valid OAuth data found in session. Redirecting to login.');
+            logger.warn('No valid OAuth data found in session. Redirecting to login.');
             // Redirect to login page if no OAuth data is found
             return new Response(null, {
                 status: 302,
@@ -131,10 +133,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
             try {
                 await SessionOAuthHelper.refreshAccessToken(session)
             } catch (error) {
-                console.error('Error refreshing access token:', error);
+                logger.error('Error refreshing access token:', error);
                 // If the refresh fails, redirect to login
                 // Destroy the session
-                console.warn('Destroying session due to failed token refresh.');
+                logger.warn('Destroying session due to failed token refresh.');
                 await session.destroy();
 
                 return new Response(null, {
@@ -155,7 +157,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
                 }
             });
         } else {
-            console.debug('User is authenticated:', session.data.user);
+            logger.debug('User is authenticated:', session.data.user);
             // Optionally, you can add more checks here, e.g., user roles or permissions
         }
     }

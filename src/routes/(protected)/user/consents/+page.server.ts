@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('UserConsentsServer');
 import type { RequestEvent, Actions } from "@sveltejs/kit";
 import { error } from "@sveltejs/kit";
 import type { OBPConsent } from "$lib/obp/types";
@@ -39,7 +41,7 @@ export async function load(event: RequestEvent ) {
     try {
         consentResponse = await obp_requests.get('/obp/v5.1.0/my/consents', token)
     } catch (e) {
-        console.error("Error fetching consents:", e);
+        logger.error("Error fetching consents:", e);
         error(500, {
             message: "Could not fetch consents at this time. Please try again later.",
         });
@@ -91,7 +93,7 @@ export const actions = {
         try {
             const response = await obp_requests.delete(`/obp/v5.1.0/my/consents/${consentId}`, token);
         } catch (error) {
-            console.error("Error deleting consent:", error);
+            logger.error("Error deleting consent:", error);
             return {
                 error: "Failed to delete consent."
             };

@@ -1,10 +1,12 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('ConsumerRegisterSuccessServer');
 import type { RequestEvent } from '@sveltejs/kit';
 
 export async function load(event: RequestEvent ) {
     const { cookies } = event;
 
     const consumerDataCookie = cookies.get('consumer_data');
-    console.log("Consumer Data Cookie:", consumerDataCookie);
+    logger.debug("Consumer Data Cookie:", consumerDataCookie);
 
     if (consumerDataCookie) {
 
@@ -13,13 +15,13 @@ export async function load(event: RequestEvent ) {
         try {
             const consumerData = JSON.parse(consumerDataCookie);
             
-            console.log("Parsed Consumer Data:", consumerData);
+            logger.debug("Parsed Consumer Data:", consumerData);
             
             return {
                 consumerData
             }
         } catch (error) {
-            console.error("Failed to parse consumer data cookie:", error);
+            logger.error("Failed to parse consumer data cookie:", error);
             return {
                 error: "Failed to parse consumer data cookie."
             };

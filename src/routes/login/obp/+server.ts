@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OBPLogin');
 import { generateState } from 'arctic'
 import { oauth2ProviderFactory } from '$lib/oauth/providerFactory'
 import type { RequestEvent } from '@sveltejs/kit'
@@ -7,7 +9,7 @@ export function GET(event: RequestEvent) {
     
     const oauthClient = oauth2ProviderFactory.getClient(provider)
     if (!oauthClient) {
-        console.error(`OAuth client for provider "${provider}" not found.`);
+        logger.error(`OAuth client for provider "${provider}" not found.`);
         return new Response("OAuth provider not configured", {
             status: 500
         });
@@ -42,7 +44,7 @@ export function GET(event: RequestEvent) {
             }
         });
     } catch (error) {
-        console.error("Error during OBP OAuth login:", error);
+        logger.error("Error during OBP OAuth login:", error);
         return new Response("Internal Server Error", {
             status: 500
         });

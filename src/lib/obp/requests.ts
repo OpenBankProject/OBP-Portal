@@ -1,4 +1,4 @@
-import { createLogger } from '../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OBPRequests');
 import { env } from '$env/dynamic/public';
 import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
@@ -18,8 +18,7 @@ class OBPRequests {
 	}
 
 	async get(endpoint: string, accessToken?: string): Promise<any> {
-		logger.debug('GET request');
-		console.debug('GET ', endpoint);
+		logger.debug('GET', endpoint);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
@@ -42,14 +41,13 @@ class OBPRequests {
 			}
 		}
 
-		console.debug(`Response from OBP:\n`, response.status, response.statusText);
+		logger.debug('Response from OBP', response.status, response.statusText);
 		logger.debug('GET done');
 		return data;
 	}
 
 	async post(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		logger.debug('POST request');
-		console.debug('POST ', endpoint, body);
+		logger.debug('POST', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
@@ -74,14 +72,13 @@ class OBPRequests {
 			}
 		}
 
-		console.debug(`Response from OBP:\n`, response.status, response.statusText);
+		logger.debug('Response from OBP', response.status, response.statusText);
 		logger.debug('POST done');
 		return data;
 	}
 
 	async delete(endpoint: string, accessToken?: string): Promise<any> {
-		logger.debug('DELETE request');
-		console.debug('DELETE ', endpoint);
+		logger.debug('DELETE', endpoint);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
@@ -104,14 +101,13 @@ class OBPRequests {
 			}
 		}
 
-		console.debug(`Response from OBP:\n`, response.status, response.statusText);
+		logger.debug('Response from OBP', response.status, response.statusText);
 		logger.debug('DELETE done');
 		return data;
 	}
 
 	async put(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		logger.debug('PUT request');
-		console.debug('PUT ', endpoint, body);
+		logger.debug('PUT', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
@@ -135,14 +131,13 @@ class OBPRequests {
 			}
 		}
 
-		console.debug(`Response from OBP:\n`, response.status, response.statusText);
+		logger.debug('Response from OBP', response.status, response.statusText);
 		logger.debug('PUT done');
 		return data;
 	}
 
 	async patch(endpoint: string, body: any, accessToken?: string): Promise<any> {
-		logger.debug('PATCH request');
-		console.debug('PATCH ', endpoint, body);
+		logger.debug('PATCH', endpoint, body);
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
@@ -166,7 +161,7 @@ class OBPRequests {
 			}
 		}
 
-		console.debug(`Response from OBP:\n`, response.status, response.statusText);
+		logger.debug('Response from OBP', response.status, response.statusText);
 		logger.debug('PATCH done');
 		return data;
 	}

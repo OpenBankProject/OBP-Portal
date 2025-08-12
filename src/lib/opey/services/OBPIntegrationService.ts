@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OBPIntegrationService');
 import type { Session } from 'svelte-kit-sessions';
 import { obp_requests } from '$lib/obp/requests';
 import type { OBPConsent } from '$lib/obp/types';
@@ -50,7 +52,7 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
 
       return null;
     } catch (error) {
-      console.error('Error checking existing consent:', error);
+      logger.error('Error checking existing consent:', error);
       return null;
     }
   }

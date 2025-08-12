@@ -1,4 +1,4 @@
-import { createLogger } from '../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OAuthSessionHelper');
 import { oauth2ProviderFactory } from "./providerFactory";
 import type { OAuth2ClientWithConfig } from "./client";
@@ -61,7 +61,7 @@ export class SessionOAuthHelper {
 
 
     static async refreshAccessToken(session: Session): Promise<void> {
-        console.debug('Attempting to refresh access token in session...');
+        logger.debug('Attempting to refresh access token in session...');
 
         const sessionOAuth = this.getSessionOAuth(session);
         if (!sessionOAuth) {
@@ -78,7 +78,7 @@ export class SessionOAuthHelper {
         }
 
         try {
-            console.debug(`Refreshing access token for provider: ${provider}...`);
+            logger.debug(`Refreshing access token for provider: ${provider}...`);
             const tokens = await client.refreshAccessToken(refreshEndpoint, refreshToken, ['openid']);
 
             await this.updateTokensInSession(

@@ -1,4 +1,4 @@
-import { createLogger } from '../../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('ChatController');
 import { v4 as uuidv4 } from 'uuid';
 import type { ChatService, StreamEvent } from '../services/ChatService';

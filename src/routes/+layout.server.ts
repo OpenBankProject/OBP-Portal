@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('LayoutServer');
 import type { RequestEvent } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 
@@ -15,7 +17,7 @@ export async function load(event: RequestEvent) {
     // for each of the external links, check if the environment variable is set and add it to the data object
     Object.entries(externalLinks).forEach(([name, url]) => {
         if (!url) {
-            console.warn(`Environment variable ${name} is not set, it will not show up in the menu.`);
+            logger.warn(`Environment variable ${name} is not set, it will not show up in the menu.`);
         }
         data[name] = url ? url : null;
     })

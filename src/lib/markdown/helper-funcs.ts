@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('MarkdownHelper');
 import MarkdownIt from "markdown-it";
 
 // Imports for syntax highlighting
@@ -25,7 +27,7 @@ function _highlightCode(content: string, language: string) {
     if (Prism.languages[language]) {
         return Prism.highlight(content, Prism.languages[language], language);
     } else {
-        console.log(`could not highlight ${language} code block, add language to dependencies`);
+        logger.warn(`could not highlight ${language} code block, add language to dependencies`);
         // If the language is not recognized, return the content as is
         return content;
     }
@@ -38,12 +40,12 @@ export function renderMarkdown(content: string) {
                 try {
                     return `<pre class="language-${lang}"><code>${_highlightCode(str, lang)}</code></pre>`;
                 } catch (error) {
-                    console.log(`error hilighting ${lang} code block: ${error}`);
+                    logger.warn(`error hilighting ${lang} code block: ${error}`);
                 }
             } else if (!lang) {
-                console.warn('No language specified for code block');
+                logger.warn('No language specified for code block');
             } else if (!Prism.languages[lang]) {
-                console.warn(
+                logger.warn(
                     `Language ${lang} not recognized or not installed, see imports for this component`
                 );
             }

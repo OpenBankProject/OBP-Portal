@@ -1,4 +1,4 @@
-import { createLogger } from '../../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('SessionController');
 import type { SessionService } from "../services/SessionService";
 import type { SessionState } from "../state/SessionState";

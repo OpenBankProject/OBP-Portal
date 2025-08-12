@@ -1,8 +1,8 @@
-import { createLogger } from '../../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('RestChatService');
 import type { ChatService, StreamEvent } from "./ChatService";
 import { CookieAuthStrategy, type AuthStrategy } from "./AuthStrategy";
-import type { UserMessage, AssistantMessage, ToolMessage } from "../types";
+import type { UserMessage } from "../types";
 
 export class RestChatService implements ChatService {
     private errorCallback?: (err: Error) => void;

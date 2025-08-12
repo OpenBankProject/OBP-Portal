@@ -1,4 +1,4 @@
-import { createLogger } from '../utils/logger';
+import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OAuthProviderFactory');
 import { OAuth2ClientWithConfig } from "./client";
 import { env } from "$env/dynamic/private";
@@ -73,7 +73,7 @@ export class OAuth2ProviderFactory {
         try {
             const client = await strategy.initialize(config);
             this.initializedClients.set(strategy.getProviderName(), client)
-            console.debug(`Initialized OAuth2 client for provider: ${config.provider}`);
+            logger.debug(`Initialized OAuth2 client for provider: ${config.provider}`);
             return client;
         } catch (error) {
             logger.error(`Failed to initialize OAuth2 client for provider ${config.provider}:`, error);
