@@ -83,8 +83,7 @@
 					class="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 				>
 					<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none"
-							 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-							 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/2000/svg ">
+							 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12" />
 					</svg>
 					<span class="sr-only">Close</span>

@@ -21,10 +21,8 @@ const displayConsent = (consent: OBPConsent): boolean => {
     const timeDifference = currentDate.getTime() - lastAction.getTime();
 
     // Check if the last action date is within the last 24 hours
-    if (timeDifference <= 24 * 60 * 60 * 1000) {
-        return true;
-    }
-    return false;
+    return timeDifference <= 24 * 60 * 60 * 1000;
+    
 
 }
 

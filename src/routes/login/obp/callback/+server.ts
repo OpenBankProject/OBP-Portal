@@ -42,22 +42,22 @@ export async function GET(event: RequestEvent): Promise<Response> {
         });
     }
 
+    // Validate the authorization code and exchange it for tokens
+    const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
+    if (!token_endpoint) {
+        logger.error("Token endpoint not found in OIDC configuration.");
+        return new Response("OAuth configuration error", { status: 500 });
+    }
+
     let tokens: OAuth2Tokens;
-	try {
-        // Validate the authorization code and exchange it for tokens
-        const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
-        if (!token_endpoint) {
-            throw new Error("Token endpoint not found in OIDC configuration.");
-        }
-
-
-		tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
-	} catch (e) {
+    try {
+        tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
+    } catch (e) {
         logger.error("Error validating authorization code:", e);
-		return new Response("Log in failed, please restart the process.", {
-			status: 400
-		});
-	}
+        return new Response("Log in failed, please restart the process.", {
+            status: 400
+        });
+    }
 
     // Get rid of the state cookie
     event.cookies.delete("obp_oauth_state", {

@@ -21,12 +21,12 @@ export function GET(event: RequestEvent) {
 
     const scopes = ['openid']
 
+    const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint
+    if (!auth_endpoint) {
+        logger.error("Authorization endpoint not found in OIDC configuration.");
+        return new Response("OAuth configuration error", { status: 500 });
+    }
     try {
-        const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint
-
-        if (!auth_endpoint) {
-            throw new Error("Authorization endpoint not found in OIDC configuration.");
-        }
         const url = oauthClient.createAuthorizationURL(auth_endpoint, encodedState, scopes)
 
         event.cookies.set("obp_oauth_state", encodedState, {

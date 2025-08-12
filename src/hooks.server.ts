@@ -61,14 +61,14 @@ async function initOauth2Providers() {
             }
         }   
 
-        // If no providers were found, throw an error
+        // If no providers were found, log error and return
         if (providers.length === 0) {
-            throw new Error('Could no initialize any OAuth2 provider. No way to log in. Please check your OBP configuration.');
+            logger.error('Could not initialize any OAuth2 provider. Please check your OBP configuration.');
+            return;
         }
     } catch (error) {
         logger.error('Failed to init OAuth2 providers: ', error);
-        // rethrow the error to prevent the app from starting
-        throw error
+        return;
     }
 }
 

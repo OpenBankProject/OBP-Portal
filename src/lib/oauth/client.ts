@@ -21,17 +21,19 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
             // Fetch OIDC configuration (OAuth2.1 compliant)
             const response = await fetch(OIDCConfigUrl);
             if (!response.ok) {
-                throw new Error(`Failed to fetch OIDC config: ${response.statusText}`);
+                logger.error(`Failed to fetch OIDC config: ${response.status} ${response.statusText}`);
+                return;
             }
             config = await response.json();
         } catch (error) {
             logger.error("Error fetching OIDC config:", error);
-            throw new Error("Failed to fetch OIDC config");
+            return;
         }
 
         // Validate required endpoints outside of try/catch to avoid local-catch warnings
         if (!config?.authorization_endpoint || !config?.token_endpoint) {
-            throw new Error("Invalid OIDC config: Missing required endpoints.");
+            logger.error("Invalid OIDC config: Missing required endpoints.");
+            return;
         }
 
         // Assign after validation
