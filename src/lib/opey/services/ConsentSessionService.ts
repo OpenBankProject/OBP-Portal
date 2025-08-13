@@ -1,5 +1,6 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('ConsentSessionService');
+import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import type { SessionService } from "./SessionService";
 
 /**
@@ -13,10 +14,11 @@ export class ConsentSessionService implements SessionService {
     async createSession(consentJwt?: string) {
         const headers: Record<string, string> = {};
         if (consentJwt) {
-            logger.info("Creating session with consent JWT");
+            const userIdentifier = extractUsernameFromJWT(consentJwt);
+            logger.info(`createSession says: Creating session with consent JWT and sending to Opey - Primary user: ${userIdentifier}`);
             headers['Consent-JWT'] = consentJwt
         } else {
-            logger.info("Creating anonymous session");
+            logger.info("createSession says: Creating anonymous session - no consent JWT");
             // No Consent-JWT header means anonymous session
         }
         const res = await fetch(`${this.baseUrl}/create-session`, {
@@ -26,9 +28,16 @@ export class ConsentSessionService implements SessionService {
         })
 
         if (!res.ok) {
-            throw new Error(`Failed to create session: ${await res.text()}`);
+            const errorText = await res.text();
+            logger.error(`createSession says: Failed to create session: ${errorText}`);
+            throw new Error(`Failed to create session: ${errorText}`);
         } else {
-            logger.info("Session created successfully");
+            if (consentJwt) {
+                const userIdentifier = extractUsernameFromJWT(consentJwt);
+                logger.info(`createSession says: Opey session created successfully - Primary user: ${userIdentifier}`);
+            } else {
+                logger.info("createSession says: Anonymous Opey session created successfully");
+            }
         }
     }
 
