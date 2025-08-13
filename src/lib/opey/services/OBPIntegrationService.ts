@@ -69,7 +69,7 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
       time_to_live: 3600,
     };
 
-    return await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', accessToken, body);
+    return await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', body, accessToken);
   }
 
   private isConsentExpired(consent: any): boolean {
