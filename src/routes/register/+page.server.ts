@@ -1,4 +1,6 @@
-import { type RequestEvent, type Actions, redirect } from "@sveltejs/kit";
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('RegisterServer');
+import { type Actions, redirect } from "@sveltejs/kit";
 import { obp_requests } from "$lib/obp/requests";
 import type { OBPUserRegistrationRequestBody } from "$lib/obp/types";
 import { OBPRequestError } from "$lib/obp/errors";
@@ -7,7 +9,7 @@ export const actions = {
     default: async ({ request, locals, cookies }) => {
         const formData = await request.formData()
         
-        console.log("Form Data:", Object.fromEntries(formData.entries()));
+        logger.debug("Form Data:", Object.fromEntries(formData.entries()));
 
         const formEntries = Object.fromEntries(formData.entries());
         const requestBody: OBPUserRegistrationRequestBody = {
@@ -23,7 +25,7 @@ export const actions = {
             const response = await obp_requests.post(`/obp/v5.1.0/users`, requestBody);
 
             
-            console.log("User registered successfully:", response);
+            logger.info("User registered successfully:", response);
 
             // Store the response data in a secure cookie for the success page
             // Flash Message, will be deleted when the user visits the success page
@@ -49,7 +51,7 @@ export const actions = {
                     }
                 }
             }
-            console.error("Error registering user:", error);
+            logger.error("Error registering user:", error);
             return {
                 error: "Failed to register user"
             };

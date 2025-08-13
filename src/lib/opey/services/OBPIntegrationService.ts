@@ -1,3 +1,6 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OBPIntegrationService');
+import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import type { Session } from 'svelte-kit-sessions';
 import { obp_requests } from '$lib/obp/requests';
 import type { OBPConsent } from '$lib/obp/types';
@@ -18,11 +21,15 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
     // Check for existing consent first
     const existingConsentId = await this.checkExistingOpeyConsent(session);
     if (existingConsentId) {
+      const userIdentifier = extractUsernameFromJWT(existingConsentId);
+      logger.info(`getOrCreateOpeyConsent says: Found existing consent JWT - Primary user: ${userIdentifier}`);
       return existingConsentId;
     }
 
     // Create new consent
     const consent = await this.createImplicitConsent(session.data.oauth.access_token);
+    const userIdentifier = extractUsernameFromJWT(consent.jwt);
+    logger.info(`getOrCreateOpeyConsent says: Created new consent JWT - Primary user: ${userIdentifier}`);
     return consent.jwt;
   }
 
@@ -44,13 +51,15 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
             `/obp/v5.1.0/user/current/consents/${consent.consent_id}`, 
             session.data.oauth.access_token
           );
+          const userIdentifier = extractUsernameFromJWT(fullConsent.jwt);
+          logger.info(`checkExistingOpeyConsent says: Retrieved existing consent JWT - Primary user: ${userIdentifier}`);
           return fullConsent.jwt;
         }
       }
 
       return null;
     } catch (error) {
-      console.error('Error checking existing consent:', error);
+      logger.error('checkExistingOpeyConsent says: Error checking existing consent:', error);
       return null;
     }
   }
@@ -67,7 +76,10 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
       time_to_live: 3600,
     };
 
-    return await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', accessToken, body);
+    const consent = await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', body, accessToken);
+    const userIdentifier = extractUsernameFromJWT(consent.jwt);
+    logger.info(`createImplicitConsent says: Created implicit consent - Primary user: ${userIdentifier}`);
+    return consent;
   }
 
   private isConsentExpired(consent: any): boolean {

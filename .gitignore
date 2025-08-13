@@ -27,3 +27,7 @@ vite.config.ts.timestamp-*
 
 # Swark
 swark-output/
+
+/.idea
+.specstory
+.cursorindexingignore

@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('ChatController');
 import { v4 as uuidv4 } from 'uuid';
 import type { ChatService, StreamEvent } from '../services/ChatService';
 import type { ToolMessage, UserMessage } from '../types';
@@ -23,7 +25,7 @@ export class ChatController {
                     state.appendToMessage(event.messageId, event.token)
                     break
                 case 'assistant_complete':
-                    console.log('Marking assistant message as complete:', event);
+                    logger.debug('Marking assistant message as complete:', event);
                     state.markMessageComplete(event.messageId)
                     break
                 case 'tool_start':

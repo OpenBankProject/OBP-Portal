@@ -5,10 +5,11 @@ Transitioning to a more dynamic user experience is a big part of the move to a n
 ## Authenticating
 As Opey is a seperate service to OBP-API, the sessions are managed seperately. Opey allows for anonymous, rate-limited (and request-limited) sessions for users to try it out. But users will need to authenticate after a while. 
 
-The only currently supported method of authentication is using [consents](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Consent). Two things will need to be set for this flow to work:
+The only currently supported method of authentication is using [consents](https://apiexplorer-ii-sandbox.openbankproject.com/glossary#Consent). Three things will need to be set for this flow to work:
 
-- `PUBLIC_OPEY_CONSUMER_ID` will need to be set in the environment variables, so you will need to know what the Opey Consumer ID is on your OBP isntance
-- The **OBP API** props needs also to be set: 
+- `PUBLIC_OPEY_BASE_URL` will need to be set in the environment variables to the base URL of your Opey service (e.g., `http://localhost:5000`)
+- `PUBLIC_OPEY_CONSUMER_ID` will need to be set in the environment variables, so you will need to know what the Opey Consumer ID is on your OBP instance
+- The **OBP API** props needs also to be set:
     ```json
     skip_consent_sca_for_consumer_id_pairs=[{ \
         "grantor_consumer_id": "<Portal Consumer ID>", \
@@ -17,7 +18,15 @@ The only currently supported method of authentication is using [consents](https:
     ```
     the portal consumer ID should be found in API manager etc.
 
+## CORS Configuration
+If you're running Opey as a separate service, you'll need to configure CORS to allow cross-origin requests from the OBP-Portal. The Opey service must include the following CORS headers:
 
+- `Access-Control-Allow-Origin`: Set to your OBP-Portal's origin (e.g., `http://localhost:5174`)
+- `Access-Control-Allow-Methods`: Include `POST, GET, OPTIONS`
+- `Access-Control-Allow-Headers`: Include `Content-Type, Authorization, Consent-JWT`
+- `Access-Control-Allow-Credentials`: Set to `true` if using cookies
+
+Without proper CORS configuration, you'll see errors like "Access to fetch at 'http://localhost:5000/stream' from origin 'http://localhost:5174' has been blocked by CORS policy".
 
 Once the user has logged in to the portal, and the OpeyChat component is mounted (see `lib/components/OpeyChat.svelte`). The user will make a consent at OBP-API, which is sent to Opey in exchange for a session.
 

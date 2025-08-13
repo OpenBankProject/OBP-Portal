@@ -44,7 +44,7 @@
 	}
 	// Default chat options
 	const defaultChatOptions: OpeyChatOptions = {
-		baseUrl: 'http://localhost:5000',
+		baseUrl: env.PUBLIC_OPEY_BASE_URL || 'http://localhost:5000',
 		displayHeader: true,
 		currentlyActiveUserName: 'Guest',
 		suggestedQuestions: []

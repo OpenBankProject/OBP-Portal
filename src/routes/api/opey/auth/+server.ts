@@ -1,3 +1,6 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OpeyAuthServer');
+import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "./$types";
 import { DefaultOBPIntegrationService } from "$lib/opey/services/OBPIntegrationService";
@@ -18,7 +21,7 @@ export async function POST(event: RequestEvent) {
                 // Opey consumer ID is not configured
                 // We will return an anonymous session instead, with a warning/error
 
-                console.warn('Opey consumer ID not configured, returning anonymous session');
+                logger.warn('Opey consumer ID not configured, returning anonymous session');
                 return await _getAnonymousSession('Opey consumer ID not configured, returning anonymous session instead.');
             }
 
@@ -26,7 +29,7 @@ export async function POST(event: RequestEvent) {
                 // AUTHENTICATED FLOW - Create consent and authenticated Opey session
                 return await _getAuthenticatedSession(opeyConsumerId, session);
             } catch (error: any) {
-                console.error('Error creating authenticated Opey session:', error);
+                logger.error('Error creating authenticated Opey session:', error);
                 return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
             }
 
@@ -36,7 +39,7 @@ export async function POST(event: RequestEvent) {
         }
 
     } catch (error: any) {
-        console.error('Opey Auth error:', error);
+        logger.error('Opey Auth error:', error);
         return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -48,6 +51,10 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
     const obpIntegration = new DefaultOBPIntegrationService(opeyConsumerId);
     const consentJwt = await obpIntegration.getOrCreateOpeyConsent(portalSession);
 
+    // Extract and log user identifier from consent JWT
+    const userIdentifier = extractUsernameFromJWT(consentJwt);
+    logger.info(`_getAuthenticatedSession says: Sending consent JWT to Opey - Making request to ${env.OPEY_BASE_URL}/create-session - Primary user: ${userIdentifier}`);
+
     const opeyResponse = await fetch(`${env.OPEY_BASE_URL}/create-session`, {
         method: 'POST',
         headers: {
@@ -57,8 +64,12 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
     });
 
     if (!opeyResponse.ok) {
-        throw new Error(`Failed to create authenticated Opey session: ${await opeyResponse.text()}`);
+        const errorText = await opeyResponse.text();
+        logger.error(`_getAuthenticatedSession says: Failed to create authenticated Opey session - Primary user: ${userIdentifier} - Error: ${errorText}`);
+        throw new Error(`Failed to create authenticated Opey session: ${errorText}`);
     }
+
+    logger.info(`_getAuthenticatedSession says: Successfully created authenticated Opey session - Primary user: ${userIdentifier}`);
 
     // Forward the session cookie to the client
     const setCookieHeaders = opeyResponse.headers.get('set-cookie');
@@ -71,6 +82,8 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 
 async function _getAnonymousSession(error?: string) {
     // ANONYMOUS FLOW - Create anonymous Opey session
+    logger.info(`_getAnonymousSession says: Creating anonymous Opey session - Making request to ${env.OPEY_BASE_URL}/create-session (no consent JWT)`);
+    
     const opeyResponse = await fetch(`${env.OPEY_BASE_URL}/create-session`, {
         method: 'POST',
         headers: {
@@ -80,8 +93,12 @@ async function _getAnonymousSession(error?: string) {
     });
 
     if (!opeyResponse.ok) {
-        throw new Error(`Failed to create anonymous Opey session: ${await opeyResponse.text()}`);
+        const errorText = await opeyResponse.text();
+        logger.error(`_getAnonymousSession says: Failed to create anonymous Opey session - Error: ${errorText}`);
+        throw new Error(`Failed to create anonymous Opey session: ${errorText}`);
     }
+
+    logger.info(`_getAnonymousSession says: Successfully created anonymous Opey session`);
 
     // Forward the session cookie to the client
     const setCookieHeaders = opeyResponse.headers.get('set-cookie');
