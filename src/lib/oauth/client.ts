@@ -1,8 +1,8 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OAuth2Client');
 import { OAuth2Client } from "arctic";
-import { env } from "$env/dynamic/private";
 import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
 import { jwtDecode } from "jwt-decode";
-import { oauth2ProviderFactory } from "./providerFactory";
 
 export class OAuth2ClientWithConfig extends OAuth2Client {
     OIDCConfig?: OpenIdConnectConfiguration;
@@ -15,42 +15,46 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
     }
 
     async initOIDCConfig(OIDCConfigUrl: string): Promise<void> {
-        console.log("OAuth2Client: Initializing OIDC configuration from OIDC Config URL:", OIDCConfigUrl);
+        logger.info("Initializing OIDC configuration from OIDC Config URL:", OIDCConfigUrl);
+        let config: any;
         try {
-            // Get the OIDC configuration from the well-known URL, this is OAuth2.1 compliant
+            // Fetch OIDC configuration (OAuth2.1 compliant)
             const response = await fetch(OIDCConfigUrl);
             if (!response.ok) {
-                throw new Error(`Failed to fetch OIDC config: ${response.statusText}`);
+                logger.error(`Failed to fetch OIDC config: ${response.status} ${response.statusText}`);
+                return;
             }
-            const config = await response.json();
-            if (!config.authorization_endpoint || !config.token_endpoint) {
-                throw new Error("Invalid OIDC config: Missing required endpoints.");
-            }
-            
-            // try to validate the config using the OpenID Connect specification
-            this.OIDCConfig = config as OpenIdConnectConfiguration;
-            console.log("OAuth2Client: OIDC config initialization success.")
-
+            config = await response.json();
         } catch (error) {
-            console.error("OAuth2Client: Error fetching OIDC config:", error);
-            throw error;
+            logger.error("Error fetching OIDC config:", error);
+            return;
         }
+
+        // Validate required endpoints outside of try/catch to avoid local-catch warnings
+        if (!config?.authorization_endpoint || !config?.token_endpoint) {
+            logger.error("Invalid OIDC config: Missing required endpoints.");
+            return;
+        }
+
+        // Assign after validation
+        this.OIDCConfig = config as OpenIdConnectConfiguration;
+        logger.info("OIDC config initialization success.")
     }
 
     async checkAccessTokenExpiration(accessToken: string): Promise<boolean> {
         // Returns true if the access token is expired, false if it is valid
-        console.debug("OAuth2Client: Checking access token expiration...");
+        logger.debug("Checking access token expiration...");
         try {
             const payload = jwtDecode(accessToken) as OAuth2AccessTokenPayload;
             if (!payload || !payload.exp) {
-                console.warn("OAuth2Client: Access token payload is invalid or missing expiration.");
+                logger.warn("Access token payload is invalid or missing expiration.");
                 return false;
             }
             const isExpired = Date.now() >= payload.exp * 1000;
-            console.debug(`OAuth2Client: Access token is ${isExpired ? "expired" : "valid"}.`);
+            logger.debug(`Access token is ${isExpired ? "expired" : "valid"}.`);
             return isExpired;
         } catch (error) {
-            console.error("OAuth2Client: Error decoding access token:", error);
+            logger.error("Error decoding access token:", error);
             throw error;
         }
     }

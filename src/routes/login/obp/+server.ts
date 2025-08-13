@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OBPLogin');
 import { generateState } from 'arctic'
 import { oauth2ProviderFactory } from '$lib/oauth/providerFactory'
 import type { RequestEvent } from '@sveltejs/kit'
@@ -7,7 +9,7 @@ export function GET(event: RequestEvent) {
     
     const oauthClient = oauth2ProviderFactory.getClient(provider)
     if (!oauthClient) {
-        console.error(`OAuth client for provider "${provider}" not found.`);
+        logger.error(`OAuth client for provider "${provider}" not found.`);
         return new Response("OAuth provider not configured", {
             status: 500
         });
@@ -19,12 +21,12 @@ export function GET(event: RequestEvent) {
 
     const scopes = ['openid']
 
+    const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint
+    if (!auth_endpoint) {
+        logger.error("Authorization endpoint not found in OIDC configuration.");
+        return new Response("OAuth configuration error", { status: 500 });
+    }
     try {
-        const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint
-
-        if (!auth_endpoint) {
-            throw new Error("Authorization endpoint not found in OIDC configuration.");
-        }
         const url = oauthClient.createAuthorizationURL(auth_endpoint, encodedState, scopes)
 
         event.cookies.set("obp_oauth_state", encodedState, {
@@ -42,7 +44,7 @@ export function GET(event: RequestEvent) {
             }
         });
     } catch (error) {
-        console.error("Error during OBP OAuth login:", error);
+        logger.error("Error during OBP OAuth login:", error);
         return new Response("Internal Server Error", {
             status: 500
         });

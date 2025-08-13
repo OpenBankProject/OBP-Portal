@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { createLogger } from '$lib/utils/logger';
+    const logger = createLogger('ConsumerRegisterSuccessPage');
     const { data } = $props()
     const consumerData = data.consumerData || {};
 
@@ -17,7 +19,7 @@
                 copied = false
             }, 2000)
         } catch (error) {
-            console.error('Failed to copy credentials:', error)
+            logger.error('Failed to copy credentials:', error)
         }
     }
 </script>

@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OBPLoginCallback');
 import { oauth2ProviderFactory } from "$lib/oauth/providerFactory";
 import type { OAuth2Tokens } from "arctic";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -17,7 +19,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		});
 	}
     if (storedState !== recievedState) {
-        console.log("State mismatch:", storedState, recievedState);
+        logger.warn("State mismatch:", storedState, recievedState);
         // State does not match, likely a CSRF attack or user error
 		return new Response("Please restart the process.", {
 			status: 400
@@ -25,7 +27,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	}
 
     const [actualState, provider] = storedState.split(":");
-    console.log("Received state:", recievedState);
+    logger.debug("Received state:", recievedState);
     if (!provider) {
         return new Response("Invalid state format", {
             status: 400
@@ -34,28 +36,28 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
     const oauthClient = oauth2ProviderFactory.getClient(provider);
     if (!oauthClient) {
-        console.error(`OAuth client for provider "${provider}" not found.`);
+        logger.error(`OAuth client for provider "${provider}" not found.`);
         return new Response("Invalid OAuth provider", {
             status: 400
         });
     }
 
+    // Validate the authorization code and exchange it for tokens
+    const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
+    if (!token_endpoint) {
+        logger.error("Token endpoint not found in OIDC configuration.");
+        return new Response("OAuth configuration error", { status: 500 });
+    }
+
     let tokens: OAuth2Tokens;
-	try {
-        // Validate the authorization code and exchange it for tokens
-        const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
-        if (!token_endpoint) {
-            throw new Error("Token endpoint not found in OIDC configuration.");
-        }
-
-
-		tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
-	} catch (e) {
-        console.error("Error validating authorization code:", e);
-		return new Response("Log in failed, please restart the process.", {
-			status: 400
-		});
-	}
+    try {
+        tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
+    } catch (e) {
+        logger.error("Error validating authorization code:", e);
+        return new Response("Log in failed, please restart the process.", {
+            status: 400
+        });
+    }
 
     // Get rid of the state cookie
     event.cookies.delete("obp_oauth_state", {
@@ -70,13 +72,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
     currentUserRequest.headers.set("Authorization", `Bearer ${obpAccessToken}`);
     const currentUserResponse = await fetch(currentUserRequest);
     if (!currentUserResponse.ok) {
-        console.error("Failed to fetch current user:", await currentUserResponse.text());
+        logger.error("Failed to fetch current user:", await currentUserResponse.text());
         return new Response("Failed to fetch current user", {
             status: 500
         });
     }
     const user = await currentUserResponse.json();
-    console.log("Current user data:", user);
+    logger.info("Current user data:", user);
 
     if (user.user_id && user.email) {
         // Store user data in session
@@ -90,7 +92,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
             }
         });
         await session.save();
-        console.log("Session data set:", session.data);
+        logger.debug("Session data set:", session.data);
         return new Response(null, {
             status: 302,
             headers: {

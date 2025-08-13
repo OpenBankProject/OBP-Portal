@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OpeyAuthServer');
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "./$types";
 import { DefaultOBPIntegrationService } from "$lib/opey/services/OBPIntegrationService";
@@ -18,7 +20,7 @@ export async function POST(event: RequestEvent) {
                 // Opey consumer ID is not configured
                 // We will return an anonymous session instead, with a warning/error
 
-                console.warn('Opey consumer ID not configured, returning anonymous session');
+                logger.warn('Opey consumer ID not configured, returning anonymous session');
                 return await _getAnonymousSession('Opey consumer ID not configured, returning anonymous session instead.');
             }
 
@@ -26,7 +28,7 @@ export async function POST(event: RequestEvent) {
                 // AUTHENTICATED FLOW - Create consent and authenticated Opey session
                 return await _getAuthenticatedSession(opeyConsumerId, session);
             } catch (error: any) {
-                console.error('Error creating authenticated Opey session:', error);
+                logger.error('Error creating authenticated Opey session:', error);
                 return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
             }
 
@@ -36,7 +38,7 @@ export async function POST(event: RequestEvent) {
         }
 
     } catch (error: any) {
-        console.error('Opey Auth error:', error);
+        logger.error('Opey Auth error:', error);
         return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

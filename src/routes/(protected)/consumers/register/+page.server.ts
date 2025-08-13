@@ -1,4 +1,6 @@
-import { type RequestEvent, type Actions, redirect } from "@sveltejs/kit";
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('ConsumerRegisterServer');
+import { type Actions, redirect } from "@sveltejs/kit";
 import { obp_requests } from "$lib/obp/requests";
 import type { OBPConsumerRequestBody } from "$lib/obp/types";
 
@@ -6,7 +8,7 @@ export const actions = {
     default: async ({ request, locals, cookies }) => {
         const formData = await request.formData()
         
-        console.log("Form Data:", Object.fromEntries(formData.entries()));
+        logger.debug("Form Data:", Object.fromEntries(formData.entries()));
 
         // 
         const formEntries = Object.fromEntries(formData.entries());
@@ -34,7 +36,7 @@ export const actions = {
             const response = await obp_requests.post(`/obp/v5.1.0/my/consumers`, requestBody, token);
 
             
-            console.log("Consumer created successfully:", response);
+            logger.info("Consumer created successfully:", response);
 
             // Store the response data in a secure cookie for the success page
             // Flash Message, will be deleted when the user visits the success page
@@ -47,7 +49,7 @@ export const actions = {
             });
             
         } catch (error) {
-            console.error("Error registering consumer:", error);
+            logger.error("Error registering consumer:", error);
             return {
                 error: "Failed to create consumer"
             };

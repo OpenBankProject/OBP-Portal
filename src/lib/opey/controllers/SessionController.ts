@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('SessionController');
 import type { SessionService } from "../services/SessionService";
 import type { SessionState } from "../state/SessionState";
 
@@ -16,7 +18,7 @@ export class SessionController {
             this.sessionState.setAuth(!!consentJwt)
             this.sessionState.setStatus('ready')
         } catch (error: any) {
-            console.log("SessionController.init error:", error)
+            logger.error("init error:", error)
             this.sessionState.setStatus('error', error.message)
         }
     }

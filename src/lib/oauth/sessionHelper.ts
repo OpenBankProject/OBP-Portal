@@ -1,3 +1,5 @@
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('OAuthSessionHelper');
 import { oauth2ProviderFactory } from "./providerFactory";
 import type { OAuth2ClientWithConfig } from "./client";
 import type { Session } from "svelte-kit-sessions";
@@ -23,7 +25,7 @@ export class SessionOAuthHelper {
 
         const client = oauth2ProviderFactory.getClient(oauthData.provider);
         if (!client) {
-            console.error(`OAuth client for provider "${oauthData.provider}" not found.`);
+            logger.error(`OAuth client for provider "${oauthData.provider}" not found.`);
             return null;
         }
         return {
@@ -59,11 +61,11 @@ export class SessionOAuthHelper {
 
 
     static async refreshAccessToken(session: Session): Promise<void> {
-        console.debug('Attempting to refresh access token in session...');
+        logger.debug('Attempting to refresh access token in session...');
 
         const sessionOAuth = this.getSessionOAuth(session);
         if (!sessionOAuth) {
-            console.warn('No valid OAuth data found in session. Cannot refresh access token.');
+            logger.warn('No valid OAuth data found in session. Cannot refresh access token.');
             throw new Error('No valid OAuth data found in session. Please log in again.');
         }
 
@@ -71,12 +73,12 @@ export class SessionOAuthHelper {
         const refreshEndpoint = client.OIDCConfig?.token_endpoint;
 
         if (!refreshEndpoint || !refreshToken) {
-            console.warn(`No refresh endpoint or refresh token found for provider: ${provider}`);
+            logger.warn(`No refresh endpoint or refresh token found for provider: ${provider}`);
             throw new Error('No refresh endpoint or refresh token found. Please log in again.');
         }
 
         try {
-            console.debug(`Refreshing access token for provider: ${provider}...`);
+            logger.debug(`Refreshing access token for provider: ${provider}...`);
             const tokens = await client.refreshAccessToken(refreshEndpoint, refreshToken, ['openid']);
 
             await this.updateTokensInSession(
@@ -85,9 +87,9 @@ export class SessionOAuthHelper {
                 tokens.refreshToken() || refreshToken
             );
 
-            console.log(`Access token refreshed successfully for provider: ${provider}`);
+            logger.info(`Access token refreshed successfully for provider: ${provider}`);
         } catch (error) {
-            console.error(`Error refreshing access token for provider ${provider}:`, error);
+            logger.error(`Error refreshing access token for provider ${provider}:`, error);
             throw new Error('Failed to refresh access token. Please log in again.');
         }
 
