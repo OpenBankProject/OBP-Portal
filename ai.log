@@ -1,0 +1,21 @@
+2025-08-14T14:30:20+02:00 - Fixed ChatState warning: "Message with ID run-xxx not found"
+
+Issue: Browser console was showing warnings when the ChatState class tried to update, append to, or mark complete messages that no longer existed in the state. This typically occurred when chat sessions were reset while streaming events were still being processed, or when stale events from previous sessions arrived after a new session started.
+
+Root Cause: Race conditions and timing issues between:
+- Chat state clearing/resetting
+- Streaming events still being processed 
+- Messages from previous chat sessions (especially those with 'run-' prefixes from external chat systems)
+
+Fixes Applied:
+1. Reduced warning noise by changing most warnings to debug-level logs in ChatState.ts
+2. Added session validation with isStaleMessage() method to detect and ignore messages from previous sessions
+3. Improved state management by tracking sessionStartTime and ignoring stale events after chat resets
+4. Added defensive error handling with try-catch blocks in ChatController.ts for streaming event processing
+5. Added special handling for 'run-' prefixed message IDs which indicate external chat system messages
+
+Files Modified:
+- src/lib/opey/state/ChatState.ts: Added stale message detection, reduced log noise, improved session tracking
+- src/lib/opey/controllers/ChatController.ts: Added defensive error handling for stream events
+
+Result: Warnings are now much less frequent and logged at debug level rather than warning level. Chat functionality continues to work normally while gracefully ignoring stale messages from previous sessions.

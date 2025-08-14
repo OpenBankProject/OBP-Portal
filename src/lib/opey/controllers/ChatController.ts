@@ -11,23 +11,24 @@ export class ChatController {
         public state: ChatState
     ) {
         service.onStreamEvent((event: StreamEvent) => {
-            switch (event.type) {
-                case 'assistant_start':
-                    state.addMessage({
-                        id: event.messageId,
-                        role: 'assistant',
-                        message: '',
-                        timestamp: event.timestamp,
-                        isStreaming: true
-                    })
-                    break
-                case 'assistant_token':
-                    state.appendToMessage(event.messageId, event.token)
-                    break
-                case 'assistant_complete':
-                    logger.debug('Marking assistant message as complete:', event);
-                    state.markMessageComplete(event.messageId)
-                    break
+            try {
+                switch (event.type) {
+                    case 'assistant_start':
+                        state.addMessage({
+                            id: event.messageId,
+                            role: 'assistant',
+                            message: '',
+                            timestamp: event.timestamp,
+                            isStreaming: true
+                        })
+                        break
+                    case 'assistant_token':
+                        state.appendToMessage(event.messageId, event.token)
+                        break
+                    case 'assistant_complete':
+                        logger.debug('Marking assistant message as complete:', event);
+                        state.markMessageComplete(event.messageId)
+                        break
                 case 'tool_start':
                     state.addToolMessage({
                         id: event.toolCallId,
@@ -67,6 +68,9 @@ export class ChatController {
                         });
                     }
                     break;
+                }
+            } catch (error) {
+                logger.error('Error processing stream event:', error, event);
             }
         })
 

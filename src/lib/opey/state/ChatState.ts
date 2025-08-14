@@ -12,9 +12,11 @@ export class ChatState {
     private threadId: string
     private messages: BaseMessage[] = [];
     private subscribers: Array<(snapshot: ChatStateSnapshot) => void> = [];
+    private sessionStartTime: Date = new Date();
 
     constructor(threadId?: string) {
         this.threadId = threadId || uuidv4(); // Generate a new thread ID if not provided
+        this.sessionStartTime = new Date();
     }
 
     /** returns the current thread ID */
@@ -22,10 +24,11 @@ export class ChatState {
         return this.threadId;
     }
 
-    /** resets to a new thread (e.g. “New Chat” button) */
+    /** resets to a new thread (e.g. "New Chat" button) */
     setThreadId(newId: string = uuidv4()): void {
         this.threadId = newId;
         this.messages = []
+        this.sessionStartTime = new Date();
         this.emit(); // Notify subscribers about the change
     }
 
@@ -45,7 +48,15 @@ export class ChatState {
             message.message += text; // Append text to the existing message
             this.emit(); // Notify subscribers about the change
         } else {
-            logger.warn(`Message with ID ${messageId} not found.`);
+            // Check if this is a stale message from a previous session
+            if (this.isStaleMessage(messageId)) {
+                logger.debug(`Ignoring stale message ${messageId} from previous session.`);
+                return;
+            }
+            // Reduce noise - only log if we're actually tracking messages
+            if (this.messages.length > 0) {
+                logger.debug(`Message with ID ${messageId} not found for append operation.`);
+            }
         }
     }
 
@@ -53,7 +64,7 @@ export class ChatState {
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
             if (message.isStreaming === undefined) {
-                logger.warn(`Message with ID ${messageId} does not have isStreaming property.`);
+                logger.debug(`Message with ID ${messageId} does not have isStreaming property.`);
             } else if (!message.isStreaming) {
                 logger.debug(`Message with ID ${messageId} is already marked as complete.`);
             } else {
@@ -62,7 +73,15 @@ export class ChatState {
                 this.emit(); // Notify subscribers about the change
             }
         } else {
-            logger.warn(`Message with ID ${messageId} not found.`);
+            // Check if this is a stale message from a previous session
+            if (this.isStaleMessage(messageId)) {
+                logger.debug(`Ignoring stale completion for message ${messageId} from previous session.`);
+                return;
+            }
+            // Reduce noise - only log if we're actually tracking messages
+            if (this.messages.length > 0) {
+                logger.debug(`Message with ID ${messageId} not found for completion.`);
+            }
         }
     }
 
@@ -72,7 +91,10 @@ export class ChatState {
             Object.assign(message, updates); // Update the message with the provided fields
             this.emit(); // Notify subscribers about the change
         } else {
-            logger.warn(`Message with ID ${messageId} not found.`);
+            // Reduce noise - only log if we're actually tracking messages
+            if (this.messages.length > 0) {
+                logger.debug(`Message with ID ${messageId} not found for update operation.`);
+            }
         }
     }
 
@@ -82,7 +104,10 @@ export class ChatState {
             Object.assign(toolMessage, updates); // Update the tool message with the provided fields
             this.emit(); // Notify subscribers about the change
         } else {
-            logger.warn(`Tool message with ID ${toolCallId} not found.`);
+            // Reduce noise - only log if we're actually tracking messages
+            if (this.messages.length > 0) {
+                logger.debug(`Tool message with ID ${toolCallId} not found for update operation.`);
+            }
         }
     }
 
@@ -94,7 +119,18 @@ export class ChatState {
 
     clear(): void {
         this.messages = [];
+        this.sessionStartTime = new Date();
         this.emit();
+    }
+
+    private isStaleMessage(messageId: string): boolean {
+        // Consider messages with run- prefix as potentially stale if session was reset recently
+        if (messageId.startsWith('run-')) {
+            const timeSinceReset = Date.now() - this.sessionStartTime.getTime();
+            // If session was reset within last 5 seconds, consider run- messages as stale
+            return timeSinceReset < 5000;
+        }
+        return false;
     }
 
     // Notify subscribers
