@@ -6,6 +6,8 @@ import type { ToolMessage, UserMessage } from '../types';
 import { ChatState } from '../state/ChatState';
 
 export class ChatController {
+    private toolInstanceCounts: Record<string, number> = {};
+
     constructor(
         private service: ChatService,
         public state: ChatState
@@ -33,6 +35,9 @@ export class ChatController {
                     // Remove the approval request message now that the tool is starting
                     state.removeApprovalRequest(event.toolCallId);
                     
+                    // Assign instance number for this tool type
+                    const instanceNumber = this.assignToolInstance(event.toolName);
+                    
                     state.addToolMessage({
                         id: event.toolCallId,
                         role: 'tool',
@@ -41,7 +46,8 @@ export class ChatController {
                         toolCallId: event.toolCallId,
                         toolName: event.toolName,
                         toolInput: event.toolInput,
-                        isStreaming: true
+                        isStreaming: true,
+                        instanceNumber: instanceNumber
                     } as ToolMessage) // Cast to ToolMessage for type safety
                     break
                 case 'tool_token':
@@ -118,6 +124,14 @@ export class ChatController {
     async denyToolCall(toolCallId: string): Promise<void> {
         this.state.updateApprovalRequest(toolCallId, false);
         return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
+    }
+
+    private assignToolInstance(toolName: string): number {
+        if (!this.toolInstanceCounts[toolName]) {
+            this.toolInstanceCounts[toolName] = 0;
+        }
+        this.toolInstanceCounts[toolName]++;
+        return this.toolInstanceCounts[toolName];
     }
 
     cancel() {

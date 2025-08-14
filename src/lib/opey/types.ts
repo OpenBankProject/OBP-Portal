@@ -33,6 +33,7 @@ export interface ToolMessage extends BaseMessage {
     toolInput: Record<string, any>; // Input parameters for the tool call
     status?: 'success' | 'error' 
     toolOutput?: any; // Output from the tool call, if available
+    instanceNumber?: number; // Instance number for display (e.g., "retrieve_endpoints (2)")
 }
 
 export interface ApprovalRequestMessage extends BaseMessage {

@@ -28,6 +28,119 @@ export class RestChatService implements ChatService {
             if (!res.ok) {
                 logger.error(`Failed to send approval: ${res.statusText}`);
                 this.errorCallback?.(new Error(`Failed to send approval: ${res.statusText}`));
+                return;
+            }
+
+            // The approval endpoint returns a streaming response with tool execution events
+            // We need to process this stream just like the main /stream endpoint
+            const reader = res.body?.getReader();
+            if (!reader) {
+                logger.error('No response body for approval stream');
+                this.errorCallback?.(new Error('No response body for approval stream'));
+                return;
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true })
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep the last incomplete line
+
+                    for (const line of lines) {
+                        logger.debug(`Approval stream: ${line}`)
+                        if (line.startsWith('data: ')) {
+                            let eventData;
+
+                            if (line.slice(6).trim() === '[DONE]') {
+                                break// Skip the [DONE] line
+                            }
+                            try {
+                                eventData = JSON.parse(line.slice(6));
+                            } catch (error) {
+                                logger.error("Failed to parse approval stream event data:", error);
+                                this.errorCallback?.(new Error(`Failed to parse approval stream event data: ${error}`));
+                                continue; // Skip this line if parsing fails
+                            }
+
+                            // Process the approval stream events using the same logic as main stream
+                            switch (eventData.type) {
+                                case 'assistant_start':
+                                    this.streamEventCallback?.({
+                                        type: 'assistant_start',
+                                        messageId: eventData.message_id,
+                                        timestamp: new Date(eventData.timestamp),
+                                    })
+                                    break
+                                case 'assistant_token':
+                                    this.streamEventCallback?.({
+                                        type: 'assistant_token',
+                                        messageId: eventData.message_id,
+                                        token: eventData.content,
+                                    })
+                                    break
+                                case 'assistant_complete':
+                                    this.streamEventCallback?.({
+                                        type: 'assistant_complete',
+                                        messageId: eventData.message_id,
+                                    })
+                                    break
+                                case 'tool_start':
+                                    this.streamEventCallback?.({
+                                        type: 'tool_start',
+                                        toolCallId: eventData.tool_call_id,
+                                        toolInput: eventData.tool_input,
+                                        toolName: eventData.tool_name,
+                                    })
+                                    break
+                                case 'tool_token':
+                                    this.streamEventCallback?.({
+                                        type: 'tool_token',
+                                        toolCallId: eventData.tool_call_id,
+                                        token: eventData.content,
+                                    })
+                                    break
+                                case 'tool_end':
+                                    this.streamEventCallback?.({
+                                        type: 'tool_complete',
+                                        toolCallId: eventData.tool_call_id,
+                                        toolName: eventData.tool_name,
+                                        toolOutput: eventData.tool_output,
+                                        status: eventData.status,
+                                    })
+                                    break
+                                case 'error':
+                                    if (eventData.message_id) {
+                                        this.streamEventCallback?.({
+                                            type: 'error',
+                                            messageId: eventData.message_id,
+                                            error: eventData.error,
+                                        })
+                                    }
+                                    else {
+                                        this.streamEventCallback?.({
+                                            type: 'error',
+                                            error: eventData.error,
+                                        })
+                                    }
+                                    break
+                                default:
+                                    logger.warn(`Unknown approval stream event type: ${eventData.type}`);
+                                    break;
+                            }
+                        }
+                    }
+                }
+            } catch (streamError) {
+                logger.error("Error processing approval stream:", streamError);
+                this.errorCallback?.(streamError as Error)
+            } finally {
+                reader.releaseLock();
             }
         } catch (error) {
             logger.error("Error sending approval:", error);

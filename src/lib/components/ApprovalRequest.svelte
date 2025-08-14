@@ -8,15 +8,15 @@
 		onDeny: (toolCallId: string) => Promise<void>;
 	}
 
-	// Helper function to get descriptive tool names
-	function getToolDisplayName(toolName: string): string {
+	// Function to get display name with instance number
+	function getToolDisplayName(toolName: string, instanceNumber: number = 1): string {
 		switch (toolName) {
 			case 'retrieve_endpoints':
-				return 'Endpoint Retrieval - Finding API endpoints';
+				return `Endpoint Retrieval - Finding API endpoints (${instanceNumber})`;
 			case 'retrieve_glossary':
-				return 'Glossary Retrieval - Looking up terminology';
+				return `Glossary Retrieval - Looking up terminology (${instanceNumber})`;
 			default:
-				return toolName;
+				return `${toolName} (${instanceNumber})`;
 		}
 	}
 
@@ -79,7 +79,7 @@
 			<div class="space-y-2 text-sm">
 				<div>
 					<span class="font-medium text-surface-700 dark:text-surface-300">Tool:</span>
-					<span class="text-surface-600 dark:text-surface-400 ml-1">{getToolDisplayName(message.toolName)}</span>
+					<span class="text-surface-600 dark:text-surface-400 ml-1">{getToolDisplayName(message.toolName, 1)}</span>
 				</div>
 				
 				{#if message.description}

@@ -121,6 +121,69 @@ Files Modified:
 
 Result: Tool call approval/denial now works correctly. Frontend makes proper API calls to `/approval/{thread_id}` with correct request format matching backend expectations. The complete approval flow from UI to backend is now functional.
 
+2025-08-14T17:10:00+02:00 - CRITICAL FIX: Frontend UI Instance Counting Bug Causing Fake Tool Multiplication
+
+Issue: Users reported seeing 100+ "obp_requests" operations when only one should execute, with numbers continuously counting up during approval execution. Investigation revealed this was NOT multiple tool executions but a frontend UI rendering bug.
+
+Root Cause Discovery: Emergency logging in OPEY backend showed the real events being generated:
+- Single assistant response generating many `assistant_token` events (one per word/token)
+- Frontend UI `getToolDisplayName()` function being called on EVERY render
+- Instance counter incrementing on each render instead of each actual tool creation
+- Long assistant responses = 100+ tokens = 100+ fake "tool operations" in UI
+
+Technical Details:
+The `getToolDisplayName()` function in OpeyChat.svelte was tracking tool instances using a reactive counter that incremented every time the component re-rendered. Since `assistant_token` events cause frequent re-renders (for streaming text display), the counter kept incrementing, making it appear as if hundreds of tools were executing.
+
+Evidence from OPEY logs:
+```
+🚨 TOOL_EVENT_1: assistant_start | TOOL: N/A | ID: N/A
+🚨 TOOL_EVENT_2: assistant_token | TOOL: N/A | ID: N/A  
+🚨 TOOL_EVENT_1: assistant_token | TOOL: N/A | ID: N/A
+...continues for 51+ events...
+🚨 RUNAWAY DETECTED: 51 events in 2.21s - STOPPING
+```
+
+The Fix Applied:
+1. Moved tool instance counting from UI render function to ChatController
+2. Added `instanceNumber` field to ToolMessage type
+3. Assigned instance numbers when tools are actually created (tool_start events)
+4. Updated UI components to display pre-assigned instance numbers instead of counting on render
+
+Files Modified:
+- src/lib/opey/types.ts: Added instanceNumber field to ToolMessage interface
+- src/lib/opey/controllers/ChatController.ts: Added tool instance tracking logic and assignToolInstance method
+- src/lib/components/OpeyChat.svelte: Removed reactive instance counting, use pre-assigned numbers
+- src/lib/components/ApprovalRequest.svelte: Updated to use static instance numbering
+
+Result: Tool operation counts now accurately reflect actual tool executions. Users see correct numbers (e.g., "retrieve_endpoints (1)", "retrieve_endpoints (2)", "obp_requests (1)") instead of inflated counts. The approval workflow displays accurate tool execution information without UI rendering artifacts.
+
+Status: RESOLVED - UI now correctly displays actual tool execution counts without false multiplication due to rendering cycles.
+
+2025-08-14T16:45:00+02:00 - CRITICAL FIX: Frontend Not Consuming Approval Stream Response
+
+Issue: After extensive investigation with debug logging, discovered that the backend was correctly generating and sending tool execution events after approval, but users still saw no feedback. The backend logs showed multiple "Generated stream event during approval continuation" entries, proving events were being created and sent.
+
+Root Cause Discovery: The frontend sendApproval() method in RestChatService.ts was making the POST request to /approval/{thread_id} but NOT consuming the streaming response body. The backend returns a StreamingResponse containing all the tool execution events, but the frontend was ignoring this response stream.
+
+Critical Finding from Backend Logs:
+✅ LangGraph events generated: Multiple "Processing post-approval LangGraph event" entries
+✅ Stream events generated: Multiple "Generated stream event during approval continuation" entries  
+✅ Events being sent: Backend successfully yielding stream events
+❌ Frontend not consuming: sendApproval() only made request, ignored response body
+
+The Fix Applied:
+Modified sendApproval() method to consume the streaming response using the same logic as the main send() method:
+- Added response body reader with TextDecoder
+- Added SSE parsing logic for data: lines  
+- Added event processing switch statement for all event types
+- Added proper error handling and stream cleanup
+- Routes all approval stream events through existing streamEventCallback
+
+Files Modified:
+- src/lib/opey/services/RestChatService.ts: Added full streaming response consumption to sendApproval method
+
+Result: Users will now see tool execution events after approval, including tool start/complete messages and assistant responses explaining what was created via OBP API. The approval workflow is now truly end-to-end functional with complete user feedback.
+
 2025-08-14T16:18:00+02:00 - Enhanced UI: Added Tool Identification for Better User Experience
 
 Issue: Users reported seeing two "Tool Retrieval" sections before clicking Approve, making it unclear that these were separate, valid processes rather than duplicates. This created confusion about whether the system was working correctly.

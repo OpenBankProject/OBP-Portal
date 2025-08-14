@@ -11,15 +11,15 @@
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
 	import ApprovalRequest from './ApprovalRequest.svelte';
 
-	// Helper function to get descriptive tool names
-	function getToolDisplayName(toolName: string): string {
+	// Function to get display name with instance number
+	function getToolDisplayName(toolName: string, instanceNumber: number): string {
 		switch (toolName) {
 			case 'retrieve_endpoints':
-				return 'Endpoint Retrieval - Finding API endpoints';
+				return `Endpoint Retrieval - Finding API endpoints (${instanceNumber})`;
 			case 'retrieve_glossary':
-				return 'Glossary Retrieval - Looking up terminology';
+				return `Glossary Retrieval - Looking up terminology (${instanceNumber})`;
 			default:
-				return `Using tool: ${toolName}`;
+				return `Using tool: ${toolName} (${instanceNumber})`;
 		}
 	}
 	import {
@@ -239,7 +239,7 @@
 							{#snippet lead()}<Hammer />{/snippet}
 							{#snippet control()}
 								<div class="flex justify-between">
-									{getToolDisplayName((message as ToolMessage).toolName)}
+									{getToolDisplayName((message as ToolMessage).toolName, (message as ToolMessage).instanceNumber || 1)}
 									{#if message.isStreaming}
 										<LoaderCircle class="stroke-warning-500 animate-spin" />
 									{:else}
