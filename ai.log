@@ -159,6 +159,45 @@ Result: Tool operation counts now accurately reflect actual tool executions. Use
 
 Status: RESOLVED - UI now correctly displays actual tool execution counts without false multiplication due to rendering cycles.
 
+2025-08-14T17:30:00+02:00 - CURRENT STATUS: Approval System Partially Working - Tool Execution Issue Remains
+
+Progress Summary:
+✅ Frontend UI counting bug FIXED - Numbers now display correctly (1), (2), etc.
+✅ Approval request/response flow WORKING - Users can click "Approve" successfully  
+✅ Backend approval continuation WORKING - No more input errors or hangs
+❌ CRITICAL ISSUE: Approved tools not actually executing
+
+Current State Analysis:
+The approval workflow successfully processes user approvals and the backend continuation completes without errors. However, the core issue remains that approved obp_requests tools are NOT actually executing. The system generates assistant responses explaining what would happen, but never makes actual OBP API calls.
+
+Evidence from Latest Testing:
+- Frontend shows obp_requests(1) tool with spinner (never completes)
+- Backend logs show approval continuation processing many events
+- NO obp_requests tool execution events generated (missing 🎯 OBP_REQUESTS_TOOL logs)
+- No HTTP requests to OBP API endpoints observed
+- Tool output remains greyed out and unclickable
+
+Root Cause: LangGraph interrupted workflow issue. After human_review approval, the graph resumes but routes to assistant response generation instead of tool execution. The graph flow from human_review → tools is not working correctly during approval continuation.
+
+Technical Details:
+The continue_after_approval() method successfully resumes the graph with proper input ({"messages": []}) and processes LangGraph events, but the events are only assistant_token types for streaming text responses. The approved tool calls are never actually executed by the tools node.
+
+Files Working Correctly:
+- src/lib/opey/services/RestChatService.ts: Properly consumes approval stream responses
+- src/lib/opey/controllers/ChatController.ts: Correctly assigns tool instance numbers  
+- src/lib/components/OpeyChat.svelte: Displays accurate tool counts without rendering bugs
+
+Remaining Issue:
+Backend graph continuation logic needs fixing to ensure approved tools actually execute rather than just generating explanatory assistant responses.
+
+Next Steps for New Conversation:
+1. Fix LangGraph workflow to properly route from human_review to tools after approval
+2. Ensure obp_requests tool actually executes and makes OBP API calls
+3. Verify tool completion events reach frontend for proper success/failure feedback
+4. Test end-to-end bank creation with visible results
+
+Status: APPROVAL UI COMPLETE - Backend tool execution needs investigation and fix.
+
 2025-08-14T16:45:00+02:00 - CRITICAL FIX: Frontend Not Consuming Approval Stream Response
 
 Issue: After extensive investigation with debug logging, discovered that the backend was correctly generating and sending tool execution events after approval, but users still saw no feedback. The backend logs showed multiple "Generated stream event during approval continuation" entries, proving events were being created and sent.
