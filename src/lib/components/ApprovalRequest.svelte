@@ -8,6 +8,18 @@
 		onDeny: (toolCallId: string) => Promise<void>;
 	}
 
+	// Helper function to get descriptive tool names
+	function getToolDisplayName(toolName: string): string {
+		switch (toolName) {
+			case 'retrieve_endpoints':
+				return 'Endpoint Retrieval - Finding API endpoints';
+			case 'retrieve_glossary':
+				return 'Glossary Retrieval - Looking up terminology';
+			default:
+				return toolName;
+		}
+	}
+
 	let { message, onApprove, onDeny }: Props = $props();
 
 	let isProcessing = $state(false);
@@ -67,7 +79,7 @@
 			<div class="space-y-2 text-sm">
 				<div>
 					<span class="font-medium text-surface-700 dark:text-surface-300">Tool:</span>
-					<span class="text-surface-600 dark:text-surface-400 ml-1">{message.toolName}</span>
+					<span class="text-surface-600 dark:text-surface-400 ml-1">{getToolDisplayName(message.toolName)}</span>
 				</div>
 				
 				{#if message.description}

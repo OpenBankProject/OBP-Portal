@@ -97,3 +97,68 @@ Files Involved:
 - Backend: Needs /approval endpoint implementation
 
 Next Steps: Backend session required to implement the missing `/approval` endpoint and approval handling logic.
+
+2025-08-14T15:15:32+02:00 - Fixed Approval Endpoint URL Mismatch (404 Error Resolution)
+
+Issue: Frontend was calling `/approval` endpoint but backend expects `/approval/{thread_id}`, causing 404 Not Found errors when users tried to approve or deny tool calls. The approval system UI was complete but API calls were failing due to URL mismatch.
+
+Root Cause: 
+- Frontend RestChatService.sendApproval() was calling `POST /approval`
+- Backend service.py has endpoint `POST /approval/{thread_id}` 
+- Frontend wasn't passing thread_id parameter in URL path
+- Request body format also needed adjustment (approval field vs approved boolean)
+
+Fixes Applied:
+1. Updated RestChatService.sendApproval() to include thread_id in URL path
+2. Fixed request body format to use "approval": "approve"/"deny" instead of "approved": boolean
+3. Updated ChatService interface to require thread_id parameter in sendApproval method
+4. Updated ChatController approval methods to pass thread_id from ChatState.getThreadId()
+
+Files Modified:
+- src/lib/opey/services/RestChatService.ts: Fixed URL to `/approval/${threadId}` and request body format
+- src/lib/opey/services/ChatService.ts: Added thread_id parameter to sendApproval interface
+- src/lib/opey/controllers/ChatController.ts: Pass thread_id when calling sendApproval
+
+Result: Tool call approval/denial now works correctly. Frontend makes proper API calls to `/approval/{thread_id}` with correct request format matching backend expectations. The complete approval flow from UI to backend is now functional.
+
+2025-08-14T16:18:00+02:00 - Enhanced UI: Added Tool Identification for Better User Experience
+
+Issue: Users reported seeing two "Tool Retrieval" sections before clicking Approve, making it unclear that these were separate, valid processes rather than duplicates. This created confusion about whether the system was working correctly.
+
+Root Cause: The Portal UI was displaying tool names directly (e.g., "retrieve_endpoints", "retrieve_glossary") without clear identification that these are distinct, sequential operations in the agent's workflow.
+
+Enhancement Applied:
+Added descriptive identifiers to distinguish between retrieval tools:
+- retrieve_endpoints → "Endpoint Retrieval - Finding API endpoints"  
+- retrieve_glossary → "Glossary Retrieval - Looking up terminology"
+
+Files Modified:
+- src/lib/components/OpeyChat.svelte: Added getToolDisplayName() helper function and updated tool name display
+- src/lib/components/ApprovalRequest.svelte: Added same helper function for approval request tool display
+
+Implementation Details:
+Created getToolDisplayName() helper function that maps technical tool names to user-friendly descriptions that clearly explain the purpose of each retrieval operation.
+
+Files Modified:
+- src/lib/components/OpeyChat.svelte: Updated line 242 from "Using tool: {toolName}" to use getToolDisplayName()
+- src/lib/components/ApprovalRequest.svelte: Updated line 82 to use getToolDisplayName() for tool display
+
+Result: Users now see clearly labeled tool operations that explain what each retrieval step does. This eliminates confusion about duplicates and helps users understand the agent's systematic approach to gathering comprehensive information before requesting approval.
+
+User Experience: Tool sections now display as "Endpoint Retrieval - Finding API endpoints" and "Glossary Retrieval - Looking up terminology", making the workflow transparent and user-friendly.
+
+2025-08-14T16:10:15+02:00 - Fixed Backend Approval Continuation Hang
+
+Issue: After clicking Approve button, the Portal would hang waiting for a response. OPEY backend logs showed "Error continuing after approval: No message found in input" when trying to continue streaming after approval decision. The approval was received correctly but the continuation failed.
+
+Root Cause: In `StreamManager.continue_after_approval()`, after updating the graph state with `aupdate_state()`, the code was calling `self.graph.astream_events(input=None, ...)`. LangGraph's tool node validation was failing because it expected message input but received None, even though the state had already been updated to continue from the appropriate node.
+
+Error Stack: LangGraph ToolNode._parse_input() -> ValueError("No message found in input") during post-approval stream continuation.
+
+Fix Applied:
+Changed the approval continuation input from `input=None` to `input={}` in `continue_after_approval()` method. When resuming execution after state updates, LangGraph expects a valid input object even if empty, rather than None.
+
+Files Modified:
+- OPEY/OBP-Opey-II/src/service/streaming/stream_manager.py: Changed `input=None` to `input={}` in astream_events call
+
+Result: Tool call approvals now complete successfully without hanging. Users can approve tool calls and see the tool execution continue normally. The approval workflow is fully functional end-to-end from Portal UI through OPEY backend execution.

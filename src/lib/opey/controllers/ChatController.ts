@@ -112,12 +112,12 @@ export class ChatController {
 
     async approveToolCall(toolCallId: string): Promise<void> {
         this.state.updateApprovalRequest(toolCallId, true);
-        return this.service.sendApproval(toolCallId, true);
+        return this.service.sendApproval(toolCallId, true, this.state.getThreadId());
     }
 
     async denyToolCall(toolCallId: string): Promise<void> {
         this.state.updateApprovalRequest(toolCallId, false);
-        return this.service.sendApproval(toolCallId, false);
+        return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
     }
 
     cancel() {

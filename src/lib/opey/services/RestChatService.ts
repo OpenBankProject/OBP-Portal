@@ -13,18 +13,18 @@ export class RestChatService implements ChatService {
         private auth: AuthStrategy = new CookieAuthStrategy()
     ) { }
 
-    async sendApproval(toolCallId: string, approved: boolean): Promise<void> {
+    async sendApproval(toolCallId: string, approved: boolean, threadId: string): Promise<void> {
         const init = await this.buildInit({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 tool_call_id: toolCallId,
-                approved: approved
+                approval: approved ? "approve" : "deny"
             }),
         })
         
         try {
-            const res = await fetch(`${this.baseUrl}/approval`, init)
+            const res = await fetch(`${this.baseUrl}/approval/${threadId}`, init)
             if (!res.ok) {
                 logger.error(`Failed to send approval: ${res.statusText}`);
                 this.errorCallback?.(new Error(`Failed to send approval: ${res.statusText}`));

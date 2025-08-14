@@ -10,6 +10,18 @@
 	import type { ToolMessage, ApprovalRequestMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
 	import ApprovalRequest from './ApprovalRequest.svelte';
+
+	// Helper function to get descriptive tool names
+	function getToolDisplayName(toolName: string): string {
+		switch (toolName) {
+			case 'retrieve_endpoints':
+				return 'Endpoint Retrieval - Finding API endpoints';
+			case 'retrieve_glossary':
+				return 'Glossary Retrieval - Looking up terminology';
+			default:
+				return `Using tool: ${toolName}`;
+		}
+	}
 	import {
 		Check,
 		CircleArrowUp,
@@ -227,7 +239,7 @@
 							{#snippet lead()}<Hammer />{/snippet}
 							{#snippet control()}
 								<div class="flex justify-between">
-									Using tool: {(message as ToolMessage).toolName}
+									{getToolDisplayName((message as ToolMessage).toolName)}
 									{#if message.isStreaming}
 										<LoaderCircle class="stroke-warning-500 animate-spin" />
 									{:else}

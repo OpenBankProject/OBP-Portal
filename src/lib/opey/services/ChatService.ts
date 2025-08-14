@@ -9,7 +9,7 @@ import type { UserMessage, AssistantMessage, ToolMessage } from '../types'
 // Else just create a new implementation of ChatService.
 export interface ChatService {
     send(msg: UserMessage): Promise<void>
-    sendApproval(toolCallId: string, approved: boolean): Promise<void>
+    sendApproval(toolCallId: string, approved: boolean, threadId: string): Promise<void>
 
     /**
      * Called for streaming events during chat interactions.
