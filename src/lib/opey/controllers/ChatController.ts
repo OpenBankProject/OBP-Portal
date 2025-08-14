@@ -30,6 +30,9 @@ export class ChatController {
                         state.markMessageComplete(event.messageId)
                         break
                 case 'tool_start':
+                    // Remove the approval request message now that the tool is starting
+                    state.removeApprovalRequest(event.toolCallId);
+                    
                     state.addToolMessage({
                         id: event.toolCallId,
                         role: 'tool',
@@ -68,6 +71,14 @@ export class ChatController {
                         });
                     }
                     break;
+                case 'approval_request':
+                    state.addApprovalRequest(
+                        event.toolCallId,
+                        event.toolName,
+                        event.toolInput,
+                        event.description
+                    );
+                    break;
                 }
             } catch (error) {
                 logger.error('Error processing stream event:', error, event);
@@ -97,6 +108,16 @@ export class ChatController {
         }
         this.state.addMessage(msg);
         return this.service.send(msg);
+    }
+
+    async approveToolCall(toolCallId: string): Promise<void> {
+        this.state.updateApprovalRequest(toolCallId, true);
+        return this.service.sendApproval(toolCallId, true);
+    }
+
+    async denyToolCall(toolCallId: string): Promise<void> {
+        this.state.updateApprovalRequest(toolCallId, false);
+        return this.service.sendApproval(toolCallId, false);
     }
 
     cancel() {

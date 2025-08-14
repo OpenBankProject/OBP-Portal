@@ -13,6 +13,28 @@ export class RestChatService implements ChatService {
         private auth: AuthStrategy = new CookieAuthStrategy()
     ) { }
 
+    async sendApproval(toolCallId: string, approved: boolean): Promise<void> {
+        const init = await this.buildInit({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tool_call_id: toolCallId,
+                approved: approved
+            }),
+        })
+        
+        try {
+            const res = await fetch(`${this.baseUrl}/approval`, init)
+            if (!res.ok) {
+                logger.error(`Failed to send approval: ${res.statusText}`);
+                this.errorCallback?.(new Error(`Failed to send approval: ${res.statusText}`));
+            }
+        } catch (error) {
+            logger.error("Error sending approval:", error);
+            this.errorCallback?.(error as Error);
+        }
+    }
+
     private async buildInit(init: RequestInit = {}): Promise<RequestInit> {
         const headers = { ...(init.headers || {}), ...(await this.auth.getHeaders()) }
         return { ...init, headers, credentials: "include" }
@@ -137,6 +159,15 @@ export class RestChatService implements ChatService {
                                         error: eventData.error,
                                     })
                                 }
+                                break
+                            case 'approval_request':
+                                this.streamEventCallback?.({
+                                    type: 'approval_request',
+                                    toolCallId: eventData.tool_call_id,
+                                    toolName: eventData.tool_name,
+                                    toolInput: eventData.tool_input,
+                                    description: eventData.description,
+                                })
                                 break
                             default:
                                 logger.warn(`Unknown event type: ${eventData.type}`);

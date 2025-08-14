@@ -1,6 +1,6 @@
 // import type { ToolCall as LangChainToolCall } from '@langchain/core/messages/tool'
 
-export type Role = 'user' | 'assistant' | 'tool' | 'error';
+export type Role = 'user' | 'assistant' | 'tool' | 'error' | 'approval_request';
 export interface BaseMessage {
     id: string; // i.e. UUID4
     role: Role;
@@ -33,6 +33,15 @@ export interface ToolMessage extends BaseMessage {
     toolInput: Record<string, any>; // Input parameters for the tool call
     status?: 'success' | 'error' 
     toolOutput?: any; // Output from the tool call, if available
+}
+
+export interface ApprovalRequestMessage extends BaseMessage {
+    role: 'approval_request'
+    toolName: string; // Name of the tool requesting approval
+    toolCallId: string
+    toolInput: Record<string, any>; // Input parameters for the tool call
+    description?: string; // Human-readable description of what the tool will do
+    approved?: boolean; // Whether the user has approved/denied this request
 }
 
 export interface ToolCall {

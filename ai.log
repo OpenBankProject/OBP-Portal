@@ -19,3 +19,81 @@ Files Modified:
 - src/lib/opey/controllers/ChatController.ts: Added defensive error handling for stream events
 
 Result: Warnings are now much less frequent and logged at debug level rather than warning level. Chat functionality continues to work normally while gracefully ignoring stale messages from previous sessions.
+
+2025-08-14T14:47:51+02:00 - Implemented Tool Call Approval System
+
+Issue: Console was showing "Unknown event type: approval_request" warning because the chat service received approval request events from the server but didn't know how to handle them. Users needed the ability to approve or deny tool calls before they execute.
+
+Root Cause: The RestChatService switch statement didn't have a case for 'approval_request' events, and there was no UI or backend handling for tool call approvals.
+
+Implementation:
+1. Added 'approval_request' to StreamEvent union type in ChatService.ts
+2. Added sendApproval method to ChatService interface and RestChatService implementation
+3. Added ApprovalRequestMessage type extending BaseMessage with approval-specific fields
+4. Enhanced ChatState with addApprovalRequest and updateApprovalRequest methods
+5. Updated ChatController to handle approval_request events and provide approve/deny methods
+6. Created ApprovalRequest.svelte component with Approve/Deny buttons and tool call details
+7. Integrated approval request handling into OpeyChat.svelte message rendering
+
+Files Modified:
+- src/lib/opey/services/ChatService.ts: Added approval_request StreamEvent type and sendApproval method
+- src/lib/opey/services/RestChatService.ts: Added approval_request case and sendApproval implementation
+- src/lib/opey/types.ts: Added ApprovalRequestMessage type and 'approval_request' role
+- src/lib/opey/state/ChatState.ts: Added approval request handling methods
+- src/lib/opey/controllers/ChatController.ts: Added approval_request case and approve/deny methods
+- src/lib/components/ApprovalRequest.svelte: New component for approval UI with buttons
+- src/lib/components/OpeyChat.svelte: Integrated approval request message rendering
+
+Features:
+- Visual approval cards with tool details and parameter information
+- Approve and Deny buttons with loading states
+- Disabled state after user responds to prevent double-submission
+- Status indicators showing whether request was approved or denied
+- Tool input parameter display in formatted JSON
+- Integration with existing chat message flow
+
+Result: Users can now properly approve or deny tool calls through an intuitive UI. The "Unknown event type" warning is resolved, and the approval system provides transparency about what tools will do before execution.
+
+2025-08-14T14:57:15+02:00 - Fixed Duplicate Key Error in Chat Messages
+
+Issue: Browser console was showing "Uncaught Svelte error: each_key_duplicate" with duplicate key `call_UMX4GXKwH0kOGTN1o988GtiC` at different indexes. This occurred when approval request messages and tool messages used the same ID, causing Svelte's keyed each block to fail.
+
+Root Cause: ApprovalRequestMessage was using `toolCallId` directly as the message `id`, but ToolMessage also used the same `toolCallId` as its `id`. This created duplicate keys in the messages array when both an approval request and subsequent tool message existed for the same tool call.
+
+Fixes Applied:
+1. Changed ApprovalRequestMessage ID to use `approval_${toolCallId}` prefix to ensure uniqueness
+2. Added duplicate ID detection in addMessage, addToolMessage, and addApprovalRequest methods
+3. Added removeApprovalRequest method to clean up approval messages when tools start
+4. Enhanced ChatController to remove approval requests when tool_start events occur
+5. Made each loop more robust with fallback key using `${message.id}-${index}` format
+6. Added logging for duplicate detection and approval request removal
+
+Files Modified:
+- src/lib/opey/state/ChatState.ts: Added unique ID generation, duplicate detection, and cleanup methods
+- src/lib/opey/controllers/ChatController.ts: Added approval request cleanup on tool start
+- src/lib/components/OpeyChat.svelte: Enhanced each loop with fallback key to prevent future duplicates
+
+Result: Duplicate key errors are eliminated. Chat messages now have guaranteed unique IDs, and approval requests are cleanly removed when tools execute, preventing UI clutter and ensuring smooth message rendering.
+
+2025-08-14T15:04:49+02:00 - Backend Approval Endpoint Missing (404 Error)
+
+Issue: When users click Approve or Deny buttons for tool calls, the frontend sends POST requests to `http://localhost:5000/approval` but receives 404 Not Found errors. The approval system frontend is complete but the backend endpoint doesn't exist yet.
+
+Error Details:
+- POST http://localhost:5000/approval 404 (Not Found)  
+- Error in RestChatService.ts:27 Failed to send approval: Not Found
+- Call stack: sendApproval -> approveToolCall -> handleApprove (OpeyChat.svelte) -> handleApprove (ApprovalRequest.svelte)
+
+Root Cause: The frontend approval system was implemented but the corresponding backend endpoint `/approval` was not created on the Opey server.
+
+Current Status: Frontend implementation is complete and functional. Backend work needed:
+1. Create POST /approval endpoint on Opey server
+2. Handle approval/denial logic for tool calls
+3. Continue/resume tool execution after approval
+4. Return appropriate responses to frontend
+
+Files Involved:
+- Frontend: RestChatService.ts (already implemented)
+- Backend: Needs /approval endpoint implementation
+
+Next Steps: Backend session required to implement the missing `/approval` endpoint and approval handling logic.

@@ -1,7 +1,7 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('ChatState');
 import { v4 as uuidv4 } from 'uuid';
-import type { BaseMessage, ToolMessage} from "../types";
+import type { BaseMessage, ToolMessage, ApprovalRequestMessage} from "../types";
 
 export interface ChatStateSnapshot {
     threadId: string
@@ -33,13 +33,65 @@ export class ChatState {
     }
 
     addMessage(message: BaseMessage): void {
+        // Check for duplicate IDs
+        if (this.messages.some(existing => existing.id === message.id)) {
+            logger.warn(`Duplicate message ID detected: ${message.id}. Skipping duplicate message.`);
+            return;
+        }
         this.messages.push(message)
         this.emit()
     }
 
     addToolMessage(toolMessage: ToolMessage): void {
+        // Check for duplicate IDs
+        if (this.messages.some(existing => existing.id === toolMessage.id)) {
+            logger.warn(`Duplicate tool message ID detected: ${toolMessage.id}. Skipping duplicate message.`);
+            return;
+        }
         this.messages.push(toolMessage);
         this.emit();
+    }
+
+    addApprovalRequest(toolCallId: string, toolName: string, toolInput: Record<string, any>, description?: string): void {
+        const approvalId = `approval_${toolCallId}`;
+        
+        // Check for duplicate IDs
+        if (this.messages.some(existing => existing.id === approvalId)) {
+            logger.warn(`Duplicate approval request ID detected: ${approvalId}. Skipping duplicate request.`);
+            return;
+        }
+        
+        const approvalMessage: ApprovalRequestMessage = {
+            id: approvalId,
+            role: 'approval_request',
+            message: `Approval required for ${toolName}`,
+            timestamp: new Date(),
+            toolCallId,
+            toolName,
+            toolInput,
+            description
+        };
+        this.messages.push(approvalMessage);
+        this.emit();
+    }
+
+    updateApprovalRequest(toolCallId: string, approved: boolean): void {
+        const message = this.messages.find(msg => msg.role === 'approval_request' && (msg as ApprovalRequestMessage).toolCallId === toolCallId) as ApprovalRequestMessage | undefined;
+        if (message) {
+            message.approved = approved;
+            this.emit();
+        } else {
+            logger.debug(`Approval request with ID ${toolCallId} not found for update.`);
+        }
+    }
+
+    removeApprovalRequest(toolCallId: string): void {
+        const initialLength = this.messages.length;
+        this.messages = this.messages.filter(msg => !(msg.role === 'approval_request' && (msg as ApprovalRequestMessage).toolCallId === toolCallId));
+        if (this.messages.length !== initialLength) {
+            logger.debug(`Removed approval request for tool call ID: ${toolCallId}`);
+            this.emit();
+        }
     }
 
     appendToMessage(messageId: string, text: string): void {
