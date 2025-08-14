@@ -7,8 +7,9 @@
 	import { ChatController } from '$lib/opey/controllers/ChatController';
 	import { SessionState, type SessionSnapshot } from '$lib/opey/state/SessionState';
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
-	import type { ToolMessage } from '$lib/opey/types';
+	import type { ToolMessage, ApprovalRequestMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
+	import ApprovalRequest from './ApprovalRequest.svelte';
 	import {
 		Check,
 		CircleArrowUp,
@@ -149,6 +150,14 @@
 	}
 
 	let messageInput = $state('');
+
+	async function handleApprove(toolCallId: string) {
+		await chatController.approveToolCall(toolCallId);
+	}
+
+	async function handleDeny(toolCallId: string) {
+		await chatController.denyToolCall(toolCallId);
+	}
 </script>
 
 {#snippet header()}
@@ -166,7 +175,7 @@
 {#snippet body()}
 	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
 		<div class="space-y-4">
-			{#each chat.messages as message, index (message.id)}
+			{#each chat.messages as message, index (`${message.id}-${index}`)}
 				{#if message.role === 'user'}
 					<div class="flex flex-col items-end justify-start">
 						<div class="mb-2 flex items-center gap-2">
@@ -263,6 +272,27 @@
 							{/snippet}
 						</Accordion.Item>
 					</Accordion>
+				{:else if message.role === 'approval_request'}
+					<div class="flex flex-col items-start justify-start">
+						{#if !['tool', 'assistant', 'approval_request'].includes(chat.messages[index - 1]?.role)}
+							<div class="mb-2 flex items-center gap-2">
+								<Avatar
+									src="/opey-icon-white.png"
+									name="opey"
+									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
+								/>
+								<p class="text-s font-bold">Opey</p>
+							</div>
+							<hr class="hr" />
+						{/if}
+						<div class="max-w-full">
+							<ApprovalRequest 
+								message={message as ApprovalRequestMessage}
+								onApprove={handleApprove}
+								onDeny={handleDeny}
+							/>
+						</div>
+					</div>
 				{/if}
 			{/each}
 		</div>

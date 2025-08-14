@@ -11,24 +11,28 @@ export class ChatController {
         public state: ChatState
     ) {
         service.onStreamEvent((event: StreamEvent) => {
-            switch (event.type) {
-                case 'assistant_start':
-                    state.addMessage({
-                        id: event.messageId,
-                        role: 'assistant',
-                        message: '',
-                        timestamp: event.timestamp,
-                        isStreaming: true
-                    })
-                    break
-                case 'assistant_token':
-                    state.appendToMessage(event.messageId, event.token)
-                    break
-                case 'assistant_complete':
-                    logger.debug('Marking assistant message as complete:', event);
-                    state.markMessageComplete(event.messageId)
-                    break
+            try {
+                switch (event.type) {
+                    case 'assistant_start':
+                        state.addMessage({
+                            id: event.messageId,
+                            role: 'assistant',
+                            message: '',
+                            timestamp: event.timestamp,
+                            isStreaming: true
+                        })
+                        break
+                    case 'assistant_token':
+                        state.appendToMessage(event.messageId, event.token)
+                        break
+                    case 'assistant_complete':
+                        logger.debug('Marking assistant message as complete:', event);
+                        state.markMessageComplete(event.messageId)
+                        break
                 case 'tool_start':
+                    // Remove the approval request message now that the tool is starting
+                    state.removeApprovalRequest(event.toolCallId);
+                    
                     state.addToolMessage({
                         id: event.toolCallId,
                         role: 'tool',
@@ -67,6 +71,17 @@ export class ChatController {
                         });
                     }
                     break;
+                case 'approval_request':
+                    state.addApprovalRequest(
+                        event.toolCallId,
+                        event.toolName,
+                        event.toolInput,
+                        event.description
+                    );
+                    break;
+                }
+            } catch (error) {
+                logger.error('Error processing stream event:', error, event);
             }
         })
 
@@ -93,6 +108,16 @@ export class ChatController {
         }
         this.state.addMessage(msg);
         return this.service.send(msg);
+    }
+
+    async approveToolCall(toolCallId: string): Promise<void> {
+        this.state.updateApprovalRequest(toolCallId, true);
+        return this.service.sendApproval(toolCallId, true);
+    }
+
+    async denyToolCall(toolCallId: string): Promise<void> {
+        this.state.updateApprovalRequest(toolCallId, false);
+        return this.service.sendApproval(toolCallId, false);
     }
 
     cancel() {
