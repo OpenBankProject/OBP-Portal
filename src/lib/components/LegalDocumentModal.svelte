@@ -4,6 +4,7 @@
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
 	import { getLegalMarkdownFromWebUIProps } from '$lib/utils/loadLegalDocumentFromApi';
 	import { createLogger } from '$lib/utils/logger';
+	import { Dialog } from 'bits-ui';
 	const logger = createLogger('LegalDocumentModal');
 
 	interface Props {
