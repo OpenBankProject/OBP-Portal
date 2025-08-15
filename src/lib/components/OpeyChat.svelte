@@ -1,5 +1,77 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+
+
+	// Function to format tool output with better user experience
+	function formatToolOutput(message: ToolMessage): string {
+		if (!message.toolOutput) {
+			return '<div class="text-gray-500">No output available</div>';
+		}
+
+		// Handle OBP API responses specifically
+		if (message.toolName === 'obp_requests') {
+			try {
+				const output = typeof message.toolOutput === 'string' 
+					? JSON.parse(message.toolOutput) 
+					: message.toolOutput;
+
+				// Check if this is an error response
+				if (output.error || output.message || (output.code && output.code !== 200)) {
+					const errorCode = output.code || output.status || 'Unknown';
+					const errorMessage = output.message || output.error || 'Unknown error';
+					const errorDetail = output.error_message || output.detail || '';
+					
+					return `
+						<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+							<div class="font-bold">❌ API Request Failed</div>
+							<div class="text-sm mt-1">
+								<strong>Status:</strong> ${errorCode}<br/>
+								<strong>Message:</strong> ${errorMessage}
+								${errorDetail ? `<br/><strong>Detail:</strong> ${errorDetail}` : ''}
+							</div>
+						</div>
+					`;
+				}
+
+				// Success response
+				if (output && typeof output === 'object') {
+					// Format successful responses with key highlights
+					let formatted = '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">';
+					formatted += '<div class="font-bold">✅ API Request Successful</div>';
+					formatted += '<div class="text-sm mt-2">';
+					
+					// Extract key information
+					if (output.bank_id) formatted += `<strong>Bank ID:</strong> ${output.bank_id}<br/>`;
+					if (output.user_id) formatted += `<strong>User ID:</strong> ${output.user_id}<br/>`;
+					if (output.account_id) formatted += `<strong>Account ID:</strong> ${output.account_id}<br/>`;
+					if (output.transaction_id) formatted += `<strong>Transaction ID:</strong> ${output.transaction_id}<br/>`;
+					if (output.banks && Array.isArray(output.banks)) {
+						formatted += `<strong>Banks Found:</strong> ${output.banks.length}<br/>`;
+					}
+					if (output.accounts && Array.isArray(output.accounts)) {
+						formatted += `<strong>Accounts Found:</strong> ${output.accounts.length}<br/>`;
+					}
+					
+					formatted += '</div>';
+					formatted += '<details class="mt-2"><summary class="cursor-pointer text-xs text-green-600">View Full Response</summary>';
+					formatted += `<pre class="text-xs mt-2 bg-green-50 p-2 rounded overflow-x-auto">${JSON.stringify(output, null, 2)}</pre>`;
+					formatted += '</details>';
+					formatted += '</div>';
+					
+					return formatted;
+				}
+			} catch (e) {
+				// If JSON parsing fails, treat as plain text
+			}
+		}
+
+		// Default formatting for other tools or plain text
+		const outputStr = typeof message.toolOutput === 'string' 
+			? message.toolOutput 
+			: JSON.stringify(message.toolOutput, null, 2);
+			
+		return `<pre class="text-sm bg-gray-50 p-3 rounded overflow-x-auto">${outputStr}</pre>`;
+	}
 	import { env } from '$env/dynamic/public';
 	import { CookieAuthStrategy } from '$lib/opey/services/AuthStrategy';
 	import { ChatState, type ChatStateSnapshot } from '$lib/opey/state/ChatState';
@@ -273,9 +345,7 @@
 										{#snippet panel()}
 											<div class="preset-filled-primary-500 max-w-full rounded-2xl p-2 text-white">
 												<div class="overflow-x-auto">
-													{JSON.stringify((message as ToolMessage).toolOutput)
-														? JSON.stringify((message as ToolMessage).toolOutput)
-														: 'No output available'}
+													{@html formatToolOutput(message as ToolMessage)}
 												</div>
 											</div>
 										{/snippet}

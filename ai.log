@@ -324,6 +324,37 @@ Result: Users now see clearly labeled tool operations that explain what each ret
 
 User Experience: Tool sections now display as "Endpoint Retrieval - Finding API endpoints" and "Glossary Retrieval - Looking up terminology", making the workflow transparent and user-friendly.
 
+2025-01-15T13:20:00+02:00 - Enhanced OBP API Response Display and User Feedback
+
+Issue: Users reported not getting clear feedback after approving tool calls. While the approval flow was working technically, the user experience was poor:
+- Tool outputs showed raw JSON with JSON.stringify() which was hard to read
+- No visual indicators for success/failure status
+- Error responses weren't formatted for human consumption
+- Users couldn't easily understand what the API call accomplished
+
+Enhancement Applied:
+Implemented comprehensive improvements to tool output display in OpeyChat.svelte:
+
+1. **Visual Status Indicators**: Added color-coded success/error boxes with clear ✅/❌ icons
+2. **Structured Response Display**: Extract and highlight key information like bank_id, user_id, account_id
+3. **User-Friendly Error Formatting**: Convert technical errors to readable format with status codes
+4. **Collapsible Details**: Full JSON response available in expandable section for technical users
+5. **Smart Content Detection**: Automatically detect OBP API response patterns vs other tool outputs
+
+Implementation Details:
+- Created formatToolOutput() function with OBP-specific response handling
+- Added HTML formatting with Tailwind CSS classes for visual appeal
+- Implemented error detection for common OBP API error patterns
+- Added success pattern recognition for resource creation and listing
+- Used @html directive for rich formatted output display
+
+Files Modified:
+- src/lib/components/OpeyChat.svelte: Added formatToolOutput() function and enhanced tool display
+
+Result: Users now receive clear, visually appealing feedback about API operations with immediate understanding of success/failure and key results. Technical details remain available but are not overwhelming for casual users.
+
+User Experience: Tool outputs now display as formatted cards with clear status, key information highlighted, and full details available on demand.
+
 2025-08-14T16:10:15+02:00 - Fixed Backend Approval Continuation Hang
 
 Issue: After clicking Approve button, the Portal would hang waiting for a response. OPEY backend logs showed "Error continuing after approval: No message found in input" when trying to continue streaming after approval decision. The approval was received correctly but the continuation failed.
