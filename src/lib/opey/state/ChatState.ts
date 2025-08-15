@@ -122,25 +122,34 @@ export class ChatState {
     }
 
     markMessageComplete(messageId: string): void {
+        console.error(`CHATSTATE_DEBUG: markMessageComplete called for messageId: ${messageId}`);
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
+            console.error(`CHATSTATE_DEBUG: Found message for completion, role: ${message.role}, isStreaming: ${message.isStreaming}`);
             if (message.isStreaming === undefined) {
+                console.error(`CHATSTATE_DEBUG: Message ${messageId} does not have isStreaming property`);
                 logger.debug(`Message with ID ${messageId} does not have isStreaming property.`);
             } else if (!message.isStreaming) {
+                console.error(`CHATSTATE_DEBUG: Message ${messageId} is already marked as complete`);
                 logger.debug(`Message with ID ${messageId} is already marked as complete.`);
             } else {
+                console.error(`CHATSTATE_DEBUG: Marking message ${messageId} as complete (stopping spinner)`);
                 logger.debug(`Marking message with ID ${messageId} as complete.`);
                 message.isStreaming = false; // Mark the message as complete
                 this.emit(); // Notify subscribers about the change
+                console.error(`CHATSTATE_DEBUG: Message marked complete and state emitted`);
             }
         } else {
+            console.error(`CHATSTATE_DEBUG: Message ${messageId} NOT FOUND for completion`);
             // Check if this is a stale message from a previous session
             if (this.isStaleMessage(messageId)) {
+                console.error(`CHATSTATE_DEBUG: Ignoring stale completion for message ${messageId}`);
                 logger.debug(`Ignoring stale completion for message ${messageId} from previous session.`);
                 return;
             }
             // Reduce noise - only log if we're actually tracking messages
             if (this.messages.length > 0) {
+                console.error(`CHATSTATE_DEBUG: Message ${messageId} not found in ${this.messages.length} messages`);
                 logger.debug(`Message with ID ${messageId} not found for completion.`);
             }
         }
@@ -160,14 +169,33 @@ export class ChatState {
     }
 
     updateToolMessage(toolCallId: string, updates: Partial<ToolMessage>): void {
+        console.error(`CHATSTATE_DEBUG: Looking for tool message with ID: ${toolCallId}`);
+        console.error(`CHATSTATE_DEBUG: Total messages in state: ${this.messages.length}`);
+        
+        // Debug all tool messages in the state
+        const toolMessages = this.messages.filter(msg => msg.role === 'tool');
+        console.error(`CHATSTATE_DEBUG: Found ${toolMessages.length} tool messages`);
+        toolMessages.forEach((msg, index) => {
+            console.error(`CHATSTATE_DEBUG: Tool message ${index}: id="${msg.id}", toolCallId="${(msg as ToolMessage).toolCallId}"`);
+        });
+        
         const toolMessage = this.messages.find(msg => msg.role === 'tool' && msg.id === toolCallId) as ToolMessage | undefined;
         if (toolMessage) {
+            console.error(`CHATSTATE_DEBUG: Found matching tool message, updating with:`, updates);
             Object.assign(toolMessage, updates); // Update the tool message with the provided fields
             this.emit(); // Notify subscribers about the change
+            console.error(`CHATSTATE_DEBUG: Tool message updated and state emitted`);
         } else {
-            // Reduce noise - only log if we're actually tracking messages
-            if (this.messages.length > 0) {
-                logger.debug(`Tool message with ID ${toolCallId} not found for update operation.`);
+            console.error(`CHATSTATE_DEBUG: NO MATCH - Tool message with ID ${toolCallId} not found`);
+            // Try to find by toolCallId instead of id
+            const toolMessageByCallId = this.messages.find(msg => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId) as ToolMessage | undefined;
+            if (toolMessageByCallId) {
+                console.error(`CHATSTATE_DEBUG: Found tool message by toolCallId instead of id, updating...`);
+                Object.assign(toolMessageByCallId, updates);
+                this.emit();
+                console.error(`CHATSTATE_DEBUG: Tool message updated via toolCallId match`);
+            } else {
+                console.error(`CHATSTATE_DEBUG: No tool message found by either id or toolCallId`);
             }
         }
     }
