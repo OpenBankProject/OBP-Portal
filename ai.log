@@ -395,6 +395,39 @@ Files Enhanced:
 
 Result: Complete end-to-end approval workflow with excellent user feedback and technical transparency.
 
+2025-01-15T14:10:32+02:00 - CRITICAL FIX: Svelte Reactivity Issue Causing Tool Spinner to Persist
+
+Issue Identified: Despite backend successfully processing tool completion events and ChatState being updated correctly, the UI was not reflecting the changes. Tool spinners remained active even after successful completion.
+
+Root Cause Analysis from Browser Logs:
+✅ Tool completion events received correctly: call_2Hcjq0Ro3npWq7UDwiezAnRy
+✅ ChatState.updateToolMessage working: Tool output updated successfully
+✅ ChatState.markMessageComplete working: isStreaming changed from true to false
+✅ State emit() called successfully: State emitted after updates
+❌ UI NOT UPDATING: Svelte components not reacting to object property changes
+
+Technical Root Cause:
+Svelte's reactivity system doesn't detect changes to nested object properties within arrays. When modifying `message.isStreaming = false` or `Object.assign(message, updates)`, Svelte doesn't recognize these as changes to the messages array, so components don't re-render.
+
+Solution Applied:
+Added `this.messages = [...this.messages]` after all object mutations to force Svelte reactivity:
+- updateApprovalRequest: Force array reassignment after message.approved change
+- appendToMessage: Force array reassignment after message.message change  
+- markMessageComplete: Force array reassignment after message.isStreaming change
+- updateMessage: Force array reassignment after Object.assign updates
+- updateToolMessage: Force array reassignment after Object.assign updates
+
+Files Modified:
+- src/lib/opey/state/ChatState.ts: Added array reassignment for Svelte reactivity
+
+Expected Result:
+- Tool spinners should stop immediately when completion events are received
+- Tool output sections should become clickable and show content
+- UI should properly reflect all state changes in real-time
+
+Technical Note:
+This is a common Svelte gotcha - the framework tracks array references, not deep object changes within arrays. The spread operator creates a new array reference, triggering reactivity.
+
 2025-08-14T16:10:15+02:00 - Fixed Backend Approval Continuation Hang
 
 Issue: After clicking Approve button, the Portal would hang waiting for a response. OPEY backend logs showed "Error continuing after approval: No message found in input" when trying to continue streaming after approval decision. The approval was received correctly but the continuation failed.

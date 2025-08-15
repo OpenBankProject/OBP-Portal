@@ -159,7 +159,18 @@
 	onMount(async () => {
 		console.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
-		chatState.subscribe((c) => (chat = c));
+		chatState.subscribe((c) => {
+			console.error('OPEY_CHAT_DEBUG: ChatState subscription callback fired');
+			console.error('OPEY_CHAT_DEBUG: Received chat state with', c.messages.length, 'messages');
+			if (c.messages.length > 0) {
+				const toolMessages = c.messages.filter(m => m.role === 'tool');
+				console.error('OPEY_CHAT_DEBUG: Tool messages in state:', toolMessages.length);
+				toolMessages.forEach((tm, index) => {
+					console.error(`OPEY_CHAT_DEBUG: Tool message ${index}: id=${tm.id}, isStreaming=${tm.isStreaming}`);
+				});
+			}
+			chat = c;
+		});
 
 		if (options.initialAssistantMessage) {
 			chatState.addMessage({
@@ -312,6 +323,8 @@
 							{#snippet control()}
 								<div class="flex justify-between">
 									{getToolDisplayName((message as ToolMessage).toolName, (message as ToolMessage).instanceNumber || 1)}
+									<!-- Debug: Tool message isStreaming status -->
+									{console.error('TEMPLATE_DEBUG: Tool message', message.id, 'isStreaming:', message.isStreaming)}
 									{#if message.isStreaming}
 										<LoaderCircle class="stroke-warning-500 animate-spin" />
 									{:else}
@@ -335,6 +348,8 @@
 										{#snippet control()}
 											<div class="flex justify-between">
 												Tool Output
+												<!-- Debug: Tool output isStreaming status -->
+												{console.error('TEMPLATE_DEBUG: Tool output', message.id, 'isStreaming:', message.isStreaming)}
 												{#if message.isStreaming}
 													<LoaderCircle class="stroke-warning-500 animate-spin" />
 												{:else}

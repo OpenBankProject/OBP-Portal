@@ -88,6 +88,7 @@ export class ChatState {
         const message = this.messages.find(msg => msg.role === 'approval_request' && (msg as ApprovalRequestMessage).toolCallId === toolCallId) as ApprovalRequestMessage | undefined;
         if (message) {
             message.approved = approved;
+            this.messages = [...this.messages]; // Force Svelte reactivity
             this.emit();
         } else {
             logger.debug(`Approval request with ID ${toolCallId} not found for update.`);
@@ -107,6 +108,7 @@ export class ChatState {
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
             message.message += text; // Append text to the existing message
+            this.messages = [...this.messages]; // Force Svelte reactivity
             this.emit(); // Notify subscribers about the change
         } else {
             // Check if this is a stale message from a previous session
@@ -136,6 +138,7 @@ export class ChatState {
                 console.error(`CHATSTATE_DEBUG: Marking message ${messageId} as complete (stopping spinner)`);
                 logger.debug(`Marking message with ID ${messageId} as complete.`);
                 message.isStreaming = false; // Mark the message as complete
+                this.messages = [...this.messages]; // Force Svelte reactivity
                 this.emit(); // Notify subscribers about the change
                 console.error(`CHATSTATE_DEBUG: Message marked complete and state emitted`);
             }
@@ -159,6 +162,7 @@ export class ChatState {
         const message = this.messages.find(msg => msg.id === messageId);
         if (message) {
             Object.assign(message, updates); // Update the message with the provided fields
+            this.messages = [...this.messages]; // Force Svelte reactivity
             this.emit(); // Notify subscribers about the change
         } else {
             // Reduce noise - only log if we're actually tracking messages
@@ -183,6 +187,7 @@ export class ChatState {
         if (toolMessage) {
             console.error(`CHATSTATE_DEBUG: Found matching tool message, updating with:`, updates);
             Object.assign(toolMessage, updates); // Update the tool message with the provided fields
+            this.messages = [...this.messages]; // Force Svelte reactivity
             this.emit(); // Notify subscribers about the change
             console.error(`CHATSTATE_DEBUG: Tool message updated and state emitted`);
         } else {
@@ -192,6 +197,7 @@ export class ChatState {
             if (toolMessageByCallId) {
                 console.error(`CHATSTATE_DEBUG: Found tool message by toolCallId instead of id, updating...`);
                 Object.assign(toolMessageByCallId, updates);
+                this.messages = [...this.messages]; // Force Svelte reactivity
                 this.emit();
                 console.error(`CHATSTATE_DEBUG: Tool message updated via toolCallId match`);
             } else {
