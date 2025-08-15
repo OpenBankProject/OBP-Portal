@@ -106,6 +106,10 @@ export class RestChatService implements ChatService {
                                     })
                                     break
                                 case 'tool_end':
+                                    console.error(`APPROVAL_STREAM_DEBUG: Received tool_end event for ${eventData.tool_call_id}`);
+                                    console.error(`APPROVAL_STREAM_DEBUG: Tool output: ${JSON.stringify(eventData.tool_output)?.substring(0, 200)}...`);
+                                    console.error(`APPROVAL_STREAM_DEBUG: Tool status: ${eventData.status}`);
+                                    
                                     this.streamEventCallback?.({
                                         type: 'tool_complete',
                                         toolCallId: eventData.tool_call_id,
@@ -113,6 +117,8 @@ export class RestChatService implements ChatService {
                                         toolOutput: eventData.tool_output,
                                         status: eventData.status,
                                     })
+                                    
+                                    console.error(`APPROVAL_STREAM_DEBUG: Forwarded tool_complete event to callback`);
                                     break
                                 case 'error':
                                     if (eventData.message_id) {
@@ -266,6 +272,10 @@ export class RestChatService implements ChatService {
                                 })
                                 break
                             case 'tool_end':
+                                console.error(`MAIN_STREAM_DEBUG: Received tool_end event for ${eventData.tool_call_id}`);
+                                console.error(`MAIN_STREAM_DEBUG: Tool output: ${JSON.stringify(eventData.tool_output)?.substring(0, 200)}...`);
+                                console.error(`MAIN_STREAM_DEBUG: Tool status: ${eventData.status}`);
+                                
                                 this.streamEventCallback?.({
                                     type: 'tool_complete',
                                     toolCallId: eventData.tool_call_id,
@@ -273,6 +283,8 @@ export class RestChatService implements ChatService {
                                     toolOutput: eventData.tool_output,
                                     status: eventData.status,
                                 })
+                                
+                                console.error(`MAIN_STREAM_DEBUG: Forwarded tool_complete event to callback`);
                                 break
                             case 'error':
                                 if (eventData.message_id) {

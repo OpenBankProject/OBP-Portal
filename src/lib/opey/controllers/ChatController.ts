@@ -59,6 +59,11 @@ export class ChatController {
                     // No action needed for tool token in this implementation
                     break
                 case 'tool_complete':
+                    // Debug logging for tool completion
+                    logger.error(`FRONTEND_DEBUG: Received tool_complete event for ${event.toolCallId}`);
+                    logger.error(`FRONTEND_DEBUG: Tool output: ${JSON.stringify(event.toolOutput)?.substring(0, 200)}...`);
+                    logger.error(`FRONTEND_DEBUG: Tool status: ${event.status}`);
+                    
                     // Update the toolMessage with the output and mark as complete
                     state.updateToolMessage(event.toolCallId, {
                         toolOutput: event.toolOutput,
@@ -66,6 +71,7 @@ export class ChatController {
                     })
 
                     state.markMessageComplete(event.toolCallId)
+                    logger.error(`FRONTEND_DEBUG: Tool message updated and marked complete for ${event.toolCallId}`);
                     break
                 case 'error':
                     if (event.messageId) {
