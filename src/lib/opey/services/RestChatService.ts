@@ -153,14 +153,30 @@ export class RestChatService implements ChatService {
         return { ...init, headers, credentials: "include" }
     }
 
-    async send(msg: UserMessage): Promise<void> {
+    async send(msg: UserMessage, threadId?: string): Promise<void> {
+        // Create StreamInput with thread_id included
+        const streamInput = {
+            message: msg.message,
+            thread_id: threadId,
+            stream_tokens: true
+        };
+        
         const init = await this.buildInit({
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(msg),
+            body: JSON.stringify(streamInput),
         })
         const res = await fetch(`${this.baseUrl}/stream`, init)
 
+        // Extract thread_id from response headers if available
+        const responseThreadId = res.headers.get('X-Thread-ID');
+        if (responseThreadId && responseThreadId !== threadId) {
+            logger.debug(`Backend assigned thread_id: ${responseThreadId}, requested: ${threadId}`);
+            this.streamEventCallback?.({
+                type: 'thread_sync',
+                threadId: responseThreadId
+            });
+        }
 
         if (!res.ok) {
             // Debug

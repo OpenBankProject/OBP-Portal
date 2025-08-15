@@ -32,6 +32,15 @@ export class ChatState {
         this.emit(); // Notify subscribers about the change
     }
 
+    /** synchronizes thread_id with backend without clearing messages */
+    syncThreadId(backendThreadId: string): void {
+        if (this.threadId !== backendThreadId) {
+            logger.debug(`Syncing thread_id: ${this.threadId} -> ${backendThreadId}`);
+            this.threadId = backendThreadId;
+            this.emit(); // Notify subscribers about the change
+        }
+    }
+
     addMessage(message: BaseMessage): void {
         // Check for duplicate IDs
         if (this.messages.some(existing => existing.id === message.id)) {

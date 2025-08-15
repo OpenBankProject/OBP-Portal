@@ -15,6 +15,10 @@ export class ChatController {
         service.onStreamEvent((event: StreamEvent) => {
             try {
                 switch (event.type) {
+                    case 'thread_sync':
+                        logger.debug(`Syncing thread_id with backend: ${event.threadId}`);
+                        state.syncThreadId(event.threadId);
+                        break;
                     case 'assistant_start':
                         state.addMessage({
                             id: event.messageId,
@@ -113,7 +117,7 @@ export class ChatController {
             timestamp: new Date()
         }
         this.state.addMessage(msg);
-        return this.service.send(msg);
+        return this.service.send(msg, this.state.getThreadId());
     }
 
     async approveToolCall(toolCallId: string): Promise<void> {

@@ -8,7 +8,7 @@ import type { UserMessage, AssistantMessage, ToolMessage } from '../types'
 // Only modify if there is some base logic that needs to be shared across all chat services.
 // Else just create a new implementation of ChatService.
 export interface ChatService {
-    send(msg: UserMessage): Promise<void>
+    send(msg: UserMessage, threadId?: string): Promise<void>
     sendApproval(toolCallId: string, approved: boolean, threadId: string): Promise<void>
 
     /**
@@ -28,4 +28,5 @@ export type StreamEvent =
     | { type: 'tool_token', toolCallId: string, token: string }
     | { type: 'tool_complete', toolCallId: string, toolName: string, toolOutput: any, status: 'success' | 'error' }
     | { type: 'approval_request', toolCallId: string, toolName: string, toolInput: Record<string, any>, description?: string }
+    | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }
