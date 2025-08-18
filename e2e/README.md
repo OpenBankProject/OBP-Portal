@@ -279,3 +279,45 @@ Adds delays between actions to see each step clearly.
 3. Verify `waitForLoadState('networkidle')` is used appropriately
 4. Look for race conditions in element selection
 5. Consider adding `page.waitForTimeout()` for problematic sections
+
+### Common Flickering Fixes Applied:
+
+**Better Wait Strategies:**
+
+```bash
+# Always wait after navigation in beforeEach
+await page.goto('/login');
+await page.waitForLoadState('networkidle');
+```
+
+**Use Promise.all for Navigation:**
+
+```bash
+# Wait for navigation simultaneously with clicking
+await Promise.all([
+    page.waitForURL('**/auth**', { timeout: 15000 }),
+    loginButton.click()
+]);
+```
+
+**Specific URL Patterns Instead of Generic Waits:**
+
+```bash
+# More reliable than waitForLoadState
+await page.waitForURL('**/login/obp/callback**', { timeout: 15000 })
+```
+
+**Visibility Checks Before Actions:**
+
+```bash
+# Always verify elements exist before interacting
+await expect(loginButton).toBeVisible();
+await loginButton.click();
+```
+
+**Increased Timeouts for Slow Operations:**
+
+```bash
+# Prevent premature failures
+await expect(loginButton).toBeVisible({ timeout: 10000 });
+```
