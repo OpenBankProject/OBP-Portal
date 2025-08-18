@@ -13,6 +13,15 @@ cd OBP-Portal
 # Run Playwright tests (recommended)
 npm run test:e2e
 
+# Run Playwright tests with visual interface (for debugging)
+npx playwright test --ui
+
+# Run Playwright tests in headed mode (see browser)
+npx playwright test --headed
+
+# Run specific test file with visual interface
+npx playwright test e2e/login-button.test.ts --ui
+
 # Or run Selenium tests (alternative)
 npm install --save-dev selenium-webdriver chai mocha chromedriver
 npx mocha e2e/selenium-login-button.test.js --timeout 30000
@@ -174,7 +183,26 @@ Both test suites can be integrated into CI/CD pipelines:
 For Playwright:
 
 ```bash
+# Debug mode with step-by-step execution
 npx playwright test --debug
+
+# Visual interface for test development and debugging
+npx playwright test --ui
+
+# Run tests in headed mode (see the browser)
+npx playwright test --headed
+
+# Run with slow motion to see actions clearly
+npx playwright test --headed --slowMo=1000
+
+# Record a test (generates code by recording your actions)
+npx playwright codegen localhost:4173
+
+# Debug specific test file
+npx playwright test e2e/login-button.test.ts --debug
+
+# Run tests and keep browser open after completion
+npx playwright test --headed --debug
 ```
 
 For Selenium:
@@ -209,3 +237,45 @@ When adding new E2E tests:
 - `chromedriver`: Latest
 
 Run `npm install --save-dev selenium-webdriver chai mocha chromedriver` to add Selenium support.
+
+## Visual Debugging with Playwright
+
+If you're experiencing issues like screen flickering or multiple login panels, use these debugging approaches:
+
+### Playwright UI Mode (Recommended)
+
+```bash
+npx playwright test --ui
+```
+
+This opens a visual interface where you can:
+
+- See tests running in real-time
+- Step through each action
+- Inspect element selectors
+- View network requests
+- Debug timing issues
+
+### Headed Mode
+
+```bash
+npx playwright test --headed
+```
+
+Runs tests with browser visible so you can see what's happening.
+
+### Slow Motion Mode
+
+```bash
+npx playwright test --headed --slowMo=1000
+```
+
+Adds delays between actions to see each step clearly.
+
+### Debugging Tips for Flickering Issues:
+
+1. Use `--ui` mode to step through tests slowly
+2. Check for unnecessary `page.goto()` calls
+3. Verify `waitForLoadState('networkidle')` is used appropriately
+4. Look for race conditions in element selection
+5. Consider adding `page.waitForTimeout()` for problematic sections

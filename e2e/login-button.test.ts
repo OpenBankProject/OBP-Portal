@@ -4,16 +4,18 @@ test.describe('Login Button Tests', () => {
 	test.beforeEach(async ({ page }) => {
 		// Navigate to the login page before each test
 		await page.goto('/login');
+		await page.waitForLoadState('networkidle');
 	});
 
 	test('should display login button on login page', async ({ page }) => {
 		// Check if the login button exists and is visible
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
-		await expect(loginButton).toBeVisible();
+		await expect(loginButton).toBeVisible({ timeout: 10000 });
 	});
 
 	test('should have correct login button styling', async ({ page }) => {
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
+		await expect(loginButton).toBeVisible();
 
 		// Check if button has the expected CSS classes
 		await expect(loginButton).toHaveClass(/btn/);
@@ -25,12 +27,10 @@ test.describe('Login Button Tests', () => {
 
 	test('should navigate to OAuth login when clicked', async ({ page }) => {
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
+		await expect(loginButton).toBeVisible();
 
-		// Click the login button
-		await loginButton.click();
-
-		// Wait for navigation to complete
-		await page.waitForLoadState('networkidle');
+		// Click the login button and wait for navigation
+		await Promise.all([page.waitForURL('**/auth**', { timeout: 15000 }), loginButton.click()]);
 
 		// Check if we're redirected to the OAuth provider (external URL)
 		expect(page.url()).toContain('openbankproject.com');
@@ -39,14 +39,17 @@ test.describe('Login Button Tests', () => {
 
 	test('should be accessible via keyboard navigation', async ({ page }) => {
 		const loginLink = page.getByRole('link', { name: /login with open bank project/i });
+		await expect(loginLink).toBeVisible();
 
 		// Focus the login link directly
 		await loginLink.focus();
 		await expect(loginLink).toBeFocused();
 
-		// Press Enter to activate the link
-		await page.keyboard.press('Enter');
-		await page.waitForLoadState('networkidle');
+		// Press Enter to activate the link and wait for navigation
+		await Promise.all([
+			page.waitForURL('**/auth**', { timeout: 15000 }),
+			page.keyboard.press('Enter')
+		]);
 
 		// Verify navigation occurred to OAuth provider
 		expect(page.url()).toContain('openbankproject.com');
@@ -118,18 +121,19 @@ test.describe('Complete Login Flow Tests', () => {
 	test('should complete full OAuth login flow with credentials', async ({ page }) => {
 		// Navigate to login page
 		await page.goto('/login');
+		await page.waitForLoadState('networkidle');
 
 		// Click the login button to start OAuth flow
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
-		await loginButton.click();
+		await expect(loginButton).toBeVisible();
 
-		// Wait for redirect to OAuth provider
-		await page.waitForLoadState('networkidle');
+		await Promise.all([page.waitForURL('**/auth**', { timeout: 15000 }), loginButton.click()]);
+
 		expect(page.url()).toContain('openbankproject.com');
 
 		// Fill in username
 		const usernameField = page.locator('#username');
-		await expect(usernameField).toBeVisible();
+		await expect(usernameField).toBeVisible({ timeout: 10000 });
 		await usernameField.fill(TEST_USERNAME);
 
 		// Fill in password
@@ -137,37 +141,37 @@ test.describe('Complete Login Flow Tests', () => {
 		await expect(passwordField).toBeVisible();
 		await passwordField.fill(TEST_PASSWORD);
 
-		// Submit login form
+		// Submit login form and wait for callback
 		const submitButton = page.locator('input[type="submit"], button[type="submit"]');
-		await submitButton.click();
+		await Promise.all([
+			page.waitForURL('**/login/obp/callback**', { timeout: 15000 }),
+			submitButton.click()
+		]);
 
-		// Wait for OAuth callback and redirect back to app
-		await page.waitForURL('**/login/obp/callback**', { timeout: 10000 });
-
-		// Should eventually redirect to the main app (adjust URL as needed)
+		// Wait for final redirect to main app
 		await page.waitForLoadState('networkidle');
 
 		// Verify successful login - check for logout button or user info
-		// Adjust these selectors based on your app's logged-in state
 		const logoutButton = page.getByRole('button', { name: /logout/i });
-		await expect(logoutButton).toBeVisible({ timeout: 5000 });
+		await expect(logoutButton).toBeVisible({ timeout: 10000 });
 	});
 
 	test('should handle invalid credentials gracefully', async ({ page }) => {
 		// Navigate to login page
 		await page.goto('/login');
+		await page.waitForLoadState('networkidle');
 
 		// Click the login button to start OAuth flow
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
-		await loginButton.click();
+		await expect(loginButton).toBeVisible();
 
-		// Wait for redirect to OAuth provider
-		await page.waitForLoadState('networkidle');
+		await Promise.all([page.waitForURL('**/auth**', { timeout: 15000 }), loginButton.click()]);
+
 		expect(page.url()).toContain('openbankproject.com');
 
 		// Fill in invalid credentials
 		const usernameField = page.locator('#username');
-		await expect(usernameField).toBeVisible();
+		await expect(usernameField).toBeVisible({ timeout: 10000 });
 		await usernameField.fill('invalid@example.com');
 
 		const passwordField = page.locator('#password');
@@ -178,25 +182,26 @@ test.describe('Complete Login Flow Tests', () => {
 		const submitButton = page.locator('input[type="submit"], button[type="submit"]');
 		await submitButton.click();
 
-		// Wait for error message
-		await page.waitForLoadState('networkidle');
+		// Wait for error message or page to stabilize
+		await page.waitForTimeout(3000);
 
 		// Check for error message (adjust selector based on OAuth provider)
 		const errorMessage = page.locator('#input-error, .error, [role="alert"]');
-		await expect(errorMessage).toBeVisible();
+		await expect(errorMessage).toBeVisible({ timeout: 5000 });
 		expect(page.url()).toContain('openbankproject.com'); // Still on OAuth provider
 	});
 
 	test('should handle OAuth cancellation', async ({ page }) => {
 		// Navigate to login page
 		await page.goto('/login');
+		await page.waitForLoadState('networkidle');
 
 		// Click the login button to start OAuth flow
 		const loginButton = page.getByRole('button', { name: /login with open bank project/i });
-		await loginButton.click();
+		await expect(loginButton).toBeVisible();
 
-		// Wait for redirect to OAuth provider
-		await page.waitForLoadState('networkidle');
+		await Promise.all([page.waitForURL('**/auth**', { timeout: 15000 }), loginButton.click()]);
+
 		expect(page.url()).toContain('openbankproject.com');
 
 		// Look for and click cancel/back button if available
@@ -204,9 +209,8 @@ test.describe('Complete Login Flow Tests', () => {
 			'a:has-text("Cancel"), button:has-text("Cancel"), a:has-text("Back")'
 		);
 
-		if (await cancelButton.isVisible()) {
-			await cancelButton.click();
-			await page.waitForLoadState('networkidle');
+		if (await cancelButton.isVisible({ timeout: 5000 })) {
+			await Promise.all([page.waitForURL('**/login**', { timeout: 10000 }), cancelButton.click()]);
 
 			// Should be back on login page or show appropriate error
 			expect(page.url()).toContain('/login');
