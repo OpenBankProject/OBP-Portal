@@ -443,3 +443,48 @@ Files Modified:
 - OPEY/OBP-Opey-II/src/service/streaming/stream_manager.py: Changed `input=None` to `input={}` in astream_events call
 
 Result: Tool call approvals now complete successfully without hanging. Users can approve tool calls and see the tool execution continue normally. The approval workflow is fully functional end-to-end from Portal UI through OPEY backend execution.
+2025-08-17T22:38:17+02:00 - Created comprehensive end-to-end tests for login button functionality
+
+Issue: Need automated testing for the login button to ensure proper functionality across different scenarios and user interactions.
+
+Implementation:
+1. Created Playwright test suite in e2e/login-button.test.ts with comprehensive coverage:
+   - Login button visibility and styling verification
+   - Navigation functionality testing (clicks redirect to /login/obp)
+   - Keyboard accessibility testing (Tab navigation and Enter activation)  
+   - Responsive design testing across mobile and desktop viewports
+   - Button text content validation
+   - Link href attribute verification
+   - Page layout structure validation
+   - Hover interaction testing
+   - Page load performance testing
+
+2. Created alternative Selenium WebDriver test in e2e/selenium-login-button.test.js:
+   - Uses traditional Selenium WebDriver with Chrome browser
+   - Implements same test scenarios as Playwright version
+   - Includes proper setup/teardown with beforeEach/afterEach hooks
+   - Uses Chai assertion library for expectations
+   - Supports both keyboard and mouse interactions
+   - Tests responsive behavior across different screen sizes
+
+Files Created:
+- e2e/login-button.test.ts: Playwright-based login button test suite
+- e2e/selenium-login-button.test.js: Selenium WebDriver alternative test suite
+
+Test Coverage:
+- Button visibility and styling (CSS classes)
+- Navigation functionality (/login/obp redirection)
+- Keyboard accessibility (Tab + Enter)
+- Responsive design (mobile/desktop viewports)
+- Page structure validation
+- User interaction states
+- Performance testing (load times)
+
+Requirements:
+For Selenium tests, install dependencies:
+npm install --save-dev selenium-webdriver chai mocha
+
+For Playwright (already configured):
+npm run test:e2e
+
+Both test suites provide comprehensive coverage of login button functionality and can be run as part of CI/CD pipeline.
