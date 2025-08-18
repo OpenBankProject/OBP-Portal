@@ -38,6 +38,7 @@
 		"@testing-library/svelte": "^5.2.4",
 		"@types/markdown-it": "^14.1.2",
 		"@types/prismjs": "^1.26.5",
+		"dotenv": "^17.2.1",
 		"jsdom": "^26.0.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
