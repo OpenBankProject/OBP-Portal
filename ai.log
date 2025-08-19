@@ -4,7 +4,7 @@ Issue: Browser console was showing warnings when the ChatState class tried to up
 
 Root Cause: Race conditions and timing issues between:
 - Chat state clearing/resetting
-- Streaming events still being processed 
+- Streaming events still being processed
 - Messages from previous chat sessions (especially those with 'run-' prefixes from external chat systems)
 
 Fixes Applied:
@@ -80,7 +80,7 @@ Result: Duplicate key errors are eliminated. Chat messages now have guaranteed u
 Issue: When users click Approve or Deny buttons for tool calls, the frontend sends POST requests to `http://localhost:5000/approval` but receives 404 Not Found errors. The approval system frontend is complete but the backend endpoint doesn't exist yet.
 
 Error Details:
-- POST http://localhost:5000/approval 404 (Not Found)  
+- POST http://localhost:5000/approval 404 (Not Found)
 - Error in RestChatService.ts:27 Failed to send approval: Not Found
 - Call stack: sendApproval -> approveToolCall -> handleApprove (OpeyChat.svelte) -> handleApprove (ApprovalRequest.svelte)
 
@@ -98,13 +98,192 @@ Files Involved:
 
 Next Steps: Backend session required to implement the missing `/approval` endpoint and approval handling logic.
 
+2025-08-19T18:17:02+00:00 - Investigate Approval Panel Spinner Icon
+
+Issue: When user writes a prompt requiring approval, the approval panel correctly appears, but there is a spinner icon above the approval panel next to "Using tool: obp_requests (1)" that continues spinning. Need to investigate if this is expected behavior (spinner should continue until approval panel is dismissed) or if it indicates an incomplete state that needs fixing.
+
+Investigation Focus:
+1. Examine approval panel component and its loading states
+2. Check tool execution status during approval waiting period
+3. Verify if spinner should stop when approval request is shown
+4. Determine correct UX behavior for approval workflow
+
+Investigation Results: The spinner behavior is CORRECT and working as intended.
+
+Analysis:
+1. Tool execution flow: tool_start (spinner begins) → approval_request → user approval → tool_end (spinner stops)
+2. The spinner appears next to "Using tool: obp_requests (1)" because the tool is actively running and waiting for approval
+3. The spinner SHOULD continue spinning during the approval waiting period because:
+   - The tool has started execution (tool_start event received)
+   - The tool is paused pending user approval (approval_request event)
+   - The tool has not yet completed (no tool_end event yet)
+4. The spinner will stop only when tool_end event is received after approval and execution completion
+
+Technical Details:
+- ToolMessage.isStreaming = true when tool_start is received
+- ToolMessage.isStreaming = false when tool_end is received via markMessageComplete()
+- ApprovalRequest appears as separate component during tool execution pause
+- Both components (spinner + approval panel) are correctly displayed simultaneously
+
+Conclusion: No bug found. The spinner correctly indicates that tool execution is in progress but paused for approval. This provides accurate user feedback about the system state.
+
+Status: Investigation complete - spinner behavior is correct as designed.
+
+2025-08-19T18:21:46+00:00 - UX Improvement Suggestion: Approval Spinner Behavior
+
+User Feedback: The spinning icon during approval waiting period could be improved. Currently the icon spins continuously while waiting for user approval, but this suggests the system is processing when it's actually waiting for user action.
+
+Suggested Improvement:
+- Keep the warning/orange color to indicate "waiting" state
+- Stop the spinning animation during approval waiting period
+- Resume spinning only after user clicks Approve/Deny while backend processes the approval
+- This would better distinguish between "system processing" vs "waiting for user input"
+
+Technical Consideration:
+Need to investigate if this spinner is part of a third-party library component that shouldn't be modified, or if it's custom code that can be safely adjusted.
+
+Implementation Approach:
+1. Check if LoaderCircle component allows animation control
+2. Add approval waiting state to ToolMessage type
+3. Modify template to show static warning icon during approval, spinning icon during processing
+
+Status: UX improvement logged - awaiting decision on implementation based on library constraints.
+
+2025-08-19T18:23:32+00:00 - Implementing Approval Spinner UX Improvement
+
+Intended Action: Modify tool message spinner behavior to improve user experience during approval waiting period.
+
+Implementation Plan:
+1. Add new field to ToolMessage type: waitingForApproval boolean
+2. Update ChatState.addApprovalRequest() to mark corresponding tool message as waitingForApproval=true
+3. Update ChatState.removeApprovalRequest() to mark tool message as waitingForApproval=false
+4. Modify OpeyChat.svelte template to show static AlertTriangle icon instead of spinning LoaderCircle when waitingForApproval=true
+5. Resume spinning LoaderCircle after approval is processed
+
+Expected Result:
+- Tool starts: spinning orange LoaderCircle (system processing)
+- Approval needed: static orange AlertTriangle (waiting for user input)
+- User approves/denies: spinning orange LoaderCircle (system processing approval)
+- Tool completes: green Check icon (completed)
+
+Status: Starting implementation of approval spinner UX improvement.
+
+2025-08-19T18:24:54+00:00 - Approval Spinner UX Improvement Implementation Complete
+
+Implementation Results: Successfully implemented improved spinner behavior for tool approval workflow.
+
+Changes Made:
+1. Added waitingForApproval field to ToolMessage interface in types.ts
+2. Modified ChatState.addApprovalRequest() to set waitingForApproval=true on corresponding tool message
+3. Modified ChatState.removeApprovalRequest() to set waitingForApproval=false on tool message
+4. Added AlertTriangle import to OpeyChat.svelte
+5. Updated tool message template to show different icons based on state:
+   - waitingForApproval=true: Static orange AlertTriangle (waiting for user input)
+   - isStreaming=true: Spinning orange LoaderCircle (system processing)
+   - Complete: Green Check mark
+
+New UX Flow:
+1. Tool starts: Spinning LoaderCircle (system processing)
+2. Approval needed: Static AlertTriangle (waiting for user input - NO spinning)
+3. User approves/denies: Spinning LoaderCircle resumes (system processing approval)
+4. Tool completes: Check icon (completed)
+
+Technical Implementation:
+- waitingForApproval state is managed automatically when approval requests are added/removed
+- Template uses conditional logic to prioritize waitingForApproval over isStreaming state
+- Both main tool header and tool output section show consistent icon states
+- Maintains all existing functionality while improving user feedback clarity
+
+Status: Implementation complete and ready for testing.
+
+2025-08-19T18:31:07+00:00 - Icon Change Request for Approval Waiting State
+
+User Feedback: The AlertTriangle icon for approval waiting state is working well (no longer spinning), but user requests a more appropriate icon - specifically a flowchart decision type icon to better represent the decision/approval context.
+
+Suggested Icons to Consider:
+- GitBranch (flowchart-like branching decision)
+- Diamond (decision diamond shape)
+- HelpCircle (question mark for decision)
+- Route (path decision)
+- Split (decision split)
+
+Next Action: Replace AlertTriangle with a more decision-oriented icon in OpeyChat.svelte template.
+
+Status: Ready to implement icon change for better UX representation of approval decision state.
+
+2025-08-19T18:31:44+00:00 - Icon Change Implementation Complete
+
+Implemented icon change for approval waiting state to better represent decision context.
+
+Changes Made:
+1. Replaced AlertTriangle with GitBranch icon in OpeyChat.svelte
+2. Updated imports to include GitBranch from @lucide/svelte
+3. Applied change to both main tool header and tool output section icons
+
+Icon Selection Rationale:
+- GitBranch represents decision/branching logic perfectly
+- More intuitive than AlertTriangle for approval workflow
+- Maintains orange warning color while providing decision context
+- Static (non-spinning) to clearly indicate waiting for user input
+
+New UX Flow with GitBranch:
+1. Tool starts: Spinning orange LoaderCircle (system processing)
+2. Approval needed: Static orange GitBranch (decision point - waiting for user input)
+3. User approves/denies: Spinning orange LoaderCircle (system processing approval)
+4. Tool completes: Green Check icon (completed)
+
+Status: Icon change implementation complete - GitBranch now used for approval waiting state.
+
+2025-08-19T18:34:14+00:00 - Trying Diamond Icon for Approval Waiting State
+
+User Request: Try the Diamond icon instead of GitBranch for the approval waiting state to test the classic flowchart decision symbol approach.
+
+Rationale for Diamond Icon:
+- Classic flowchart symbol universally recognized for decision points
+- More formal/professional appearance than GitBranch
+- Traditional business process modeling symbol
+- Clear geometric shape that stands out visually
+
+Implementation: Replacing GitBranch with Diamond icon in OpeyChat.svelte template.
+
+Status: Testing Diamond icon as approval waiting state indicator.
+
+2025-08-19T18:36:18+00:00 - Trying Route Icon for Approval Waiting State
+
+User Request: Try the Route icon instead of Diamond for the approval waiting state to test the path/routing decision metaphor.
+
+Rationale for Route Icon:
+- Represents choosing a path or route - perfect metaphor for approval decisions
+- More intuitive than geometric diamond shape
+- Visual representation of "which way to go" decision
+- Less formal than diamond but still clear decision context
+- Good balance between technical and user-friendly symbolism
+
+Implementation: Replacing Diamond with Route icon in OpeyChat.svelte template.
+
+Status: Testing Route icon as approval waiting state indicator.
+
+2025-08-19T18:37:58+00:00 - Reverting to Diamond Icon
+
+User Request: Go back to the Diamond icon instead of Route for the approval waiting state.
+
+Decision: After testing Route icon, user prefers the Diamond approach for its:
+- Classic flowchart decision symbol recognition
+- Professional, formal appearance
+- Clear geometric shape that stands out
+- Traditional business process modeling symbolism
+
+Implementation: Switching back from Route to Diamond icon in OpeyChat.svelte template.
+
+Status: Reverting to Diamond icon for approval waiting state indicator.
+
 2025-08-14T15:15:32+02:00 - Fixed Approval Endpoint URL Mismatch (404 Error Resolution)
 
 Issue: Frontend was calling `/approval` endpoint but backend expects `/approval/{thread_id}`, causing 404 Not Found errors when users tried to approve or deny tool calls. The approval system UI was complete but API calls were failing due to URL mismatch.
 
-Root Cause: 
+Root Cause:
 - Frontend RestChatService.sendApproval() was calling `POST /approval`
-- Backend service.py has endpoint `POST /approval/{thread_id}` 
+- Backend service.py has endpoint `POST /approval/{thread_id}`
 - Frontend wasn't passing thread_id parameter in URL path
 - Request body format also needed adjustment (approval field vs approved boolean)
 
@@ -137,7 +316,7 @@ The `getToolDisplayName()` function in OpeyChat.svelte was tracking tool instanc
 Evidence from OPEY logs:
 ```
 🚨 TOOL_EVENT_1: assistant_start | TOOL: N/A | ID: N/A
-🚨 TOOL_EVENT_2: assistant_token | TOOL: N/A | ID: N/A  
+🚨 TOOL_EVENT_2: assistant_token | TOOL: N/A | ID: N/A
 🚨 TOOL_EVENT_1: assistant_token | TOOL: N/A | ID: N/A
 ...continues for 51+ events...
 🚨 RUNAWAY DETECTED: 51 events in 2.21s - STOPPING
@@ -163,7 +342,7 @@ Status: RESOLVED - UI now correctly displays actual tool execution counts withou
 
 Progress Summary:
 ✅ Frontend UI counting bug FIXED - Numbers now display correctly (1), (2), etc.
-✅ Approval request/response flow WORKING - Users can click "Approve" successfully  
+✅ Approval request/response flow WORKING - Users can click "Approve" successfully
 ✅ Backend approval continuation WORKING - No more input errors or hangs
 ❌ CRITICAL ISSUE: Approved tools not actually executing
 
@@ -184,7 +363,7 @@ The continue_after_approval() method successfully resumes the graph with proper 
 
 Files Working Correctly:
 - src/lib/opey/services/RestChatService.ts: Properly consumes approval stream responses
-- src/lib/opey/controllers/ChatController.ts: Correctly assigns tool instance numbers  
+- src/lib/opey/controllers/ChatController.ts: Correctly assigns tool instance numbers
 - src/lib/components/OpeyChat.svelte: Displays accurate tool counts without rendering bugs
 
 Remaining Issue:
@@ -210,10 +389,10 @@ Fix Applied in OPEY II:
 - Maintained same event processing pattern as main streaming method
 - File: src/service/streaming/stream_manager.py lines 287-360
 
-Expected Results: 
+Expected Results:
 ✅ Tool execution after approval should now work properly
 ✅ Users should see tool_start and tool_end events
-✅ OBP API calls should execute and return results  
+✅ OBP API calls should execute and return results
 ✅ Tool output sections should become clickable with results
 ✅ Assistant responses should explain what was accomplished
 
@@ -232,13 +411,13 @@ Status Update: Multiple backend fix attempts for tool execution after approval h
 Problem Analysis:
 All continuation approaches attempted have failed:
 - astream_events(input=None) → EmptyInputError
-- astream_events(input={"messages": []}) → EmptyInputError  
+- astream_events(input={"messages": []}) → EmptyInputError
 - astream(input=None) → EmptyInputError
 - astream(input={}) → EmptyInputError
 
 Root Cause Hypothesis: The graph is trying to restart from __start__ node instead of continuing from the interrupted human_review checkpoint. This suggests:
 1. Checkpointing/state persistence issues between approval request and continuation
-2. Thread ID configuration mismatch 
+2. Thread ID configuration mismatch
 3. Incorrect LangGraph interrupt_before pattern implementation
 4. Missing proper continuation input format
 
@@ -252,7 +431,7 @@ Comprehensive debugging has been implemented in OPEY II:
 Next Testing Phase:
 When backend testing resumes, debug output will reveal:
 - Whether graph is properly interrupted at human_review node
-- If checkpointing is working correctly with thread_id persistence  
+- If checkpointing is working correctly with thread_id persistence
 - What the actual graph state structure looks like
 - Proper input format requirements for interrupted graph continuation
 
@@ -281,14 +460,14 @@ Root Cause Discovery: The frontend sendApproval() method in RestChatService.ts w
 
 Critical Finding from Backend Logs:
 ✅ LangGraph events generated: Multiple "Processing post-approval LangGraph event" entries
-✅ Stream events generated: Multiple "Generated stream event during approval continuation" entries  
+✅ Stream events generated: Multiple "Generated stream event during approval continuation" entries
 ✅ Events being sent: Backend successfully yielding stream events
 ❌ Frontend not consuming: sendApproval() only made request, ignored response body
 
 The Fix Applied:
 Modified sendApproval() method to consume the streaming response using the same logic as the main send() method:
 - Added response body reader with TextDecoder
-- Added SSE parsing logic for data: lines  
+- Added SSE parsing logic for data: lines
 - Added event processing switch statement for all event types
 - Added proper error handling and stream cleanup
 - Routes all approval stream events through existing streamEventCallback
@@ -306,7 +485,7 @@ Root Cause: The Portal UI was displaying tool names directly (e.g., "retrieve_en
 
 Enhancement Applied:
 Added descriptive identifiers to distinguish between retrieval tools:
-- retrieve_endpoints → "Endpoint Retrieval - Finding API endpoints"  
+- retrieve_endpoints → "Endpoint Retrieval - Finding API endpoints"
 - retrieve_glossary → "Glossary Retrieval - Looking up terminology"
 
 Files Modified:
@@ -361,7 +540,7 @@ Issue Resolved: Users now receive comprehensive feedback after tool approval inc
 
 Final Implementation Status:
 ✅ Tool execution working correctly after approval
-✅ OBP API calls executing and receiving responses  
+✅ OBP API calls executing and receiving responses
 ✅ Tool completion events properly generated and streamed to frontend
 ✅ Tool spinning indicators stop when execution completes
 ✅ Formatted error display in tool output sections
@@ -412,7 +591,7 @@ Svelte's reactivity system doesn't detect changes to nested object properties wi
 Solution Applied:
 Added `this.messages = [...this.messages]` after all object mutations to force Svelte reactivity:
 - updateApprovalRequest: Force array reassignment after message.approved change
-- appendToMessage: Force array reassignment after message.message change  
+- appendToMessage: Force array reassignment after message.message change
 - markMessageComplete: Force array reassignment after message.isStreaming change
 - updateMessage: Force array reassignment after Object.assign updates
 - updateToolMessage: Force array reassignment after Object.assign updates
@@ -451,7 +630,7 @@ Implementation:
 1. Created Playwright test suite in e2e/login-button.test.ts with comprehensive coverage:
    - Login button visibility and styling verification
    - Navigation functionality testing (clicks redirect to /login/obp)
-   - Keyboard accessibility testing (Tab navigation and Enter activation)  
+   - Keyboard accessibility testing (Tab navigation and Enter activation)
    - Responsive design testing across mobile and desktop viewports
    - Button text content validation
    - Link href attribute verification
