@@ -1,7 +1,20 @@
-import type { RequestEvent, Actions } from "@sveltejs/kit";
-import { error, redirect } from "@sveltejs/kit";
+import { createLogger } from '$lib/utils/logger';
+const logger = createLogger('UserPageServer');
+import type { RequestEvent } from '@sveltejs/kit';
 
 export function load(event: RequestEvent) {
-    // For now throw a 404 as this page is not ready yet
-    throw error(503, "Woops! This page is under construction.");
+	const session = event.locals.session;
+	const userData = session?.data?.user;
+
+	logger.debug('User data from session:', userData);
+
+	if (userData) {
+		return {
+			userData
+		};
+	}
+
+	return {
+		userData: null
+	};
 }
