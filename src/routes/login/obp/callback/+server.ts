@@ -67,18 +67,20 @@ export async function GET(event: RequestEvent): Promise<Response> {
     const obpAccessToken = tokens.accessToken();
 
     const currentUserUrl = `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/users/current`;
+    logger.info("Fetching current user from OBP:", currentUserUrl);
     const currentUserRequest = new Request(currentUserUrl)
 
     currentUserRequest.headers.set("Authorization", `Bearer ${obpAccessToken}`);
+    logger.debug("Making OBP current user request with access token");
     const currentUserResponse = await fetch(currentUserRequest);
     if (!currentUserResponse.ok) {
-        logger.error("Failed to fetch current user:", await currentUserResponse.text());
+        const errorText = await currentUserResponse.text(); logger.error(`OBP current user request failed - Status: ${currentUserResponse.status}, Response: ${errorText}`);
         return new Response("Failed to fetch current user", {
             status: 500
         });
     }
     const user = await currentUserResponse.json();
-    logger.info("Current user data:", user);
+    logger.info(`Successfully fetched current user from OBP - User ID: ${user.user_id}, Email: ${user.email}, Username: ${user.username || "N/A"}`); logger.debug("Full current user data:", user);
 
     if (user.user_id && user.email) {
         // Store user data in session
