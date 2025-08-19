@@ -29,7 +29,7 @@ export async function POST(event: RequestEvent) {
                 // AUTHENTICATED FLOW - Create consent and authenticated Opey session
                 return await _getAuthenticatedSession(opeyConsumerId, session);
             } catch (error: any) {
-                logger.error('Error creating authenticated Opey session:', error);
+                logger.info('JWT expired for Opey session - user needs to re-authenticate:', error);
                 return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
             }
 

@@ -98,6 +98,45 @@ npm run dev
 
 **Note:** As of recent updates, token refresh failures are now logged as INFO messages rather than ERROR messages, since expired tokens are part of normal OAuth security behavior.
 
+### Opey Chat JWT Expiration
+
+If you encounter errors like:
+
+```
+OBP-20204: Bad JWT error. Expired JWT <- com.nimbusds.jwt.proc.BadJWTException: Expired JWT
+Error creating authenticated Opey session: OBPRequestError: OBP-20204
+```
+
+**What's happening:**
+
+- The JWT token used for Opey chat integration has expired (normal behavior)
+- System cannot create authenticated chat session with expired JWT
+- User needs to re-authenticate to use chat features
+- Now logged as INFO instead of ERROR since this is expected JWT lifecycle
+
+**Common causes:**
+
+1. **JWT expiration** - Consent JWTs have their own expiration times (typically 1 hour)
+2. **Clock skew** - Server time differences can cause premature expiration
+3. **User consent revoked** - User may have revoked consent from another session
+4. **Session timeout** - Long periods of inactivity
+
+**Solutions:**
+
+1. **User re-authentication** - User should log out and log back in
+2. **Check system clocks** - Ensure server times are synchronized
+3. **This is now logged as INFO** - JWT expiration is normal security behavior
+4. **Fallback to anonymous chat** - System gracefully falls back to anonymous mode
+
+**Quick fixes:**
+
+```bash
+# For development - restart with fresh session
+npm run dev
+
+# User should log out and back in to get fresh JWTs
+```
+
 ## Logging Configuration
 
 ### Username Logging for Opey Communication

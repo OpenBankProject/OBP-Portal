@@ -59,7 +59,7 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
 
       return null;
     } catch (error) {
-      logger.error('checkExistingOpeyConsent says: Error checking existing consent:', error);
+      logger.info('checkExistingOpeyConsent says: Consent check failed - likely expired JWT:', error);
       return null;
     }
   }
