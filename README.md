@@ -1,11 +1,13 @@
 41111## Getting Started
 
 ### Install dependencies
+
 ```bash
 npm install
 ```
 
 ### Configure Environment
+
 copy .env.example to .env and fill out as needed
 
 Make sure you set the `ORIGIN` variable to the domain that you are deploying to i.e. https://obp-portal.openbankproject.com or something like that
@@ -43,11 +45,58 @@ You can preview the production build with `npm run preview`.
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
 
 ## Deploying in production
+
 Make sure to deploy the latest commit/docker image.
 
 Look carefully at the `.env.example` provided, Copy to `.env` (`.env-docker`) and fill out the variables as needed.
 
 A common mistake is to not change the `APP_CALLBACK_URL`, which should be the domain that the portal is deployed to, not `localhost`.
+
+## Troubleshooting
+
+### OAuth Token Refresh Failures
+
+If you encounter errors like:
+
+```
+OAuth2RequestError: OAuth request error: invalid_grant
+code: 'invalid_grant',
+description: 'Token is not active'
+```
+
+**What's happening:**
+
+- User's refresh token has expired or become invalid (normal OAuth behavior)
+- System cannot automatically renew the session
+- User needs to log in again
+- Now logged as INFO instead of ERROR since this is expected behavior
+
+**Common causes:**
+
+1. **Refresh token expiration** - OAuth providers set token lifetimes (e.g., 30 days)
+2. **Token revocation** - User logged out from another session
+3. **Provider security policy** - Tokens invalidated after inactivity
+4. **Configuration mismatch** - OAuth client settings incorrect
+
+**Solutions:**
+
+1. **Check your environment configuration** - Verify OAuth settings in `.env`
+2. **Clear cached sessions** - Remove `.svelte-kit/output` and rebuild
+3. **Use fresh credentials** - Re-authenticate with valid tokens
+4. **This is now logged as INFO** - No longer appears as ERROR in logs since it's normal OAuth behavior
+
+**Quick fixes:**
+
+```bash
+# Clear cached sessions
+rm -rf .svelte-kit/output/server/chunks
+npm run build
+
+# Restart development server
+npm run dev
+```
+
+**Note:** As of recent updates, token refresh failures are now logged as INFO messages rather than ERROR messages, since expired tokens are part of normal OAuth security behavior.
 
 ## Logging Configuration
 
@@ -56,12 +105,14 @@ A common mistake is to not change the `APP_CALLBACK_URL`, which should be the do
 The OBP-Portal automatically logs the username from consent JWTs when communicating with Opey. This feature helps with monitoring and debugging by showing which user is making requests to the Opey service.
 
 The logging includes:
+
 - Function name that created the log entry
 - Username extracted from the consent JWT token (with explicit field identification)
 - Opey session creation details
 - Success/failure status of operations
 
 Example log output:
+
 ```
 INFO [2025-08-13T15:03:36.690Z] [INFO] [OBPIntegrationService] getOrCreateOpeyConsent says: Created new consent JWT for user: 91be7e0b-bf6b-4476-8a89-75850a11313b
 INFO [2025-08-13T15:03:36.691Z] [INFO] [OpeyAuthServer] _getAuthenticatedSession says: Sending consent JWT to Opey for user: 91be7e0b-bf6b-4476-8a89-75850a11313b
@@ -72,16 +123,18 @@ INFO [2025-08-13T15:03:36.720Z] [INFO] [OpeyAuthServer] _getAuthenticatedSession
 ### JWT User Identification Fields
 
 The system attempts to extract user identifiers from these JWT fields in order (prioritizing human-readable identifiers):
+
 1. `email`
 2. `name`
 3. `preferred_username`
 4. `username`
-5. `user_name` 
+5. `user_name`
 6. `login`
 7. `sub`
 8. `user_id`
 
 The system will log which field was used for user identification:
+
 ```
 INFO [timestamp] [INFO] [JWTUtils] extractUsernameFromJWT says: User identifier extracted from JWT field 'email': john.doe@example.com
 INFO [timestamp] [INFO] [JWTUtils] extractUsernameFromJWT says: User identifier extracted from JWT field 'sub': 91be7e0b-bf6b-4476-8a89-75850a11313b

@@ -280,6 +280,50 @@ Adds delays between actions to see each step clearly.
 4. Look for race conditions in element selection
 5. Consider adding `page.waitForTimeout()` for problematic sections
 
+## Troubleshooting Common Issues
+
+### OAuth Token Refresh Failures
+
+If you see errors like:
+
+```
+OAuth2RequestError: OAuth request error: invalid_grant
+code: 'invalid_grant',
+description: 'Token is not active'
+```
+
+**What's happening:**
+
+- User's refresh token has expired or become invalid
+- System cannot automatically renew the session
+- User needs to log in again
+
+**Common causes:**
+
+1. **Refresh token expiration** - OAuth providers set token lifetimes (e.g., 30 days)
+2. **Token revocation** - User logged out from another session
+3. **Provider security policy** - Tokens invalidated after inactivity
+4. **Configuration mismatch** - OAuth client settings incorrect
+
+**Solutions:**
+
+1. **For development**: Check your `.env.test` OAuth configuration
+2. **For testing**: Use fresh credentials in your test environment
+3. **For production**: Implement proper error handling to redirect users to login
+4. **Session management**: Consider shorter session timeouts to prevent this
+
+**Test environment fixes:**
+
+```bash
+# Clear any cached sessions
+rm -rf .svelte-kit/output/server/chunks
+npm run build
+
+# Use fresh test credentials
+cp .env.test.example .env.test
+# Edit .env.test with current valid credentials
+```
+
 ### Common Flickering Fixes Applied:
 
 **Better Wait Strategies:**

@@ -133,10 +133,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
             try {
                 await SessionOAuthHelper.refreshAccessToken(session)
             } catch (error) {
-                logger.error('Error refreshing access token:', error);
+                logger.info('Token refresh failed - redirecting user to login (normal OAuth behavior):', error);
                 // If the refresh fails, redirect to login
                 // Destroy the session
-                logger.warn('Destroying session due to failed token refresh.');
+                logger.info('Destroying expired session and redirecting to login.');
                 await session.destroy();
 
                 return new Response(null, {
