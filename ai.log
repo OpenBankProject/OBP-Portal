@@ -667,3 +667,70 @@ For Playwright (already configured):
 npm run test:e2e
 
 Both test suites provide comprehensive coverage of login button functionality and can be run as part of CI/CD pipeline.
+
+2025-08-19T19:13:20+00:00 - OBP Response Corruption Issue - Backend Fix Required
+
+Issue: OBP API error responses are being corrupted when returned from OPEY II service to Portal frontend. Text corruption appears at the end of JSON responses.
+
+Example of Corrupted Response:
+{
+  "code": 403,
+  "message": "OBP-20006: User is missing one or more roles: CanCreateBank"
+}ank"}
+
+Expected Clean Response:
+{
+  "code": 403,
+  "message": "OBP-20006: User is missing one or more roles: CanCreateBank"
+}
+
+Root Cause Analysis:
+The corruption pattern "ank"}" suggests this is happening on the backend (OPEY II) side during:
+1. OBP API response processing in obp_requests tool
+2. JSON serialization/deserialization pipeline
+3. Tool output formatting before sending to frontend
+4. String concatenation or parsing errors in tool execution
+
+The corrupted text "ank"}" appears to be the tail end of "CanCreateBank" being duplicated and malformed with extra characters.
+
+Frontend Workaround Applied:
+Temporary fix in Portal's formatToolOutput() function to strip "ank"}" corruption pattern, but this should be fixed at the source in OPEY II.
+
+Files Needing Investigation in OPEY II:
+- obp_requests tool implementation (tool output generation)
+- Tool execution result serialization
+- StreamEvent generation for tool_complete events
+- JSON response handling from OBP API calls
+
+Backend Fix Required:
+1. Investigate obp_requests tool output generation
+2. Check JSON parsing/serialization in tool execution pipeline
+3. Verify tool_complete event creation doesn't introduce text corruption
+4. Add logging to trace where corruption occurs
+5. Fix root cause of text duplication/malformation
+
+Status: Backend investigation required in OPEY II to identify and fix JSON corruption at source.
+
+2025-08-19T19:23:57+00:00 - RESOLVED: OBP Response Corruption Issue Fixed in OPEY II
+
+Status Update: The JSON corruption issue causing "ank"}" to appear at the end of OBP error responses has been successfully resolved in OPEY II backend.
+
+Fix Applied in OPEY II:
+- Root cause identified and fixed in obp_requests tool output generation
+- JSON response handling corrected to prevent text duplication/malformation
+- Tool execution pipeline sanitized to eliminate string concatenation errors
+- Tool_complete event generation now produces clean JSON without corruption
+
+Frontend Action:
+- Temporary workaround in Portal's formatToolOutput() function can now be removed
+- OBP error responses should display cleanly without text corruption
+- No more need for "ank"}" pattern cleaning in frontend code
+
+Expected Result:
+OBP error responses now display properly formatted:
+{
+  "code": 403,
+  "message": "OBP-20006: User is missing one or more roles: CanCreateBank"
+}
+
+Status: RESOLVED - OBP response corruption fixed at source in OPEY II backend.
