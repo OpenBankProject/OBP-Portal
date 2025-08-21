@@ -109,11 +109,21 @@ export class ChatState {
 		) as ApprovalRequestMessage | undefined;
 		if (message) {
 			message.approved = approved;
-			this.messages = [...this.messages]; // Force Svelte reactivity
-			this.emit();
 		} else {
 			logger.debug(`Approval request with ID ${toolCallId} not found for update.`);
 		}
+
+		// Also update the corresponding tool message with approval status
+		const toolMessage = this.messages.find(
+			(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
+		) as ToolMessage | undefined;
+		if (toolMessage) {
+			toolMessage.approvalStatus = approved ? 'approved' : 'denied';
+			toolMessage.waitingForApproval = false; // No longer waiting
+		}
+
+		this.messages = [...this.messages]; // Force Svelte reactivity
+		this.emit();
 	}
 
 	removeApprovalRequest(toolCallId: string): void {

@@ -35,6 +35,7 @@ export interface ToolMessage extends BaseMessage {
 	toolOutput?: any; // Output from the tool call, if available
 	instanceNumber?: number; // Instance number for display (e.g., "retrieve_endpoints (2)")
 	waitingForApproval?: boolean; // Whether tool is waiting for user approval
+	approvalStatus?: 'approved' | 'denied'; // Whether tool was approved or denied by user
 }
 
 export interface ApprovalRequestMessage extends BaseMessage {

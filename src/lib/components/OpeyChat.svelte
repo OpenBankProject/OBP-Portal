@@ -105,6 +105,7 @@
 		Diamond,
 		Hammer,
 		LoaderCircle,
+		XCircle,
 		type Icon as IconType
 	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
@@ -341,7 +342,11 @@
 										'isStreaming:',
 										message.isStreaming
 									)}
-									{#if (message as ToolMessage).waitingForApproval}
+									{#if (message as ToolMessage).approvalStatus === 'approved'}
+										<Check class="stroke-success-500" />
+									{:else if (message as ToolMessage).approvalStatus === 'denied'}
+										<XCircle class="stroke-error-500" />
+									{:else if (message as ToolMessage).waitingForApproval}
 										<Diamond class="stroke-warning-500" />
 									{:else if message.isStreaming}
 										<LoaderCircle class="stroke-warning-500 animate-spin" />
@@ -373,7 +378,11 @@
 													'isStreaming:',
 													message.isStreaming
 												)}
-												{#if (message as ToolMessage).waitingForApproval}
+												{#if (message as ToolMessage).approvalStatus === 'approved'}
+													<Check class="stroke-success-500" />
+												{:else if (message as ToolMessage).approvalStatus === 'denied'}
+													<XCircle class="stroke-error-500" />
+												{:else if (message as ToolMessage).waitingForApproval}
 													<Diamond class="stroke-warning-500" />
 												{:else if message.isStreaming}
 													<LoaderCircle class="stroke-warning-500 animate-spin" />
