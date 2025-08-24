@@ -5,50 +5,67 @@ import { oauth2ProviderFactory } from '$lib/oauth/providerFactory'
 import type { RequestEvent } from '@sveltejs/kit'
 
 export function GET(event: RequestEvent) {
-    const provider = event.url.searchParams.get('provider') || 'keycloak'
-    
-    const oauthClient = oauth2ProviderFactory.getClient(provider)
-    if (!oauthClient) {
-        logger.error(`OAuth client for provider "${provider}" not found.`);
-        return new Response("OAuth provider not configured", {
-            status: 500
-        });
-    }
+	// Use first available provider discovered from OBP well-known endpoint
+	const provider = oauth2ProviderFactory.getFirstAvailableProvider();
+	if (!provider) {
+		logger.error('No OAuth providers available. Check OBP configuration and well-known endpoints.');
+		return new Response('OAuth provider not configured', {
+			status: 500
+		});
+	}
 
-    const state = generateState()
-    // Encode provider in the state - format "state:provider"
-    const encodedState = `${state}:${provider}`;
+	const oauthClient = oauth2ProviderFactory.getClient(provider);
+	if (!oauthClient) {
+		logger.error(
+			`OAuth client for provider "${provider}" not found. Available providers: ${Array.from(oauth2ProviderFactory.getAllClients().keys()).join(', ')}`
+		);
+		return new Response('OAuth provider not configured', {
+			status: 500
+		});
+	}
 
-    const scopes = ['openid']
+	const state = generateState();
+	// Encode provider in the state - format "state:provider"
+	const encodedState = `${state}:${provider}`;
 
-    const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint
-    if (!auth_endpoint) {
-        logger.error("Authorization endpoint not found in OIDC configuration.");
-        return new Response("OAuth configuration error", { status: 500 });
-    }
-    try {
-        const url = oauthClient.createAuthorizationURL(auth_endpoint, encodedState, scopes)
+	const scopes = ['openid'];
 
-        event.cookies.set("obp_oauth_state", encodedState, {
-            httpOnly: true,
-            maxAge: 60 * 10,
-            secure: import.meta.env.PROD,
-            path: "/",
-            sameSite: "lax"
-        });
-    
-        return new Response(null, {
-            status: 302,
-            headers: {
-                Location: url.toString()
-            }
-        });
-    } catch (error) {
-        logger.error("Error during OBP OAuth login:", error);
-        return new Response("Internal Server Error", {
-            status: 500
-        });
-    }
+	logger.debug(`OAuth client found for provider: ${provider}`);
+	logger.debug(`OIDC Config present: ${!!oauthClient.OIDCConfig}`);
+	if (oauthClient.OIDCConfig) {
+		logger.debug(`Authorization endpoint: ${oauthClient.OIDCConfig.authorization_endpoint}`);
+		logger.debug(`Token endpoint: ${oauthClient.OIDCConfig.token_endpoint}`);
+	}
 
-    // can also use createAuthorizationURLWithPKCE method
-} 
+	const auth_endpoint = oauthClient.OIDCConfig?.authorization_endpoint;
+	if (!auth_endpoint) {
+		logger.error('Authorization endpoint not found in OIDC configuration.');
+		logger.error(`Full OIDC config: ${JSON.stringify(oauthClient.OIDCConfig, null, 2)}`);
+		return new Response('OAuth configuration error', { status: 500 });
+	}
+	try {
+		const url = oauthClient.createAuthorizationURL(auth_endpoint, encodedState, scopes);
+
+		event.cookies.set('obp_oauth_state', encodedState, {
+			httpOnly: true,
+			maxAge: 60 * 10,
+			secure: import.meta.env.PROD,
+			path: '/',
+			sameSite: 'lax'
+		});
+
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: url.toString()
+			}
+		});
+	} catch (error) {
+		logger.error('Error during OBP OAuth login:', error);
+		return new Response('Internal Server Error', {
+			status: 500
+		});
+	}
+
+	// can also use createAuthorizationURLWithPKCE method
+}
