@@ -66,4 +66,48 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 	createAuthorizationURL(authEndpoint: string, state: string, scopes: string[]): URL {
 		return super.createAuthorizationURL(authEndpoint, state, scopes);
 	}
+
+	async validateAuthorizationCode(tokenEndpoint: string, code: string, codeVerifier: string | null): Promise<any> {
+		logger.debug('Validating authorization code with explicit client_id');
+		
+		const body = new URLSearchParams();
+		body.set('grant_type', 'authorization_code');
+		body.set('code', code);
+		body.set('redirect_uri', this.redirectURI);
+		body.set('client_id', this.clientId);
+		
+		if (this.clientSecret) {
+			body.set('client_secret', this.clientSecret);
+		}
+		
+		if (codeVerifier) {
+			body.set('code_verifier', codeVerifier);
+		}
+
+		logger.debug(`Token request body: ${body.toString()}`);
+
+		const response = await fetch(tokenEndpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'Accept': 'application/json'
+			},
+			body: body.toString()
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			logger.error(`Token endpoint error - Status: ${response.status}, Data:`, errorData);
+			throw new Error(`Token request failed: ${response.status} ${response.statusText}`);
+		}
+
+		const tokens = await response.json();
+		logger.debug('Token response received successfully');
+		
+		return {
+			accessToken: () => tokens.access_token,
+			refreshToken: () => tokens.refresh_token,
+			accessTokenExpiresAt: () => tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
+		};
+	}
 }
