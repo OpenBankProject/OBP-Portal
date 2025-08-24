@@ -11,6 +11,7 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
         super(clientId, clientSecret, redirectUri);
 
         // get the OIDC configuration from the well-known URL if provided
+    }
 
 	async initOIDCConfig(OIDCConfigUrl: string): Promise<void> {
 		logger.info('Initializing OIDC configuration from OIDC Config URL:', OIDCConfigUrl);
