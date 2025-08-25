@@ -28,38 +28,53 @@ export async function GET(event: RequestEvent): Promise<Response> {
         });
     }
 
-    const tokenRevokationUrl = sessionOAuth.client.OIDCConfig?.revocation_endpoint;
-    if (!tokenRevokationUrl) {
-        logger.error("No revocation endpoint found in OIDC configuration.");
-        return new Response("Internal Server Error", { status: 500 });
-    }
-    
-
-    // Revoke the access token if it exists
+    // Get the access token before destroying session
     const accessToken = session.data.oauth?.access_token;
-    // Clear the session cookie, destroy the session
+    const userId = session.data.user.user_id;
+
+    // Clear the session cookie and destroy the session
     event.cookies.delete("session", {
         path: "/",
-    })
+    });
     await session.destroy();
 
+    // Try to revoke the access token if it exists and revocation endpoint is available
+    const tokenRevokationUrl = sessionOAuth.client.OIDCConfig?.revocation_endpoint;
+    if (accessToken && tokenRevokationUrl) {
+        try {
+            logger.info("Revoking access token for user:", userId);
+            
+            const response = await fetch(tokenRevokationUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: new URLSearchParams({
+                    token: accessToken,
+                    token_type_hint: 'access_token'
+                })
+            });
 
-    if (!accessToken) {
-        logger.warn("No access token found in session, could not revoke.");
-        return new Response(null, {
-            status: 302,
-            headers: {
-                Location: '/'
+            if (response.ok) {
+                logger.info("Successfully revoked access token for user:", userId);
+            } else {
+                logger.warn(`Token revocation failed with status ${response.status} for user:`, userId);
             }
-        });
+        } catch (error) {
+            logger.error("Error during token revocation:", error);
+            // Continue with logout even if revocation fails
+        }
     } else {
-        // Revoke the access token
-        // logger.debug("Revoking access token:", accessToken);
-        logger.info("Revoking access token for user:", session.data.user.user_id);
-        sessionOAuth.client.revokeToken(tokenRevokationUrl, accessToken)
+        if (!accessToken) {
+            logger.warn("No access token found in session, skipping revocation.");
+        }
+        if (!tokenRevokationUrl) {
+            logger.warn("No revocation endpoint configured, skipping token revocation.");
+        }
     }
 
-    // Redirect to the home page after revocation
+    // Redirect to the home page after logout
     return new Response(null, {
         status: 302,
         headers: {
