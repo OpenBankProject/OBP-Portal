@@ -66,6 +66,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
     const obpAccessToken = tokens.accessToken();
 
+    logger.debug(`PUBLIC_OBP_BASE_URL from env: ${env.PUBLIC_OBP_BASE_URL}`);
     const currentUserUrl = `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/users/current`;
     logger.info("Fetching current user from OBP:", currentUserUrl);
     const currentUserRequest = new Request(currentUserUrl)
@@ -101,7 +102,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
                 Location: `/`
             }
         });
+    } else {
+        logger.error("Invalid user data received from OBP - missing user_id or email");
+        return new Response("Authentication failed - invalid user data", {
+            status: 400
+        });
     }
-
-    
 }
