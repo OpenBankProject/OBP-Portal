@@ -59,7 +59,13 @@ async function initOauth2Providers() {
             if (oauth2Client) {
                 providers.push(providerUri)
             }
-        }   
+        }
+
+        for (const registeredStrategy of oauth2ProviderFactory.getSupportedProviders()) {
+            if (!providers.find(p => p.provider === registeredStrategy)) {
+                logger.warn(`No OAuth2 provider initialized for registered strategy: ${registeredStrategy}`);
+            }
+        }
 
         // If no providers were found, log error and return
         if (providers.length === 0) {
@@ -68,7 +74,7 @@ async function initOauth2Providers() {
         }
     } catch (error) {
         logger.error('Failed to init OAuth2 providers: ', error);
-        return;
+        throw error;
     }
 }
 

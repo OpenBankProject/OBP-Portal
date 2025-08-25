@@ -19,6 +19,7 @@ interface OAuth2ProviderStrategy {
 
 class KeyCloakStrategy implements OAuth2ProviderStrategy {
 	providerName = 'keycloak';
+
 	supports(provider: string): boolean {
 		return provider === this.providerName;
 	}
@@ -29,8 +30,8 @@ class KeyCloakStrategy implements OAuth2ProviderStrategy {
 
 	async initialize(config: WellKnownUri): Promise<OAuth2ClientWithConfig> {
 		const client = new OAuth2ClientWithConfig(
-			env.OBP_OAUTH_CLIENT_ID,
-			env.OBP_OAUTH_CLIENT_SECRET,
+			env.KEYCLOAK_OAUTH_CLIENT_ID,
+			env.KEYCLOAK_OAUTH_CLIENT_SECRET,
 			env.APP_CALLBACK_URL
 		);
 
@@ -40,12 +41,11 @@ class KeyCloakStrategy implements OAuth2ProviderStrategy {
 	}
 }
 
-class GenericOIDCStrategy implements OAuth2ProviderStrategy {
-	providerName = 'generic-oidc';
-	supportedProviders = ['obp-oidc', 'oidc', 'openid-connect'];
+class OBPOIDCStrategy implements OAuth2ProviderStrategy {
+	providerName = 'obp-oidc'
 
 	supports(provider: string): boolean {
-		return this.supportedProviders.includes(provider);
+		return provider === this.providerName;
 	}
 
 	getProviderName(): string {
@@ -79,7 +79,7 @@ export class OAuth2ProviderFactory {
 	constructor() {
 		// Register any available strategies
 		this.registerStrategy(new KeyCloakStrategy());
-		this.registerStrategy(new GenericOIDCStrategy());
+		this.registerStrategy(new OBPOIDCStrategy());
 		// Add more as needed i.e. this.registerStrategy(new GoogleStrategy());
 	}
 
