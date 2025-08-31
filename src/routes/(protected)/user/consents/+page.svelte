@@ -1,6 +1,20 @@
 <script lang="ts">
 	let { data } = $props();
 
+	// Get current UTC time for debugging
+	let currentUtcTime = $state('');
+
+	// Update the current time every second
+	function updateCurrentTime() {
+		currentUtcTime = new Date().toISOString();
+	}
+
+	// Initialize and set up interval
+	updateCurrentTime();
+	if (typeof window !== 'undefined') {
+		setInterval(updateCurrentTime, 1000);
+	}
+
 	function formatDate(dateString: string) {
 		const date = new Date(dateString);
 		const day = date.getDate().toString().padStart(2, '0');
@@ -82,15 +96,45 @@
 	function renderConsentCard(consent: any) {
 		return consent;
 	}
+
+	function formatJwtExpiration(consent: any): string {
+		if (consent.jwt_payload?.exp) {
+			const expDate = new Date(consent.jwt_payload.exp * 1000);
+			return expDate.toISOString();
+		}
+		return 'Not available';
+	}
+
+	function isJwtExpired(consent: any): boolean {
+		if (consent.jwt_payload?.exp) {
+			const expDate = new Date(consent.jwt_payload.exp * 1000);
+			return expDate < new Date();
+		}
+		return true;
+	}
 </script>
 
 <h1 class="text-gray-900 dark:text-gray-100">Consents Management</h1>
 
-<p class="text-gray-700 dark:text-gray-300 mb-8">Here you can manage your consents.</p>
+<p class="mb-4 text-gray-700 dark:text-gray-300">Here you can manage your consents.</p>
+
+<!-- Current UTC Time for debugging -->
+<div
+	class="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+>
+	<h3 class="mb-2 text-sm font-medium text-blue-900 dark:text-blue-100">Debug Information</h3>
+	<p class="text-sm text-blue-800 dark:text-blue-200">
+		<strong>Current UTC Time:</strong>
+		{currentUtcTime}
+	</p>
+	<p class="mt-1 text-xs text-blue-600 dark:text-blue-300">
+		Use this to compare with consent expiration times to check for timezone offset issues.
+	</p>
+</div>
 
 <!-- Consents for Opey Section -->
 <div class="mb-10">
-	<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Consents for Opey</h2>
+	<h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Consents for Opey</h2>
 	{#if data.opeyConsents && data.opeyConsents.length > 0}
 		<ul class="list-none pl-5">
 			{#each data.opeyConsents as consent (consent.consent_id)}
@@ -137,6 +181,20 @@
 									<strong>Views:</strong>
 									{formatViews(consent.jwt_payload?.views || [])}
 								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>JWT Expires (UTC):</strong>
+									<span
+										class:text-red-600={isJwtExpired(consent)}
+										class:text-green-600={!isJwtExpired(consent)}
+									>
+										{formatJwtExpiration(consent)}
+									</span>
+									{#if isJwtExpired(consent)}
+										<span class="ml-2 font-medium text-red-600">(EXPIRED)</span>
+									{:else}
+										<span class="ml-2 font-medium text-green-600">(ACTIVE)</span>
+									{/if}
+								</p>
 							</div>
 						</div>
 						<form method="post" action="?/delete">
@@ -151,14 +209,14 @@
 		</ul>
 	{:else}
 		<div class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800">
-			<p class="text-gray-700 dark:text-gray-300 text-center">No Opey consents found.</p>
+			<p class="text-center text-gray-700 dark:text-gray-300">No Opey consents found.</p>
 		</div>
 	{/if}
 </div>
 
 <!-- Other Consents Section -->
 <div>
-	<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Other Consents</h2>
+	<h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Other Consents</h2>
 	{#if data.otherConsents && data.otherConsents.length > 0}
 		<ul class="list-none pl-5">
 			{#each data.otherConsents as consent (consent.consent_id)}
@@ -205,6 +263,20 @@
 									<strong>Views:</strong>
 									{formatViews(consent.jwt_payload?.views || [])}
 								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>JWT Expires (UTC):</strong>
+									<span
+										class:text-red-600={isJwtExpired(consent)}
+										class:text-green-600={!isJwtExpired(consent)}
+									>
+										{formatJwtExpiration(consent)}
+									</span>
+									{#if isJwtExpired(consent)}
+										<span class="ml-2 font-medium text-red-600">(EXPIRED)</span>
+									{:else}
+										<span class="ml-2 font-medium text-green-600">(ACTIVE)</span>
+									{/if}
+								</p>
 							</div>
 						</div>
 						<form method="post" action="?/delete">
@@ -219,7 +291,7 @@
 		</ul>
 	{:else}
 		<div class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800">
-			<p class="text-gray-700 dark:text-gray-300 text-center">No other consents found.</p>
+			<p class="text-center text-gray-700 dark:text-gray-300">No other consents found.</p>
 		</div>
 	{/if}
 </div>
