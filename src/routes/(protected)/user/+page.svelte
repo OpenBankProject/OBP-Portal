@@ -117,6 +117,14 @@
 								Opey services.
 							</p>
 						</div>
+						<div class="mt-4">
+							<a 
+								href="/user/consents" 
+								class="hover:text-tertiary-400 text-sm font-medium underline"
+							>
+								All My Consents
+							</a>
+						</div>
 					{:else}
 						<div class="mb-4 flex items-center gap-2">
 							<div class="h-3 w-3 rounded-full bg-yellow-500"></div>
@@ -136,11 +144,27 @@
 								</p>
 							</div>
 						{/if}
+						<div class="mt-4">
+							<a 
+								href="/user/consents" 
+								class="hover:text-tertiary-400 text-sm font-medium underline"
+							>
+								All My Consents
+							</a>
+						</div>
 					{/if}
 				</div>
 			{:else}
 				<div class="preset-filled-primary-50-950 m-1.5 rounded-lg p-4 shadow-md">
 					<p class="text-surface-600-400 text-center">Opey integration not configured.</p>
+					<div class="mt-4 text-center">
+						<a 
+							href="/user/consents" 
+							class="hover:text-tertiary-400 text-sm font-medium underline"
+						>
+							All My Consents
+						</a>
+					</div>
 				</div>
 			{/if}
 		</article>
