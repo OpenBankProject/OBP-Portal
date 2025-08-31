@@ -1,108 +1,108 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('UserConsentsServer');
-import type { RequestEvent, Actions } from "@sveltejs/kit";
-import { error } from "@sveltejs/kit";
-import type { OBPConsent } from "$lib/obp/types";
-import { obp_requests } from "$lib/obp/requests";
+import type { RequestEvent, Actions } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
+import type { OBPConsent } from '$lib/obp/types';
+import { obp_requests } from '$lib/obp/requests';
 
 const displayConsent = (consent: OBPConsent): boolean => {
-    // We want to display the consent if it is revoked and not more than a day old
+	// We want to display the consent if it is revoked and not more than a day old
 
+	// If the consent is not revoked, display it
+	if (consent.status !== 'REVOKED') {
+		return true;
+	}
 
-    // If the consent is not revoked, display it
-    if (consent.status !== 'REVOKED') {
-        return true;
-    }
+	const lastActionDate = consent.last_action_date;
 
-    const lastActionDate = consent.last_action_date
+	const currentDate = new Date();
+	const lastAction = new Date(lastActionDate);
+	const timeDifference = currentDate.getTime() - lastAction.getTime();
 
-    const currentDate = new Date();
-    const lastAction = new Date(lastActionDate);
-    const timeDifference = currentDate.getTime() - lastAction.getTime();
+	// Check if the last action date is within the last 24 hours
+	return timeDifference <= 24 * 60 * 60 * 1000;
+};
 
-    // Check if the last action date is within the last 24 hours
-    return timeDifference <= 24 * 60 * 60 * 1000;
-    
+export async function load(event: RequestEvent) {
+	const token = event.locals.session.data.oauth?.access_token;
+	if (!token) {
+		error(401, {
+			message: 'Unauthorized: No access token found in session.'
+		});
+	}
 
-}
+	let consentResponse: { consents: OBPConsent[] } | undefined = undefined;
 
-export async function load(event: RequestEvent ) {
-    const token = event.locals.session.data.oauth?.access_token;
-    if (!token) {
-        error(401, {
-            message: "Unauthorized: No access token found in session.",
-        });
-    }
+	try {
+		consentResponse = await obp_requests.get('/obp/v5.1.0/my/consents', token);
+	} catch (e) {
+		logger.error('Error fetching consents:', e);
+		error(500, {
+			message: 'Could not fetch consents at this time. Please try again later.'
+		});
+	}
 
-    let consentResponse: { consents: OBPConsent[] } | undefined = undefined;
+	if (!consentResponse || !consentResponse.consents) {
+		error(500, {
+			message: 'Could not fetch consents at this time. Please try again later.'
+		});
+	}
 
-    try {
-        consentResponse = await obp_requests.get('/obp/v5.1.0/my/consents', token)
-    } catch (e) {
-        logger.error("Error fetching consents:", e);
-        error(500, {
-            message: "Could not fetch consents at this time. Please try again later.",
-        });
-    }
+	let consents = consentResponse.consents;
 
-    if (!consentResponse || !consentResponse.consents) {
-        error(500, {
-            message: "Could not fetch consents at this time. Please try again later.",
-        });
-    }
-    
+	for (let consent of consents) {
+		// Filter out consents that should not be displayed
+		if (!displayConsent(consent)) {
+			// If the consent should not be displayed, set it to null
+			consents = consents.filter((c) => c.consent_id !== consent.consent_id);
+		}
+	}
 
-    let consents = consentResponse.consents
-    
-    for (let consent of consents) {
-        // Filter out consents that should not be displayed
-        if (!displayConsent(consent)) {
-            // If the consent should not be displayed, set it to null
-            consents = consents.filter(c => c.consent_id !== consent.consent_id);
-        }
-    }
+	// Sort consents by last_action_date, most recent first
+	consents.sort((a, b) => {
+		const dateA = new Date(a.last_action_date).getTime();
+		const dateB = new Date(b.last_action_date).getTime();
+		return dateB - dateA; // Most recent first
+	});
 
-    return {
-        consents: consents,
-    }
+	return {
+		consents: consents
+	};
 }
 
 export const actions = {
-    delete: async ( { request, locals } ) => {
+	delete: async ({ request, locals }) => {
 		const data = await request.formData();
-        const consentId = data.get('consent_id');
+		const consentId = data.get('consent_id');
 
-        if (!consentId) {
-            return {
-                error: "Consent ID is required."
-            };
-        }
+		if (!consentId) {
+			return {
+				error: 'Consent ID is required.'
+			};
+		}
 
-        // Get the access token from the session
-        const token = locals.session.data.oauth?.access_token;
+		// Get the access token from the session
+		const token = locals.session.data.oauth?.access_token;
 
-        if (!token) {
-            return {
-                error: "No access token found in session."
-            };
-        }
+		if (!token) {
+			return {
+				error: 'No access token found in session.'
+			};
+		}
 
-        // Make request to OBP to delete the consent
-        try {
-            const response = await obp_requests.delete(`/obp/v5.1.0/my/consents/${consentId}`, token);
-        } catch (error) {
-            logger.error("Error deleting consent:", error);
-            return {
-                error: "Failed to delete consent."
-            };
-        }
+		// Make request to OBP to delete the consent
+		try {
+			const response = await obp_requests.delete(`/obp/v5.1.0/my/consents/${consentId}`, token);
+		} catch (error) {
+			logger.error('Error deleting consent:', error);
+			return {
+				error: 'Failed to delete consent.'
+			};
+		}
 
-        return {
-            success: true,
-            message: "Consent deleted successfully."
-        };
-            
-
+		return {
+			success: true,
+			message: 'Consent deleted successfully.'
+		};
 	}
-
 } satisfies Actions;
