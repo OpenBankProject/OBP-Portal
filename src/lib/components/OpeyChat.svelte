@@ -3,6 +3,25 @@
 
 	// Function to format tool output with better user experience
 	function formatToolOutput(message: ToolMessage): string {
+		// Handle tool execution errors first
+		if (message.status === 'error') {
+			const errorOutput = message.toolOutput
+				? typeof message.toolOutput === 'string'
+					? message.toolOutput
+					: JSON.stringify(message.toolOutput, null, 2)
+				: 'Tool execution failed with no additional details';
+
+			return `
+				<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+					<div class="font-bold">❌ Tool Execution Failed</div>
+					<div class="text-sm mt-2">
+						<strong>Tool:</strong> ${message.toolName}<br/>
+						<strong>Error:</strong> ${errorOutput}
+					</div>
+				</div>
+			`;
+		}
+
 		if (!message.toolOutput) {
 			return '<div class="text-gray-500">No output available</div>';
 		}
@@ -331,10 +350,15 @@
 							{#snippet lead()}<Hammer />{/snippet}
 							{#snippet control()}
 								<div class="flex justify-between">
-									{getToolDisplayName(
-										(message as ToolMessage).toolName,
-										(message as ToolMessage).instanceNumber || 1
-									)}
+									<span class:text-error-700={(message as ToolMessage).status === 'error'}>
+										{getToolDisplayName(
+											(message as ToolMessage).toolName,
+											(message as ToolMessage).instanceNumber || 1
+										)}
+										{#if (message as ToolMessage).status === 'error'}
+											- Failed
+										{/if}
+									</span>
 									<!-- Debug: Tool message isStreaming status -->
 									{console.error(
 										'TEMPLATE_DEBUG: Tool message',
@@ -342,7 +366,9 @@
 										'isStreaming:',
 										message.isStreaming
 									)}
-									{#if (message as ToolMessage).approvalStatus === 'approved'}
+									{#if (message as ToolMessage).status === 'error'}
+										<XCircle class="stroke-error-500" />
+									{:else if (message as ToolMessage).approvalStatus === 'approved'}
 										<Check class="stroke-success-500" />
 									{:else if (message as ToolMessage).approvalStatus === 'denied'}
 										<XCircle class="stroke-error-500" />
@@ -370,7 +396,12 @@
 										{#snippet lead()}<Hammer />{/snippet}
 										{#snippet control()}
 											<div class="flex justify-between">
-												Tool Output
+												<span class:text-error-700={(message as ToolMessage).status === 'error'}>
+													Tool Output
+													{#if (message as ToolMessage).status === 'error'}
+														- Error
+													{/if}
+												</span>
 												<!-- Debug: Tool output isStreaming status -->
 												{console.error(
 													'TEMPLATE_DEBUG: Tool output',
@@ -378,7 +409,9 @@
 													'isStreaming:',
 													message.isStreaming
 												)}
-												{#if (message as ToolMessage).approvalStatus === 'approved'}
+												{#if (message as ToolMessage).status === 'error'}
+													<XCircle class="stroke-error-500" />
+												{:else if (message as ToolMessage).approvalStatus === 'approved'}
 													<Check class="stroke-success-500" />
 												{:else if (message as ToolMessage).approvalStatus === 'denied'}
 													<XCircle class="stroke-error-500" />
