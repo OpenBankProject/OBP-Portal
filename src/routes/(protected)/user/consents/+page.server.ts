@@ -4,6 +4,7 @@ import type { RequestEvent, Actions } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
 import type { OBPConsent } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
+import { env } from '$env/dynamic/private';
 
 const displayConsent = (consent: OBPConsent): boolean => {
 	// We want to display the consent if it is revoked and not more than a day old
@@ -58,17 +59,28 @@ export async function load(event: RequestEvent) {
 		}
 	}
 
-	// Sort consents by created date, most recent first (only if created_date exists)
-	consents.sort((a, b) => {
-		// Only sort by explicit created_date field
+	// Split consents into Opey and Other consents
+	const opeyConsents = consents.filter((consent: OBPConsent) => 
+		consent.consumer_id === env.OPEY_CONSUMER_ID
+	);
+	
+	const otherConsents = consents.filter((consent: OBPConsent) => 
+		consent.consumer_id !== env.OPEY_CONSUMER_ID
+	);
+
+	// Sort both arrays by created date, most recent first (only if created_date exists)
+	const sortByCreatedDate = (a: OBPConsent, b: OBPConsent) => {
 		const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
 		const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
-		
 		return dateB - dateA; // Most recent first
-	});
+	};
+
+	opeyConsents.sort(sortByCreatedDate);
+	otherConsents.sort(sortByCreatedDate);
 
 	return {
-		consents: consents
+		opeyConsents,
+		otherConsents
 	};
 }
 

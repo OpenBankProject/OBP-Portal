@@ -78,62 +78,148 @@
 		
 		return viewNames.join(', ');
 	}
+
+	function renderConsentCard(consent: any) {
+		return consent;
+	}
 </script>
 
-<h1 class="text-gray-900 dark:text-gray-100">This is the consents page</h1>
+<h1 class="text-gray-900 dark:text-gray-100">Consents Management</h1>
 
-<p class="text-gray-700 dark:text-gray-300">Here you can manage your consents.</p>
+<p class="text-gray-700 dark:text-gray-300 mb-8">Here you can manage your consents.</p>
 
-<ul class="list-none pl-5">
-	{#each data.consents as consent (consent.consent_id)}
-		<li>
-			<div
-				class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800"
-			>
-				<div class="mb-4">
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-						{consent.consent_id}
-					</h2>
-					<div class="mt-2 space-y-1 text-sm">
-						<p class="text-gray-900 dark:text-gray-100">
-							<strong>Status:</strong>
-							{consent.status}
-						</p>
-						<p class="text-gray-700 dark:text-gray-300">
-							<strong>Created Date:</strong>
-							{getCreatedDate(consent)}
-						</p>
-						<p class="text-gray-700 dark:text-gray-300">
-							<strong>Last Action Date:</strong>
-							{formatDate(consent.last_action_date)}
-						</p>
-						{#if consent.last_usage_date}
-							<p class="text-gray-700 dark:text-gray-300">
-								<strong>Last Usage Date:</strong>
-								{formatDate(consent.last_usage_date)}
-							</p>
-						{/if}
-						<p class="text-gray-700 dark:text-gray-300">
-							<strong>Everything Access:</strong>
-							{consent.everything ? 'Yes' : 'No'}
-						</p>
-						<p class="text-gray-700 dark:text-gray-300">
-							<strong>Roles:</strong>
-							{formatRoles(consent.jwt_payload?.entitlements || [])}
-						</p>
-						<p class="text-gray-700 dark:text-gray-300">
-							<strong>Views:</strong>
-							{formatViews(consent.jwt_payload?.views || [])}
-						</p>
+<!-- Consents for Opey Section -->
+<div class="mb-10">
+	<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Consents for Opey</h2>
+	{#if data.opeyConsents && data.opeyConsents.length > 0}
+		<ul class="list-none pl-5">
+			{#each data.opeyConsents as consent (consent.consent_id)}
+				<li>
+					<div
+						class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800"
+					>
+						<div class="mb-4">
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+								{consent.consent_id}
+							</h3>
+							<div class="mt-2 space-y-1 text-sm">
+								<p class="text-gray-900 dark:text-gray-100">
+									<strong>Status:</strong>
+									{consent.status}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Consumer ID:</strong>
+									{consent.consumer_id}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Created Date:</strong>
+									{getCreatedDate(consent)}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Last Action Date:</strong>
+									{formatDate(consent.last_action_date)}
+								</p>
+								{#if consent.last_usage_date}
+									<p class="text-gray-700 dark:text-gray-300">
+										<strong>Last Usage Date:</strong>
+										{formatDate(consent.last_usage_date)}
+									</p>
+								{/if}
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Everything Access:</strong>
+									{consent.everything ? 'Yes' : 'No'}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Roles:</strong>
+									{formatRoles(consent.jwt_payload?.entitlements || [])}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Views:</strong>
+									{formatViews(consent.jwt_payload?.views || [])}
+								</p>
+							</div>
+						</div>
+						<form method="post" action="?/delete">
+							<input type="hidden" name="consent_id" value={consent.consent_id} />
+							<button type="submit" class="font-medium text-red-500 hover:text-red-700">
+								Delete Consent
+							</button>
+						</form>
 					</div>
-				</div>
-				<form method="post" action="?/delete">
-					<input type="hidden" name="consent_id" value={consent.consent_id} />
-					<button type="submit" class="font-medium text-red-500 hover:text-red-700">
-						Delete Consent
-					</button>
-				</form>
-			</div>
-		</li>
-	{/each}
-</ul>
+				</li>
+			{/each}
+		</ul>
+	{:else}
+		<div class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800">
+			<p class="text-gray-700 dark:text-gray-300 text-center">No Opey consents found.</p>
+		</div>
+	{/if}
+</div>
+
+<!-- Other Consents Section -->
+<div>
+	<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Other Consents</h2>
+	{#if data.otherConsents && data.otherConsents.length > 0}
+		<ul class="list-none pl-5">
+			{#each data.otherConsents as consent (consent.consent_id)}
+				<li>
+					<div
+						class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800"
+					>
+						<div class="mb-4">
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+								{consent.consent_id}
+							</h3>
+							<div class="mt-2 space-y-1 text-sm">
+								<p class="text-gray-900 dark:text-gray-100">
+									<strong>Status:</strong>
+									{consent.status}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Consumer ID:</strong>
+									{consent.consumer_id}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Created Date:</strong>
+									{getCreatedDate(consent)}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Last Action Date:</strong>
+									{formatDate(consent.last_action_date)}
+								</p>
+								{#if consent.last_usage_date}
+									<p class="text-gray-700 dark:text-gray-300">
+										<strong>Last Usage Date:</strong>
+										{formatDate(consent.last_usage_date)}
+									</p>
+								{/if}
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Everything Access:</strong>
+									{consent.everything ? 'Yes' : 'No'}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Roles:</strong>
+									{formatRoles(consent.jwt_payload?.entitlements || [])}
+								</p>
+								<p class="text-gray-700 dark:text-gray-300">
+									<strong>Views:</strong>
+									{formatViews(consent.jwt_payload?.views || [])}
+								</p>
+							</div>
+						</div>
+						<form method="post" action="?/delete">
+							<input type="hidden" name="consent_id" value={consent.consent_id} />
+							<button type="submit" class="font-medium text-red-500 hover:text-red-700">
+								Delete Consent
+							</button>
+						</form>
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{:else}
+		<div class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800">
+			<p class="text-gray-700 dark:text-gray-300 text-center">No other consents found.</p>
+		</div>
+	{/if}
+</div>
