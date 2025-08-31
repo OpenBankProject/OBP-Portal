@@ -24,6 +24,50 @@
 		const minutes = date.getMinutes().toString().padStart(2, '0');
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
+
+	function formatRoles(entitlements: any[]): string {
+		if (!entitlements || entitlements.length === 0) {
+			return 'None';
+		}
+		
+		// Extract role names from entitlements
+		const roles = entitlements.map((entitlement) => {
+			if (typeof entitlement === 'string') {
+				return entitlement;
+			} else if (entitlement.role_name) {
+				return entitlement.role_name;
+			} else if (entitlement.name) {
+				return entitlement.name;
+			} else {
+				return JSON.stringify(entitlement);
+			}
+		});
+		
+		return roles.join(', ');
+	}
+
+	function formatViews(views: any[]): string {
+		if (!views || views.length === 0) {
+			return 'None';
+		}
+		
+		// Extract view information
+		const viewNames = views.map((view) => {
+			if (typeof view === 'string') {
+				return view;
+			} else if (view.view_id) {
+				return view.view_id;
+			} else if (view.id) {
+				return view.id;
+			} else if (view.name) {
+				return view.name;
+			} else {
+				return JSON.stringify(view);
+			}
+		});
+		
+		return viewNames.join(', ');
+	}
 </script>
 
 <h1 class="text-gray-900 dark:text-gray-100">This is the consents page</h1>
@@ -55,6 +99,14 @@
 								{formatDate(consent.last_usage_date)}
 							</p>
 						{/if}
+						<p class="text-gray-700 dark:text-gray-300">
+							<strong>Roles:</strong>
+							{formatRoles(consent.jwt_payload?.entitlements || [])}
+						</p>
+						<p class="text-gray-700 dark:text-gray-300">
+							<strong>Views:</strong>
+							{formatViews(consent.jwt_payload?.views || [])}
+						</p>
 					</div>
 				</div>
 				<form method="post" action="?/delete">
