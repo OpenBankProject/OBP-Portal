@@ -4,8 +4,10 @@ export interface OBPConsent {
     consumer_id: string;
     created_by_user_id: string;
     status: string;
+    created_date?: string;
     last_action_date: string;
     last_usage_date: string;
+    everything?: boolean;
     jwt: string;
     jwt_payload: {
         createdByUserId: string;

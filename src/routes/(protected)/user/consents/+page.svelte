@@ -25,6 +25,16 @@
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
 
+	function getCreatedDate(consent: any): string {
+		// Only use explicit created_date field
+		if (consent.created_date) {
+			return formatDate(consent.created_date);
+		}
+		
+		// If not present, show None
+		return 'None';
+	}
+
 	function formatRoles(entitlements: any[]): string {
 		if (!entitlements || entitlements.length === 0) {
 			return 'None';
@@ -90,6 +100,10 @@
 							{consent.status}
 						</p>
 						<p class="text-gray-700 dark:text-gray-300">
+							<strong>Created Date:</strong>
+							{getCreatedDate(consent)}
+						</p>
+						<p class="text-gray-700 dark:text-gray-300">
 							<strong>Last Action Date:</strong>
 							{formatDate(consent.last_action_date)}
 						</p>
@@ -99,6 +113,10 @@
 								{formatDate(consent.last_usage_date)}
 							</p>
 						{/if}
+						<p class="text-gray-700 dark:text-gray-300">
+							<strong>Everything Access:</strong>
+							{consent.everything ? 'Yes' : 'No'}
+						</p>
 						<p class="text-gray-700 dark:text-gray-300">
 							<strong>Roles:</strong>
 							{formatRoles(consent.jwt_payload?.entitlements || [])}

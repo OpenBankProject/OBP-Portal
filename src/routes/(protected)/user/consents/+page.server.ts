@@ -58,10 +58,12 @@ export async function load(event: RequestEvent) {
 		}
 	}
 
-	// Sort consents by last_action_date, most recent first
+	// Sort consents by created date, most recent first (only if created_date exists)
 	consents.sort((a, b) => {
-		const dateA = new Date(a.last_action_date).getTime();
-		const dateB = new Date(b.last_action_date).getTime();
+		// Only sort by explicit created_date field
+		const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
+		const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
+		
 		return dateB - dateA; // Most recent first
 	});
 
