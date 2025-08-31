@@ -21,7 +21,7 @@
 					{:else if key === 'views' || key === 'entitlements'}
 						<li>
 							<strong class="text-tertiary-400">{key}:</strong>
-							{#if typeof value === 'object' && value !== null && value.list && Array.isArray(value.list) && value.list.length === 0}
+							{#if typeof value === 'object' && value !== null && 'list' in value && Array.isArray(value.list) && value.list.length === 0}
 								None
 							{:else if Array.isArray(value) && value.length === 0}
 								None
