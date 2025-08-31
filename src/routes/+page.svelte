@@ -6,6 +6,36 @@
 
 	let { data } = $props();
 	let name = data.username || 'Guest';
+	let opeyConsentStatus = data.opeyConsentStatus || 'none';
+	let opeyConsentId = data.opeyConsentId || null;
+
+	function getStatusColor(status: string): string {
+		switch (status) {
+			case 'ready':
+				return 'bg-green-500';
+			case 'initiated':
+				return 'bg-yellow-500';
+			case 'none':
+			default:
+				return 'bg-red-500';
+		}
+	}
+
+	function getStatusTitle(status: string): string {
+		const baseTitle = (() => {
+			switch (status) {
+				case 'ready':
+					return 'Opey Consent Ready (ACCEPTED)';
+				case 'initiated':
+					return 'Opey Consent Created (INITIATED)';
+				case 'none':
+				default:
+					return 'No Opey Consent';
+			}
+		})();
+		
+		return opeyConsentId ? `${baseTitle}\nConsent ID: ${opeyConsentId}` : baseTitle;
+	}
 
 	const suggestedQuestions: SuggestedQuestion[] = [
 		{
@@ -31,7 +61,7 @@
 	];
 
 	let opeyChatOptions: Partial<OpeyChatOptions> = {
-		displayHeader: false,
+		displayHeader: true,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
 		bodyClasses: 'bg-opacity-0',
@@ -40,7 +70,17 @@
 </script>
 
 <div class="flex items-center justify-center h-full w-full p-4">
-    <div class="h-full w-full max-w-4xl max-h-[80vh] rounded-2xl">
+    <div class="h-full w-full max-w-4xl max-h-[80vh] rounded-2xl relative">
+        <!-- Opey Consent Status Indicator -->
+        {#if data.username}
+            <div class="absolute top-4 right-4 z-10">
+                <div 
+                    class="w-3 h-3 rounded-full {getStatusColor(opeyConsentStatus)}"
+                    title={getStatusTitle(opeyConsentStatus)}
+                ></div>
+            </div>
+        {/if}
+        
         <OpeyChat {opeyChatOptions}>
             {#snippet splash()}
                 <div class="flex w-2/3 flex-col justify-center items-center text-center">
