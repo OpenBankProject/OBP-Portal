@@ -7,7 +7,7 @@
 	let { data } = $props();
 	let name = data.username || 'Guest';
 	let opeyConsentStatus = data.opeyConsentStatus || 'none';
-	let opeyConsentId = data.opeyConsentId || null;
+	let opeyConsentReferenceId = data.opeyConsentReferenceId || null;
 
 	function getStatusColor(status: string): string {
 		switch (status) {
@@ -34,7 +34,7 @@
 			}
 		})();
 		
-		return opeyConsentId ? `${baseTitle}\nConsent ID: ${opeyConsentId}` : baseTitle;
+		return opeyConsentReferenceId ? `${baseTitle}\nConsent Reference ID: ${opeyConsentReferenceId}` : baseTitle;
 	}
 
 	const suggestedQuestions: SuggestedQuestion[] = [
@@ -70,17 +70,7 @@
 </script>
 
 <div class="flex items-center justify-center h-full w-full p-4">
-    <div class="h-full w-full max-w-4xl max-h-[80vh] rounded-2xl relative">
-        <!-- Opey Consent Status Indicator -->
-        {#if data.username}
-            <div class="absolute top-4 right-4 z-10">
-                <div 
-                    class="w-3 h-3 rounded-full {getStatusColor(opeyConsentStatus)}"
-                    title={getStatusTitle(opeyConsentStatus)}
-                ></div>
-            </div>
-        {/if}
-        
+    <div class="h-full w-full max-w-4xl max-h-[80vh] rounded-2xl">
         <OpeyChat {opeyChatOptions}>
             {#snippet splash()}
                 <div class="flex w-2/3 flex-col justify-center items-center text-center">
@@ -94,4 +84,14 @@
             {/snippet}
         </OpeyChat>
     </div>
+    
+    <!-- Opey Consent Status Indicator -->
+    {#if data.username}
+        <div class="fixed bottom-4 right-4 z-50">
+            <div 
+                class="w-3 h-3 rounded-full {getStatusColor(opeyConsentStatus)}"
+                title={getStatusTitle(opeyConsentStatus)}
+            ></div>
+        </div>
+    {/if}
 </div>
