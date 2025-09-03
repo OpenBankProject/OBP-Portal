@@ -60,14 +60,14 @@ export class ChatController {
 						break;
 					case 'tool_complete':
 						// Debug logging for tool completion
-						logger.error(`FRONTEND_DEBUG: Received tool_complete event for ${event.toolCallId}`);
-						logger.error(
-							`FRONTEND_DEBUG: Tool output: ${JSON.stringify(event.toolOutput)?.substring(0, 200)}...`
+						logger.debug(`Received tool_complete event for ${event.toolCallId}`);
+						logger.debug(
+							`Tool output: ${JSON.stringify(event.toolOutput)?.substring(0, 200)}...`
 						);
-						logger.error(`FRONTEND_DEBUG: Tool status: ${event.status}`);
+						logger.debug(`Tool status: ${event.status}`);
 
 						// Update the toolMessage with the output and status
-						const updates: any = {
+						const updates: Partial<ToolMessage> = {
 							toolOutput: event.toolOutput,
 							status: event.status
 						};
@@ -83,7 +83,7 @@ export class ChatController {
 
 						state.updateToolMessage(event.toolCallId, updates);
 						state.markMessageComplete(event.toolCallId);
-						logger.error(
+						logger.debug(
 							`FRONTEND_DEBUG: Tool message updated and marked complete for ${event.toolCallId}`
 						);
 						break;
