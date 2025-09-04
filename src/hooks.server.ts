@@ -10,6 +10,7 @@ import { env } from '$env/dynamic/private';
 import { obp_requests } from '$lib/obp/requests';
 import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
 import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
+import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 
 // Constants
 const DEFAULT_PORT = 5174;
@@ -40,6 +41,22 @@ function checkServerPort() {
 		}
 	}
 }
+
+function initHealthChecks() {
+	healthCheckRegistry.register({
+		serviceName: 'OBP API',
+		url: `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
+	});
+
+	healthCheckRegistry.register({
+		serviceName: 'Opey II',
+		url: `${env.OPEY_BASE_URL}/status`,
+	});
+
+	healthCheckRegistry.startAll();
+}
+
+initHealthChecks();
 
 // Startup scripts
 // Check server port
@@ -152,14 +169,6 @@ async function initWebUIProps() {
 		logger.error('Failed to fetch WebUI props:', error);
 		throw error;
 	}
-}
-
-// Init OAuth2 providers
-try {
-	await initOauth2Providers();
-} catch (error) {
-	logger.error('Error initializing OAuth2 providers:', error);
-	throw error;
 }
 
 // Get WebUI props from OBP
