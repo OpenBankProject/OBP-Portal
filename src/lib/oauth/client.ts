@@ -26,8 +26,7 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 			config = await response.json();
 			logger.debug('Raw OIDC config received:', JSON.stringify(config, null, 2));
 		} catch (error) {
-			logger.error('Error fetching OIDC config:', error);
-			return;
+			throw new Error(`Error fetching OIDC config: ${error}`);
 		}
 
 		// Validate required endpoints outside of try/catch to avoid local-catch warnings

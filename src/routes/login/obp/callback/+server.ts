@@ -3,50 +3,41 @@ const logger = createLogger('OBPLoginCallback');
 import { oauth2ProviderFactory } from "$lib/oauth/providerFactory";
 import type { OAuth2Tokens } from "arctic";
 import type { RequestEvent } from "@sveltejs/kit";
-
+import { error } from "@sveltejs/kit";
 import { env } from "$env/dynamic/public";
-
 
 export async function GET(event: RequestEvent): Promise<Response> {
     const storedState = event.cookies.get("obp_oauth_state");
     const code = event.url.searchParams.get("code");
-	const recievedState = event.url.searchParams.get("state");
+    const recievedState = event.url.searchParams.get("state");
 
     
     if (storedState === null || code === null || recievedState === null) {
-		return new Response("Please restart the process.", {
-			status: 400
-		});
-	}
+        throw error(400, 'Please restart the process.');
+    }
     if (storedState !== recievedState) {
         logger.warn("State mismatch:", storedState, recievedState);
         // State does not match, likely a CSRF attack or user error
-		return new Response("Please restart the process.", {
-			status: 400
-		});
-	}
+        throw error(400, 'Please restart the process.');
+    }
 
     const [actualState, provider] = storedState.split(":");
     logger.debug("Received state:", recievedState);
     if (!provider) {
-        return new Response("Invalid state format", {
-            status: 400
-        })
+        throw error(400, 'Invalid state format');
     }
 
     const oauthClient = oauth2ProviderFactory.getClient(provider);
     if (!oauthClient) {
         logger.error(`OAuth client for provider "${provider}" not found.`);
-        return new Response("Invalid OAuth provider", {
-            status: 400
-        });
+        throw error(400, 'Invalid OAuth provider');
     }
 
     // Validate the authorization code and exchange it for tokens
     const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
     if (!token_endpoint) {
         logger.error("Token endpoint not found in OIDC configuration.");
-        return new Response("OAuth configuration error", { status: 500 });
+        throw error(500, 'OAuth configuration error');
     }
 
     let tokens: OAuth2Tokens;
@@ -54,9 +45,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
         tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
     } catch (e) {
         logger.error("Error validating authorization code:", e);
-        return new Response("Log in failed, please restart the process.", {
-            status: 400
-        });
+        throw error(400, 'Log in failed, please restart the process.');
     }
 
     // Get rid of the state cookie
@@ -75,13 +64,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
     logger.debug("Making OBP current user request with access token");
     const currentUserResponse = await fetch(currentUserRequest);
     if (!currentUserResponse.ok) {
-        const errorText = await currentUserResponse.text(); logger.error(`OBP current user request failed - Status: ${currentUserResponse.status}, Response: ${errorText}`);
-        return new Response("Failed to fetch current user", {
-            status: 500
-        });
+        const errorText = await currentUserResponse.text(); 
+        logger.error(`OBP current user request failed - Status: ${currentUserResponse.status}, Response: ${errorText}`);
+        throw error(500, 'Failed to fetch current user');
     }
     const user = await currentUserResponse.json();
-    logger.info(`Successfully fetched current user from OBP - User ID: ${user.user_id}, Email: ${user.email}, Username: ${user.username || "N/A"}`); logger.debug("Full current user data:", user);
+    logger.info(`Successfully fetched current user from OBP - User ID: ${user.user_id}, Email: ${user.email}, Username: ${user.username || "N/A"}`); 
+    logger.debug("Full current user data:", user);
 
     if (user.user_id && user.email) {
         // Store user data in session
@@ -104,8 +93,6 @@ export async function GET(event: RequestEvent): Promise<Response> {
         });
     } else {
         logger.error("Invalid user data received from OBP - missing user_id or email");
-        return new Response("Authentication failed - invalid user data", {
-            status: 400
-        });
+        throw error(400, 'Authentication failed - invalid user data');
     }
 }

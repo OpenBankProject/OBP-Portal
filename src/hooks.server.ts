@@ -1,6 +1,7 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('HooksServer');
 import type { Handle } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
@@ -79,8 +80,8 @@ async function fetchWellKnownUris(): Promise<WellKnownUri[]> {
 }
 
 async function initOauth2Providers() {
-	let providers = [];
 
+	let providers = [];
 	try {
 		const wellKnownUris: WellKnownUri[] = await fetchWellKnownUris();
 		logger.debug('Well-known URIs fetched successfully:', wellKnownUris);
@@ -111,6 +112,35 @@ async function initOauth2Providers() {
 		logger.error('Failed to init OAuth2 providers: ', error);
 		throw error;
 	}
+}
+
+let oauth2Ready = false;
+let oauth2InitError: any = null;
+
+async function tryInitOauth2Providers() {
+	try {
+		await initOauth2Providers();
+		oauth2Ready = true;
+		oauth2InitError = null;
+		logger.info('OAuth2 providers initialized successfully.');
+	} catch (error) {
+		oauth2Ready = false;
+		oauth2InitError = error;
+		logger.error('Error initializing OAuth2 providers:', error);
+	}
+}
+
+// Attempt to initialize OAuth2 providers on startup
+await tryInitOauth2Providers();
+
+// Periody retry init if it failed for whatever reason
+if (!oauth2Ready) {
+	setInterval(async () => {
+		if (!oauth2Ready) {
+			logger.info('Retrying OAuth2 providers initialization...');
+			await tryInitOauth2Providers();
+		}
+	}, 30000); // Retry every 30 seconds
 }
 
 async function initWebUIProps() {
@@ -152,6 +182,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 	if (!!routeId && needsAuthorization(routeId)) {
 		logger.debug('Checking authorization for user route:', event.url.pathname);
+		if (!oauth2Ready) {
+			logger.warn('OAuth2 providers not ready:', oauth2InitError);
+			throw error(503, 'Service Unavailable. Please try again later.');
+		}
 		// Check token expiration
 		const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
 		if (!sessionOAuth) {
@@ -205,7 +239,6 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 	}
 
 	const response = await resolve(event);
-
 	return response;
 };
 
