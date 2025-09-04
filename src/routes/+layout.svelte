@@ -27,7 +27,7 @@
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
 
-	let displayMode: 'dark' | 'light' = $state('dark')
+	let displayMode: 'dark' | 'light' = $state('dark');
 
 	if (data.email) {
 		isAuthenticated = true;
@@ -59,7 +59,7 @@
 
 	let footerLinks = $state([
 		//{ href: '/privacy', label: 'Privacy Policy' },
-		{ href: 'https://github.com/OpenBankProject', label: 'GitHub' },
+		{ href: 'https://github.com/OpenBankProject', label: 'GitHub' }
 		//{ href: '/terms', label: 'Terms of Service' },
 		//{ href: '/support', label: 'Support' },
 		//{ href: '/sitemap', label: 'Sitemap' }
@@ -69,14 +69,14 @@
 
 	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
 	const defaultLogoUrl = '/logo2x-1.png';
-	const defaultDarkLogoUrl = '/obp_logo.png'
+	const defaultDarkLogoUrl = '/obp_logo.png';
 
 	let lightLogoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
 	if (!env.PUBLIC_DARK_LOGO_URL) {
 		// If no dark logo URL is provided, use the same as light logo
 		env.PUBLIC_DARK_LOGO_URL = env.PUBLIC_LOGO_URL || defaultLogoUrl;
 	}
-	let darkLogoUrl = $state(env.PUBLIC_DARK_LOGO_URL || defaultDarkLogoUrl)
+	let darkLogoUrl = $state(env.PUBLIC_DARK_LOGO_URL || defaultDarkLogoUrl);
 
 	let logoUrl = $derived.by(() => {
 		return displayMode === 'dark' ? darkLogoUrl : lightLogoUrl;
@@ -118,7 +118,11 @@
 					{#each footerLinks as link, index}
 						<a href={link.href} class="hover:text-tertiary-400 flex items-center gap-2">
 							{#if link.label === 'GitHub'}
-								<img class="h-4" alt="github logo" src={displayMode === 'dark' ? "/github-mark-white.svg" : "/github-mark.svg"} />
+								<img
+									class="h-4"
+									alt="github logo"
+									src={displayMode === 'dark' ? '/github-mark-white.svg' : '/github-mark.svg'}
+								/>
 							{/if}
 							{link.label}
 						</a>
@@ -128,27 +132,26 @@
 			{/snippet}
 		</Navigation.Rail>
 	</div>
-	<div class="flex h-full flex-col bg-conic-250 dark:from-primary-950 from-30% dark:via-secondary-500/70 via-40% dark:to-primary-950 to-50%">
-		<div class="backdrop-blur-2xl h-full flex flex-col">
+	<div
+		class="dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 flex h-full flex-col bg-conic-250 from-30% via-40% to-50%"
+	>
+		<div class="flex h-full flex-col backdrop-blur-2xl">
 			<div class="bg-opacity-0 flex items-center justify-end p-4">
-				<LightSwitch bind:mode={displayMode}/>
+				<LightSwitch bind:mode={displayMode} />
 				{#if isAuthenticated}
-					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.email}</a></span
-					>
+					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
 					<button type="button" class="btn preset-outlined-primary-500"
 						><a href="/logout">Logout</a></button
 					>
 				{:else}
-					<span class="hover:text-tertiary-400 mx-4"
-						><a href="/register">Register</a>
-					</span>
+					<span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
 					<button type="button" class="btn preset-filled-surface-950-50"
 						><a href="/login/obp">Login</a></button
 					>
 				{/if}
 			</div>
 
-				{@render children()}
+			{@render children()}
 		</div>
 	</div>
 </div>
@@ -181,7 +184,7 @@
 
 		{#if isAuthenticated}
 			<span class="hover:text-tertiary-400 mx-10 my-auto text-white"
-				><a href="/user">{data.email}</a></span
+				><a href="/user">{data.username}</a></span
 			>
 			<button type="button" class="btn preset-outlined-primary-500"
 				><a href="/logout">Logout</a></button

@@ -42,50 +42,72 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
       const response = await obp_requests.get('/obp/v5.1.0/my/consents', session.data.oauth.access_token);
       const consents = response.consents || [];
 
-      for (const consent of consents) {
-        if (consent.consumer_id === this.opeyConsumerId && 
-            consent.status === 'ACCEPTED' && 
-            !this.isConsentExpired(consent)) {
-          // Return the JWT, not just the consent_id
-          const fullConsent = await obp_requests.get(
-            `/obp/v5.1.0/user/current/consents/${consent.consent_id}`, 
-            session.data.oauth.access_token
-          );
-          const userIdentifier = extractUsernameFromJWT(fullConsent.jwt);
-          logger.info(`checkExistingOpeyConsent says: Retrieved existing consent JWT - Primary user: ${userIdentifier}`);
-          return fullConsent.jwt;
-        }
-      }
+			logger.debug(`checkExistingOpeyConsent: Found ${consents.length} total consents`);
+			logger.debug(`checkExistingOpeyConsent: Looking for consumer_id: ${this.opeyConsumerId}`);
 
-      return null;
-    } catch (error) {
-      logger.error('checkExistingOpeyConsent says: Error checking existing consent:', error);
-      return null;
-    }
-  }
+			for (const consent of consents) {
+				logger.debug(
+					`checkExistingOpeyConsent: Checking consent ${consent.consent_id} - consumer_id: ${consent.consumer_id}, status: ${consent.status}`
+				);
 
-  private async createImplicitConsent(accessToken: string): Promise<OBPConsent> {
-    const now = new Date().toISOString().split('.')[0] + 'Z';
-    
-    const body = {
-      everything: true,
-      entitlements: [],
-      consumer_id: this.opeyConsumerId,
-      views: [],
-      valid_from: now,
-      time_to_live: 3600,
-    };
+				if (
+					consent.consumer_id === this.opeyConsumerId &&
+					consent.status === 'ACCEPTED' &&
+					!this.isConsentExpired(consent)
+				) {
+					logger.debug(`checkExistingOpeyConsent: Found matching consent ${consent.consent_id}`);
+					// Return the JWT, not just the consent_id
+					const fullConsent = await obp_requests.get(
+						`/obp/v5.1.0/user/current/consents/${consent.consent_id}`,
+						session.data.oauth.access_token
+					);
+					const userIdentifier = extractUsernameFromJWT(fullConsent.jwt);
+					logger.info(
+						`checkExistingOpeyConsent says: Retrieved existing consent JWT - Primary user: ${userIdentifier}`
+					);
+					return fullConsent.jwt;
+				} else if (consent.consumer_id === this.opeyConsumerId) {
+					logger.debug(
+						`checkExistingOpeyConsent: Found Opey consent but status is ${consent.status} or consent is expired`
+					);
+				}
+			}
 
-    const consent = await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', body, accessToken);
-    const userIdentifier = extractUsernameFromJWT(consent.jwt);
-    logger.info(`createImplicitConsent says: Created implicit consent - Primary user: ${userIdentifier}`);
-    return consent;
-  }
+			logger.debug('checkExistingOpeyConsent: No matching consent found');
+			return null;
+		} catch (error) {
+			logger.info(
+				'checkExistingOpeyConsent says: Consent check failed - likely expired JWT:',
+				error
+			);
+			return null;
+		}
+	}
 
-  private isConsentExpired(consent: any): boolean {
-    const exp = consent.jwt_payload?.exp;
-    if (!exp) return true;
-    const now = Math.floor(Date.now() / 1000);
-    return exp < now;
-  }
+	private async createImplicitConsent(accessToken: string): Promise<OBPConsent> {
+		const now = new Date().toISOString().split('.')[0] + 'Z';
+
+		const body = {
+			everything: true,
+			entitlements: [],
+			consumer_id: this.opeyConsumerId,
+			views: [],
+			valid_from: now,
+			time_to_live: 3600
+		};
+
+		const consent = await obp_requests.post('/obp/v5.1.0/my/consents/IMPLICIT', body, accessToken);
+		const userIdentifier = extractUsernameFromJWT(consent.jwt);
+		logger.info(
+			`createImplicitConsent says: Created implicit consent - Primary user: ${userIdentifier}`
+		);
+		return consent;
+	}
+
+	private isConsentExpired(consent: any): boolean {
+		const exp = consent.jwt_payload?.exp;
+		if (!exp) return true;
+		const now = Math.floor(Date.now() / 1000);
+		return exp < now;
+	}
 }
