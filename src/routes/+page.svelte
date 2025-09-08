@@ -61,7 +61,7 @@
 	];
 
 	let opeyChatOptions: Partial<OpeyChatOptions> = {
-		displayHeader: true,
+		displayHeader: false,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
 		bodyClasses: 'bg-opacity-0',
