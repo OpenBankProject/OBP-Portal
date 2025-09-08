@@ -11,6 +11,7 @@ import { obp_requests } from '$lib/obp/requests';
 import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
 import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
+import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
 
 // Constants
 const DEFAULT_PORT = 5174;
@@ -41,22 +42,6 @@ function checkServerPort() {
 		}
 	}
 }
-
-function initHealthChecks() {
-	healthCheckRegistry.register({
-		serviceName: 'OBP API',
-		url: `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
-	});
-
-	healthCheckRegistry.register({
-		serviceName: 'Opey II',
-		url: `${env.OPEY_BASE_URL}/status`,
-	});
-
-	healthCheckRegistry.startAll();
-}
-
-initHealthChecks();
 
 // Startup scripts
 // Check server port
@@ -131,9 +116,26 @@ async function initOauth2Providers() {
 	}
 }
 
+function initHealthChecks() {
+	healthCheckRegistry.register({
+		serviceName: 'OBP API',
+		url: `${PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
+	});
+
+	healthCheckRegistry.register({
+		serviceName: 'Opey II',
+		url: `${env.OPEY_BASE_URL}/status`,
+	});
+
+	healthCheckRegistry.startAll();
+}
+
+initHealthChecks();
+
 let oauth2Ready = false;
 let oauth2InitError: any = null;
 
+// TODO: implement some handling if the provider fails after init
 async function tryInitOauth2Providers() {
 	try {
 		await initOauth2Providers();

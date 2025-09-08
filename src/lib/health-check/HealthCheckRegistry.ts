@@ -14,9 +14,13 @@ export class HealthCheckRegistry {
      * Register a new health check service
      */
     register(options: HealthCheckOptions): HealthCheckService {
-        if (this.services.has(options.serviceName)) {
-            logger.warn(`HealthCheckService for ${options.serviceName} already registered. Returning existing instance.`);
-            return this.services.get(options.serviceName)!;
+        // Check if service with same name exists
+        const existingService = this.services.get(options.serviceName);
+        // Stop the service and replace it with the new one
+        if (existingService) {
+            logger.info(`HealthCheckService for ${options.serviceName} already exists. Replacing with new configuration.`);
+            existingService.stop();
+            this.services.delete(options.serviceName);
         }
 
         const service = new HealthCheckService(options);
