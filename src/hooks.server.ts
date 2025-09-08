@@ -9,6 +9,7 @@ import { Redis } from 'ioredis';
 import { env } from '$env/dynamic/private';
 import { obp_requests } from '$lib/obp/requests';
 import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
+import { oauth2ProviderManager } from '$lib/oauth/providerManager';
 import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
@@ -71,50 +72,7 @@ if (!env.REDIS_HOST || !env.REDIS_PORT) {
 	client = new Redis(redisConfig);
 }
 
-async function fetchWellKnownUris(): Promise<WellKnownUri[]> {
-	try {
-		const response = await obp_requests.get('/obp/v5.1.0/well-known');
-		return response.well_known_uris;
-	} catch (error) {
-		logger.error('Failed to fetch well-known URIs:', error);
-		throw error;
-	}
-}
 
-async function initOauth2Providers() {
-
-	let providers = [];
-	try {
-		const wellKnownUris: WellKnownUri[] = await fetchWellKnownUris();
-		logger.debug('Well-known URIs fetched successfully:', wellKnownUris);
-
-		for (const providerUri of wellKnownUris) {
-			const oauth2Client = await oauth2ProviderFactory.initializeProvider(providerUri);
-			if (oauth2Client) {
-				providers.push(providerUri);
-			}
-		}
-
-		for (const registeredStrategy of oauth2ProviderFactory.getSupportedProviders()) {
-			if (!providers.find((p) => p.provider === registeredStrategy)) {
-				logger.warn(
-					`No OAuth2 provider initialized for registered strategy: ${registeredStrategy}`
-				);
-			}
-		}
-
-		// If no providers were found, log error and return
-		if (providers.length === 0) {
-			logger.error(
-				'Could not initialize any OAuth2 provider. Please check your OBP configuration.'
-			);
-			return;
-		}
-	} catch (error) {
-		logger.error('Failed to init OAuth2 providers: ', error);
-		throw error;
-	}
-}
 
 function initHealthChecks() {
 	healthCheckRegistry.register({
@@ -127,40 +85,18 @@ function initHealthChecks() {
 		url: `${env.OPEY_BASE_URL}/status`,
 	});
 
+	const oauthHealthChecks = oauth2ProviderManager.getHealthCheckEntries();
+	for (const check of oauthHealthChecks) {
+		healthCheckRegistry.register(check);
+	}
+
 	healthCheckRegistry.startAll();
 }
 
+await oauth2ProviderManager.start();
+
 initHealthChecks();
 
-let oauth2Ready = false;
-let oauth2InitError: any = null;
-
-// TODO: implement some handling if the provider fails after init
-async function tryInitOauth2Providers() {
-	try {
-		await initOauth2Providers();
-		oauth2Ready = true;
-		oauth2InitError = null;
-		logger.info('OAuth2 providers initialized successfully.');
-	} catch (error) {
-		oauth2Ready = false;
-		oauth2InitError = error;
-		logger.error('Error initializing OAuth2 providers:', error);
-	}
-}
-
-// Attempt to initialize OAuth2 providers on startup
-await tryInitOauth2Providers();
-
-// Periody retry init if it failed for whatever reason
-if (!oauth2Ready) {
-	setInterval(async () => {
-		if (!oauth2Ready) {
-			logger.info('Retrying OAuth2 providers initialization...');
-			await tryInitOauth2Providers();
-		}
-	}, 30000); // Retry every 30 seconds
-}
 
 async function initWebUIProps() {
 	try {
@@ -173,14 +109,6 @@ async function initWebUIProps() {
 	}
 }
 
-// Get WebUI props from OBP
-// try {
-//     const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
-//     logger.debug('WebUI props fetched successfully:', webuiProps);
-// } catch (error) {
-//     // Handle the error as needed, e.g., log it, throw it, etc.
-//     throw error
-// }
 
 function needsAuthorization(routeId: string): boolean {
 	// protected routes are put in the /(protected)/ route group
@@ -193,7 +121,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 	if (!!routeId && needsAuthorization(routeId)) {
 		logger.debug('Checking authorization for user route:', event.url.pathname);
-		if (!oauth2Ready) {
+		if (!oauth2ProviderManager.isReady()) {
 			logger.warn('OAuth2 providers not ready:', oauth2InitError);
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
