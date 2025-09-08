@@ -12,7 +12,11 @@ export class ChatController {
 		private service: ChatService,
 		public state: ChatState
 	) {
+
 		service.onStreamEvent((event: StreamEvent) => {
+			logger.error('STREAM EVENT RECEIVED:', event.type);
+    		console.error('STREAM EVENT RECEIVED:', event.type);
+    
 			try {
 				switch (event.type) {
 					case 'thread_sync':
@@ -29,6 +33,7 @@ export class ChatController {
 						});
 						break;
 					case 'assistant_token':
+
 						state.appendToMessage(event.messageId, event.token);
 						break;
 					case 'assistant_complete':

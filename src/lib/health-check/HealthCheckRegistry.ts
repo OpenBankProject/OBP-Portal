@@ -12,9 +12,16 @@ export class HealthCheckRegistry {
 
     /**
      * Register a new health check service
+     * @param optionsOrService HealthCheckOptions or an existing HealthCheckService instance
+     * @returns The registered HealthCheckService instance
      */
-    register(options: HealthCheckOptions): HealthCheckService {
+    register(optionsOrService: HealthCheckOptions | HealthCheckService): HealthCheckService {
         // Check if service with same name exists
+        if (optionsOrService instanceof HealthCheckService) {
+            return this.registerService(optionsOrService);
+        }
+
+        const options = optionsOrService as HealthCheckOptions;
         const existingService = this.services.get(options.serviceName);
         // Stop the service and replace it with the new one
         if (existingService) {
@@ -34,6 +41,33 @@ export class HealthCheckRegistry {
         });
 
         logger.info(`Registered HealthCheckService for ${options.serviceName}`);
+        return service;
+    }
+
+    /**
+     * Register an existing HealthCheckService instance
+     */
+    registerService(service: HealthCheckService): HealthCheckService {
+        const serviceName = service.getName();
+        
+        // Check if service with same name exists
+        const existingService = this.services.get(serviceName);
+        if (existingService && existingService !== service) {
+            logger.info(`HealthCheckService for ${serviceName} already exists. Replacing with new service.`);
+            existingService.stop();
+        }
+
+        this.services.set(serviceName, service);
+        
+        // Subscribe to the service's state changes
+        service.subscribe((snapshot) => {
+            this.store.update(state => ({
+                ...state,
+                [serviceName]: snapshot
+            }));
+        });
+
+        logger.info(`Registered HealthCheckService for ${serviceName}`);
         return service;
     }
 

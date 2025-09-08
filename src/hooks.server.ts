@@ -5,14 +5,16 @@ import { error } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
-import { Redis } from 'ioredis';
+
 import { env } from '$env/dynamic/private';
 import { obp_requests } from '$lib/obp/requests';
-import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
 import { oauth2ProviderManager } from '$lib/oauth/providerManager';
 import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
+
+import { redisService } from '$lib/redis/services/RedisService';
+import { RedisHealthCheckService } from '$lib/health-check/services/RedisHealthCheckService';
 
 // Constants
 const DEFAULT_PORT = 5174;
@@ -49,30 +51,7 @@ function checkServerPort() {
 checkServerPort();
 
 // Init Redis
-let client: Redis;
-if (!env.REDIS_HOST || !env.REDIS_PORT) {
-	logger.warn('Redis host or port is not set. Using defaults.');
-
-	client = new Redis({
-		host: 'localhost',
-		port: 6379
-	});
-} else {
-	logger.debug('Connecting to Redis at:', env.REDIS_HOST, env.REDIS_PORT);
-	logger.debug('Redis password provided:', !!env.REDIS_PASSWORD);
-
-	const redisConfig: any = {
-		host: env.REDIS_HOST,
-		port: parseInt(env.REDIS_PORT)
-	};
-	if (env.REDIS_PASSWORD) {
-		redisConfig.password = env.REDIS_PASSWORD;
-	}
-
-	client = new Redis(redisConfig);
-}
-
-
+const redisClient = redisService.getClient();
 
 function initHealthChecks() {
 	healthCheckRegistry.register({
@@ -84,6 +63,9 @@ function initHealthChecks() {
 		serviceName: 'Opey II',
 		url: `${env.OPEY_BASE_URL}/status`,
 	});
+
+	const redisHealthCheck = new RedisHealthCheckService();
+	healthCheckRegistry.register(redisHealthCheck)
 
 	const oauthHealthChecks = oauth2ProviderManager.getHealthCheckEntries();
 	for (const check of oauthHealthChecks) {
@@ -122,7 +104,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 	if (!!routeId && needsAuthorization(routeId)) {
 		logger.debug('Checking authorization for user route:', event.url.pathname);
 		if (!oauth2ProviderManager.isReady()) {
-			logger.warn('OAuth2 providers not ready:', oauth2InitError);
+			logger.warn('OAuth2 providers not ready:', oauth2ProviderManager.getStatus().error);
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
 		// Check token expiration
@@ -183,7 +165,10 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
-	sveltekitSessionHandle({ secret: 'secret', store: new RedisStore({ client }) }),
+	sveltekitSessionHandle({ 
+		secret: 'secret',
+		store: new RedisStore({ client: redisClient })
+	}),
 	checkAuthorization
 	// add other handles here if needed
 );

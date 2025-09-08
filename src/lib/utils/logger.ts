@@ -8,7 +8,11 @@ export interface Logger {
 }
 
 class ConsoleLogger implements Logger {
-  constructor(private context: string) {}
+  private context: string;
+
+  constructor(context: string) {
+    this.context = context;
+  }
 
   private log(level: LogLevel, ...args: any[]): void {
     const timestamp = new Date().toISOString();
