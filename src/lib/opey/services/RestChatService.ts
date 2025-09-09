@@ -11,9 +11,13 @@ export class RestChatService implements ChatService {
 	constructor(
 		private baseUrl: string,
 		private auth: AuthStrategy = new CookieAuthStrategy()
-	) {}
+	) {
+
+		logger.info("Initialized Opey Chat with baseUrl:", baseUrl)
+	}
 
 	async sendApproval(toolCallId: string, approved: boolean, threadId: string): Promise<void> {
+		logger.info(`Sending approval for toolCallId=${toolCallId}, approved=${approved}, threadId=${threadId}`);
 		const init = await this.buildInit({
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -28,48 +32,14 @@ export class RestChatService implements ChatService {
 			if (!res.ok) {
 				let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
 
-				// Enhanced debugging for approval error responses
-				console.error(
-					`PORTAL_APPROVAL_ERROR_DEBUG: Received ${res.status} from Opey approval endpoint`
-				);
-				console.error(
-					`PORTAL_APPROVAL_ERROR_DEBUG: Response headers:`,
-					Object.fromEntries(res.headers.entries())
-				);
-				logger.error(
-					`PORTAL_APPROVAL_ERROR_DEBUG: Received ${res.status} from Opey approval endpoint`
-				);
-				logger.error(
-					`PORTAL_APPROVAL_ERROR_DEBUG: Response headers:`,
-					Object.fromEntries(res.headers.entries())
-				);
-
 				try {
-					// Try to parse error response body for more details
 					const errorData = await res.json();
-					console.error(`PORTAL_APPROVAL_ERROR_DEBUG: Parsed error response:`, errorData);
-					logger.error(`PORTAL_APPROVAL_ERROR_DEBUG: Parsed error response:`, errorData);
-
-					if (errorData.error) {
-						errorMessage = errorData.error;
-						logger.error(`PORTAL_APPROVAL_ERROR_DEBUG: Using error field: ${errorMessage}`);
-					} else if (errorData.message) {
-						errorMessage = errorData.message;
-						logger.error(`PORTAL_APPROVAL_ERROR_DEBUG: Using message field: ${errorMessage}`);
-					} else if (typeof errorData === 'string') {
-						errorMessage = errorData;
-						logger.error(`PORTAL_APPROVAL_ERROR_DEBUG: Using string response: ${errorMessage}`);
-					}
-				} catch (parseError) {
-					// If we can't parse the error response, use the status text
-					logger.error(
-						'PORTAL_APPROVAL_ERROR_DEBUG: Could not parse error response body:',
-						parseError
-					);
+					errorMessage = errorData.error || errorData.message || errorMessage;
+				} catch {
+					// Use default HTTP error message
 				}
 
-				logger.error(`PORTAL_APPROVAL_ERROR_DEBUG: Final approval error message: ${errorMessage}`);
-				logger.error(`Failed to send approval: ${errorMessage}`);
+				logger.error(`Approval failed: ${errorMessage}`);
 				this.errorCallback?.(new Error(`Failed to send approval: ${errorMessage}`));
 				return;
 			}
@@ -235,65 +205,20 @@ export class RestChatService implements ChatService {
 		if (!res.ok) {
 			let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
 
-			// Enhanced debugging for error responses
-			console.error(`PORTAL_ERROR_DEBUG: Received ${res.status} from Opey`);
-			console.error(
-				`PORTAL_ERROR_DEBUG: Response headers:`,
-				Object.fromEntries(res.headers.entries())
-			);
-			console.error(`PORTAL_ERROR_DEBUG: Response status text: ${res.statusText}`);
-			logger.error(`PORTAL_ERROR_DEBUG: Received ${res.status} from Opey`);
-			logger.error(
-				`PORTAL_ERROR_DEBUG: Response headers:`,
-				Object.fromEntries(res.headers.entries())
-			);
-			logger.error(`PORTAL_ERROR_DEBUG: Response status text: ${res.statusText}`);
-
 			try {
-				// Try to parse error response body for more details
 				const errorData = await res.json();
-				console.error(`PORTAL_ERROR_DEBUG: Parsed error response:`, errorData);
-				logger.error(`PORTAL_ERROR_DEBUG: Parsed error response:`, errorData);
 
-				if (res.status === 422 && errorData.detail && errorData.detail.length > 0) {
-					// Validation error
-					logger.debug('Validation error response:', errorData);
+				if (res.status === 422 && errorData.detail?.[0]) {
 					errorMessage = `Validation error: ${errorData.detail[0].msg} (${errorData.detail[0].field})`;
-				} else if (errorData.error) {
-					// Standard error response with error field
-					errorMessage = errorData.error;
-					console.error(`PORTAL_ERROR_DEBUG: Using error field: ${errorMessage}`);
-					logger.error(`PORTAL_ERROR_DEBUG: Using error field: ${errorMessage}`);
-				} else if (errorData.message) {
-					// Error response with message field
-					errorMessage = errorData.message;
-					logger.error(`PORTAL_ERROR_DEBUG: Using message field: ${errorMessage}`);
-				} else if (typeof errorData === 'string') {
-					// Error response is a plain string
-					errorMessage = errorData;
-					logger.error(`PORTAL_ERROR_DEBUG: Using string response: ${errorMessage}`);
 				} else {
-					// Use the original HTTP error message
-					logger.error(
-						'PORTAL_ERROR_DEBUG: Could not extract meaningful error from response:',
-						errorData
-					);
-					logger.error(`PORTAL_ERROR_DEBUG: Falling back to status text: ${errorMessage}`);
+					errorMessage = errorData.error || errorData.message || errorData || errorMessage;
 				}
-			} catch (parseError) {
-				// If we can't parse the error response, use the status text
-				logger.error('PORTAL_ERROR_DEBUG: Could not parse error response body:', parseError);
-				logger.error(`PORTAL_ERROR_DEBUG: Using status text fallback: ${errorMessage}`);
+			} catch {
+				// Use HTTP status fallback
 			}
 
-			console.error(`PORTAL_ERROR_DEBUG: Final error message to display: ${errorMessage}`);
-			logger.error(`PORTAL_ERROR_DEBUG: Final error message to display: ${errorMessage}`);
-
-			// System-level error - use onError callback
-			const error = new Error(errorMessage);
-			console.error(`PORTAL_ERROR_DEBUG: Calling error callback with:`, error.message);
-			logger.error(`PORTAL_ERROR_DEBUG: Calling error callback with:`, error.message);
-			this.errorCallback?.(error);
+			console.error(`Chat service error: ${errorMessage}`);
+			this.errorCallback?.(new Error(errorMessage));
 			return;
 		}
 
@@ -370,15 +295,10 @@ export class RestChatService implements ChatService {
 									token: eventData.content
 								});
 								break;
-							case 'tool_end':
-								console.error(
+							case 'tool_complete':
+								console.debug(
 									`MAIN_STREAM_DEBUG: Received tool_end event for ${eventData.tool_call_id}`
 								);
-								console.error(
-									`MAIN_STREAM_DEBUG: Tool output: ${JSON.stringify(eventData.tool_output)?.substring(0, 200)}...`
-								);
-								console.error(`MAIN_STREAM_DEBUG: Tool status: ${eventData.status}`);
-
 								this.streamEventCallback?.({
 									type: 'tool_complete',
 									toolCallId: eventData.tool_call_id,

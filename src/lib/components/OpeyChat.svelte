@@ -186,16 +186,9 @@
 		console.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
 		chatState.subscribe((c) => {
-			console.error('OPEY_CHAT_DEBUG: ChatState subscription callback fired');
-			console.error('OPEY_CHAT_DEBUG: Received chat state with', c.messages.length, 'messages');
 			if (c.messages.length > 0) {
 				const toolMessages = c.messages.filter((m) => m.role === 'tool');
-				console.error('OPEY_CHAT_DEBUG: Tool messages in state:', toolMessages.length);
-				toolMessages.forEach((tm, index) => {
-					console.error(
-						`OPEY_CHAT_DEBUG: Tool message ${index}: id=${tm.id}, isStreaming=${tm.isStreaming}`
-					);
-				});
+				toolMessages.forEach((tm, index) => {});
 			}
 			chat = c;
 		});

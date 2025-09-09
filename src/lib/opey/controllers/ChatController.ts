@@ -14,9 +14,7 @@ export class ChatController {
 	) {
 
 		service.onStreamEvent((event: StreamEvent) => {
-			logger.error('STREAM EVENT RECEIVED:', event.type);
-    		console.error('STREAM EVENT RECEIVED:', event.type);
-    
+			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
 					case 'thread_sync':
