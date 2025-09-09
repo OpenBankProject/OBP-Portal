@@ -27,149 +27,7 @@ export class RestChatService implements ChatService {
 			})
 		});
 
-		try {
-			const res = await fetch(`${this.baseUrl}/approval/${threadId}`, init);
-			if (!res.ok) {
-				let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-
-				try {
-					const errorData = await res.json();
-					errorMessage = errorData.error || errorData.message || errorMessage;
-				} catch {
-					// Use default HTTP error message
-				}
-
-				logger.error(`Approval failed: ${errorMessage}`);
-				this.errorCallback?.(new Error(`Failed to send approval: ${errorMessage}`));
-				return;
-			}
-
-			// The approval endpoint returns a streaming response with tool execution events
-			// We need to process this stream just like the main /stream endpoint
-			const reader = res.body?.getReader();
-			if (!reader) {
-				logger.error('No response body for approval stream');
-				this.errorCallback?.(new Error('No response body for approval stream'));
-				return;
-			}
-
-			const decoder = new TextDecoder();
-			let buffer = '';
-
-			try {
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split('\n');
-					buffer = lines.pop() || ''; // Keep the last incomplete line
-
-					for (const line of lines) {
-						logger.debug(`Approval stream: ${line}`);
-						if (line.startsWith('data: ')) {
-							let eventData;
-
-							if (line.slice(6).trim() === '[DONE]') {
-								break; // Skip the [DONE] line
-							}
-							try {
-								eventData = JSON.parse(line.slice(6));
-							} catch (error) {
-								logger.error('Failed to parse approval stream event data:', error);
-								this.errorCallback?.(
-									new Error(`Failed to parse approval stream event data: ${error}`)
-								);
-								continue; // Skip this line if parsing fails
-							}
-
-							// Process the approval stream events using the same logic as main stream
-							switch (eventData.type) {
-								case 'assistant_start':
-									this.streamEventCallback?.({
-										type: 'assistant_start',
-										messageId: eventData.message_id,
-										timestamp: new Date(eventData.timestamp)
-									});
-									break;
-								case 'assistant_token':
-									this.streamEventCallback?.({
-										type: 'assistant_token',
-										messageId: eventData.message_id,
-										token: eventData.content
-									});
-									break;
-								case 'assistant_complete':
-									this.streamEventCallback?.({
-										type: 'assistant_complete',
-										messageId: eventData.message_id
-									});
-									break;
-								case 'tool_start':
-									this.streamEventCallback?.({
-										type: 'tool_start',
-										toolCallId: eventData.tool_call_id,
-										toolInput: eventData.tool_input,
-										toolName: eventData.tool_name
-									});
-									break;
-								case 'tool_token':
-									this.streamEventCallback?.({
-										type: 'tool_token',
-										toolCallId: eventData.tool_call_id,
-										token: eventData.content
-									});
-									break;
-								case 'tool_end':
-									console.error(
-										`APPROVAL_STREAM_DEBUG: Received tool_end event for ${eventData.tool_call_id}`
-									);
-									console.error(
-										`APPROVAL_STREAM_DEBUG: Tool output: ${JSON.stringify(eventData.tool_output)?.substring(0, 200)}...`
-									);
-									console.error(`APPROVAL_STREAM_DEBUG: Tool status: ${eventData.status}`);
-
-									this.streamEventCallback?.({
-										type: 'tool_complete',
-										toolCallId: eventData.tool_call_id,
-										toolName: eventData.tool_name,
-										toolOutput: eventData.tool_output,
-										status: eventData.status
-									});
-
-									console.error(`APPROVAL_STREAM_DEBUG: Forwarded tool_complete event to callback`);
-									break;
-								case 'error':
-									if (eventData.message_id) {
-										this.streamEventCallback?.({
-											type: 'error',
-											messageId: eventData.message_id,
-											error: eventData.error
-										});
-									} else {
-										this.streamEventCallback?.({
-											type: 'error',
-											error: eventData.error
-										});
-									}
-									break;
-								default:
-									logger.warn(`Unknown approval stream event type: ${eventData.type}`);
-									break;
-							}
-						}
-					}
-				}
-			} catch (streamError) {
-				logger.error('Error processing approval stream:', streamError);
-				this.errorCallback?.(streamError as Error);
-			} finally {
-				reader.releaseLock();
-			}
-		} catch (error) {
-			logger.error('Error sending approval:', error);
-			this.errorCallback?.(error as Error);
-		}
+		return this.handleStreamingResponse(`${this.baseUrl}/approval/${threadId}`, init);
 	}
 
 	private async buildInit(init: RequestInit = {}): Promise<RequestInit> {
@@ -190,16 +48,22 @@ export class RestChatService implements ChatService {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(streamInput)
 		});
-		const res = await fetch(`${this.baseUrl}/stream`, init);
+		
+		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init, threadId);
+	}
 
-		// Extract thread_id from response headers if available
-		const responseThreadId = res.headers.get('X-Thread-ID');
-		if (responseThreadId && responseThreadId !== threadId) {
-			logger.debug(`Backend assigned thread_id: ${responseThreadId}, requested: ${threadId}`);
-			this.streamEventCallback?.({
-				type: 'thread_sync',
-				threadId: responseThreadId
-			});
+	private async handleStreamingResponse(url: string, init: RequestInit, threadId?: string): Promise<void> {
+		const res = await fetch(url, init);
+
+		// Handle thread ID syncing
+		if (threadId) {
+			const responseThreadId = res.headers.get('X-Thread-ID');
+			if (responseThreadId && responseThreadId !== threadId) {
+				this.streamEventCallback?.({
+					type: 'thread_sync',
+					threadId: responseThreadId
+				})
+			}
 		}
 
 		if (!res.ok) {
@@ -207,7 +71,6 @@ export class RestChatService implements ChatService {
 
 			try {
 				const errorData = await res.json();
-
 				if (res.status === 422 && errorData.detail?.[0]) {
 					errorMessage = `Validation error: ${errorData.detail[0].msg} (${errorData.detail[0].field})`;
 				} else {
@@ -217,7 +80,7 @@ export class RestChatService implements ChatService {
 				// Use HTTP status fallback
 			}
 
-			console.error(`Chat service error: ${errorMessage}`);
+			console.error(`Service error: ${errorMessage}`);
 			this.errorCallback?.(new Error(errorMessage));
 			return;
 		}
@@ -228,6 +91,10 @@ export class RestChatService implements ChatService {
 			return;
 		}
 
+		await this.processStream(reader);
+	}
+
+	private async processStream(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<void> {
 		const decoder = new TextDecoder();
 		let buffer = '';
 
@@ -250,91 +117,11 @@ export class RestChatService implements ChatService {
 						}
 						try {
 							eventData = JSON.parse(line.slice(6));
+							this.handleStreamEvent(eventData);
 						} catch (error) {
 							logger.error('Failed to parse event data:', error);
 							this.errorCallback?.(new Error(`Failed to parse event data: ${error}`));
 							continue; // Skip this line if parsing fails
-						}
-
-						// Handle the event based on its type
-						// This switch takes the eventData type from Opey API and translates it into a StreamEvent
-						// that is handled by the ChatController
-						switch (eventData.type) {
-							case 'assistant_start':
-								this.streamEventCallback?.({
-									type: 'assistant_start',
-									messageId: eventData.message_id,
-									timestamp: new Date(eventData.timestamp)
-								});
-								break;
-							case 'assistant_token':
-								this.streamEventCallback?.({
-									type: 'assistant_token',
-									messageId: eventData.message_id,
-									token: eventData.content
-								});
-								break;
-							case 'assistant_complete':
-								this.streamEventCallback?.({
-									type: 'assistant_complete',
-									messageId: eventData.message_id
-								});
-								break;
-							case 'tool_start':
-								this.streamEventCallback?.({
-									type: 'tool_start',
-									toolCallId: eventData.tool_call_id,
-									toolInput: eventData.tool_input,
-									toolName: eventData.tool_name
-								});
-								break;
-							case 'tool_token':
-								this.streamEventCallback?.({
-									type: 'tool_token',
-									toolCallId: eventData.tool_call_id,
-									token: eventData.content
-								});
-								break;
-							case 'tool_complete':
-								console.debug(
-									`MAIN_STREAM_DEBUG: Received tool_end event for ${eventData.tool_call_id}`
-								);
-								this.streamEventCallback?.({
-									type: 'tool_complete',
-									toolCallId: eventData.tool_call_id,
-									toolName: eventData.tool_name,
-									toolOutput: eventData.tool_output,
-									status: eventData.status
-								});
-
-								console.error(`MAIN_STREAM_DEBUG: Forwarded tool_complete event to callback`);
-								break;
-							case 'error':
-								if (eventData.message_id) {
-									this.streamEventCallback?.({
-										type: 'error',
-										messageId: eventData.message_id,
-										error: eventData.error
-									});
-								} else {
-									this.streamEventCallback?.({
-										type: 'error',
-										error: eventData.error
-									});
-								}
-								break;
-							case 'approval_request':
-								this.streamEventCallback?.({
-									type: 'approval_request',
-									toolCallId: eventData.tool_call_id,
-									toolName: eventData.tool_name,
-									toolInput: eventData.tool_input,
-									description: eventData.description
-								});
-								break;
-							default:
-								logger.warn(`Unknown event type: ${eventData.type}`);
-								break;
 						}
 					}
 				}
@@ -345,6 +132,78 @@ export class RestChatService implements ChatService {
 			reader.releaseLock();
 		}
 	}
+
+	private handleStreamEvent(eventData: any): void {
+		console.debug('RestChatService received event data:', eventData);
+		logger.debug('Handling stream event:', eventData);
+		switch (eventData.type) {
+			case 'assistant_start':
+				this.streamEventCallback?.({
+					type: 'assistant_start',
+					messageId: eventData.message_id,
+					timestamp: new Date(eventData.timestamp)
+				});
+				break;
+			case 'assistant_token':
+				this.streamEventCallback?.({
+					type: 'assistant_token',
+					messageId: eventData.message_id,
+					token: eventData.content
+				});
+				break;
+			case 'assistant_complete':
+				this.streamEventCallback?.({
+					type: 'assistant_complete',
+					messageId: eventData.message_id
+				});
+				break;
+			case 'tool_start':
+				this.streamEventCallback?.({
+					type: 'tool_start',
+					toolCallId: eventData.tool_call_id,
+					toolInput: eventData.tool_input,
+					toolName: eventData.tool_name
+				});
+				break;
+			case 'tool_token':
+				this.streamEventCallback?.({
+					type: 'tool_token',
+					toolCallId: eventData.tool_call_id,
+					token: eventData.content
+				});
+				break;
+			case 'tool_complete':
+			case 'tool_end':
+				this.streamEventCallback?.({
+					type: 'tool_complete',
+					toolCallId: eventData.tool_call_id,
+					toolName: eventData.tool_name,
+					toolOutput: eventData.tool_output,
+					status: eventData.status
+				});
+				break;
+			case 'error':
+				this.streamEventCallback?.({
+					type: 'error',
+					messageId: eventData.message_id,
+					error: eventData.error
+				});
+				break;
+			case 'approval_request':
+				this.streamEventCallback?.({
+					type: 'approval_request',
+					toolCallId: eventData.tool_call_id,
+					toolName: eventData.tool_name,
+					toolInput: eventData.tool_input,
+					description: eventData.description
+				});
+				break;
+			default:
+				console.warn(`Unknown event type: ${eventData.type}`);
+				break;
+		}
+	}
+
 
 	onStreamEvent(fn: (event: StreamEvent) => void) {
 		this.streamEventCallback = fn;
