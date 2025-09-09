@@ -171,44 +171,35 @@ export class ChatState {
 	}
 
 	markMessageComplete(messageId: string): void {
-		console.error(`CHATSTATE_DEBUG: markMessageComplete called for messageId: ${messageId}`);
 		const message = this.messages.find((msg) => msg.id === messageId);
-		if (message) {
-			console.error(
-				`CHATSTATE_DEBUG: Found message for completion, role: ${message.role}, isStreaming: ${message.isStreaming}`
-			);
-			if (message.isStreaming === undefined) {
-				console.error(`CHATSTATE_DEBUG: Message ${messageId} does not have isStreaming property`);
-				logger.debug(`Message with ID ${messageId} does not have isStreaming property.`);
-			} else if (!message.isStreaming) {
-				console.error(`CHATSTATE_DEBUG: Message ${messageId} is already marked as complete`);
-				logger.debug(`Message with ID ${messageId} is already marked as complete.`);
-			} else {
-				console.error(
-					`CHATSTATE_DEBUG: Marking message ${messageId} as complete (stopping spinner)`
-				);
-				logger.debug(`Marking message with ID ${messageId} as complete.`);
-				message.isStreaming = false; // Mark the message as complete
-				this.messages = [...this.messages]; // Force Svelte reactivity
-				this.emit(); // Notify subscribers about the change
-				console.error(`CHATSTATE_DEBUG: Message marked complete and state emitted`);
-			}
-		} else {
-			console.error(`CHATSTATE_DEBUG: Message ${messageId} NOT FOUND for completion`);
+		if (!message) {
 			// Check if this is a stale message from a previous session
 			if (this.isStaleMessage(messageId)) {
-				console.error(`CHATSTATE_DEBUG: Ignoring stale completion for message ${messageId}`);
-				logger.debug(`Ignoring stale completion for message ${messageId} from previous session.`);
+				logger.debug(`Ignoring stale completion for message ${messageId}`);
 				return;
 			}
-			// Reduce noise - only log if we're actually tracking messages
+			// Only log if we're actually tracking messages
 			if (this.messages.length > 0) {
-				console.error(
-					`CHATSTATE_DEBUG: Message ${messageId} not found in ${this.messages.length} messages`
-				);
-				logger.debug(`Message with ID ${messageId} not found for completion.`);
+				logger.debug(`Message ${messageId} not found for completion`);
 			}
+			return;
 		}
+
+		if (message.isStreaming === undefined) {
+			logger.debug(`Message ${messageId} does not have isStreaming property`);
+			return;
+		}
+
+		if (!message.isStreaming) {
+			logger.debug(`Message ${messageId} is already marked as complete`);
+			return;
+		}
+
+		// Mark the message as complete
+		message.isStreaming = false;
+		this.messages = [...this.messages]; // Force Svelte reactivity
+		this.emit(); // Notify subscribers about the change
+		logger.debug(`Marked message ${messageId} as complete`);
 	}
 
 	updateMessage(messageId: string, updates: Partial<BaseMessage>): void {

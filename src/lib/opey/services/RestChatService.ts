@@ -108,7 +108,7 @@ export class RestChatService implements ChatService {
 				buffer = lines.pop() || ''; // Keep the last incomplete line
 
 				for (const line of lines) {
-					logger.debug(line);
+					//logger.debug(line);
 					if (line.startsWith('data: ')) {
 						let eventData;
 
@@ -134,8 +134,7 @@ export class RestChatService implements ChatService {
 	}
 
 	private handleStreamEvent(eventData: any): void {
-		console.debug('RestChatService received event data:', eventData);
-		logger.debug('Handling stream event:', eventData);
+		logger.debug('Received stream event data:', eventData);
 		switch (eventData.type) {
 			case 'assistant_start':
 				this.streamEventCallback?.({

@@ -352,13 +352,6 @@
 											- Failed
 										{/if}
 									</span>
-									<!-- Debug: Tool message isStreaming status -->
-									{console.error(
-										'TEMPLATE_DEBUG: Tool message',
-										message.id,
-										'isStreaming:',
-										message.isStreaming
-									)}
 									{#if (message as ToolMessage).status === 'error'}
 										<XCircle class="stroke-error-500" />
 									{:else if (message as ToolMessage).approvalStatus === 'approved'}
@@ -395,13 +388,6 @@
 														- Error
 													{/if}
 												</span>
-												<!-- Debug: Tool output isStreaming status -->
-												{console.error(
-													'TEMPLATE_DEBUG: Tool output',
-													message.id,
-													'isStreaming:',
-													message.isStreaming
-												)}
 												{#if (message as ToolMessage).status === 'error'}
 													<XCircle class="stroke-error-500" />
 												{:else if (message as ToolMessage).approvalStatus === 'approved'}
