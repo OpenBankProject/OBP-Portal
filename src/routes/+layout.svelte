@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
+	import { page } from '$app/state';
+
 	// Lucide Icons
 	import {
 		Menu,
@@ -11,7 +13,12 @@
 		SquareTerminal,
 		UserPlus,
 		MessageCircleQuestion,
-		ShieldUser
+		ShieldUser,
+		User,
+		ChevronDown,
+		ChevronRight,
+		Settings,
+		CreditCard
 	} from '@lucide/svelte';
 	import { env } from '$env/dynamic/public';
 	import LightSwitch from '$lib/components/LightSwitch.svelte';
@@ -26,6 +33,7 @@
 	let { data, children } = $props<{ data: LayoutData }>();
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
+	let isMyAccountExpanded = $state(false);
 
 	let displayMode: 'dark' | 'light' = $state('dark');
 
@@ -35,9 +43,27 @@
 		isAuthenticated = false;
 	}
 
+	let isMyAccountActive = $derived(page.url.pathname.startsWith('/user'));
+	// Watch for route changes to auto-expand My Account section
+	$effect(() => {
+		if (isMyAccountActive) {
+			isMyAccountExpanded = true;
+		}
+	});
+
 	function toggleMobileMenu() {
 		isMobileMenuOpen = !isMobileMenuOpen;
 	}
+
+	function toggleMyAccount() {
+		isMyAccountExpanded = !isMyAccountExpanded;
+	}
+
+	let myAccountItems = $state([
+		{ href: '/user', label: 'Profile', iconComponent: User },
+		{ href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
+		{ href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound }
+	]);
 
 	// Some items in the menu are rendered conditionally based on the presence of URLs set in the environment variables.
 	// This is to ensure no broken links
@@ -112,6 +138,45 @@
 						><item.iconComponent /></Navigation.Tile
 					>
 				{/each}
+
+				{#if isAuthenticated}
+					<!-- My Account Accordion -->
+					<div class="w-full">
+						<button
+							type="button"
+							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
+							class:bg-primary-100-800={isMyAccountActive}
+							onclick={toggleMyAccount}
+						>
+							<div class="flex items-center gap-3">
+								<User class="h-5 w-5" />
+								<span>My Account</span>
+							</div>
+							{#if isMyAccountExpanded}
+								<ChevronDown class="h-4 w-4" />
+							{:else}
+								<ChevronRight class="h-4 w-4" />
+							{/if}
+						</button>
+
+						{#if isMyAccountExpanded}
+							<div class="mt-1 ml-4 space-y-1">
+								{#each myAccountItems as subItem}
+									<Navigation.Tile
+										id={subItem.label.toLowerCase().replace(/\s+/g, '-')}
+										labelExpanded={subItem.label}
+										href={subItem.href}
+										title={subItem.label}
+										active="preset-filled-secondary-50-950 border-l-2 border-primary-500"
+										classes="pl-6 text-sm"
+									>
+										<subItem.iconComponent class="h-4 w-4" />
+									</Navigation.Tile>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
 			{/snippet}
 			{#snippet footer()}
 				<div class="text-surface-800-200 flex flex-wrap items-center gap-3 text-xs">

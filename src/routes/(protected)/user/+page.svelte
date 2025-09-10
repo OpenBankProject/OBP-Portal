@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { Tabs } from '@skeletonlabs/skeleton-svelte';
+
+  	let currentTab: 'consents' | 'about' | 'manage' = $state('about');
+
 	const { data } = $props();
 	const userData = data.userData || {};
 	const opeyConsentInfo = data.opeyConsentInfo || null;
@@ -69,7 +73,7 @@
 		</article>
 	</div>
 
-	<!-- Consent for Opey Section -->
+	
 	<div
 		class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 	>
