@@ -7,6 +7,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - PUBLIC_OBP_BASE_URL=${PUBLIC_OBP_BASE_URL}
+        - OBP_OAUTH_CLIENT_ID=${OBP_OAUTH_CLIENT_ID}
+        - OBP_OAUTH_CLIENT_SECRET=${OBP_OAUTH_CLIENT_SECRET}
+        - APP_CALLBACK_URL=${APP_CALLBACK_URL}
+        - ORIGIN=${ORIGIN}
     user: "node"
     depends_on:
       - redis-cache
@@ -19,13 +25,13 @@ services:
     restart: unless-stopped
     ports:
       - 3000:3000
-  redis-cache: 
+  redis-cache:
     image: redis:6.2-alpine
     restart: always
     ports:
       - '6378:6379'
     command: redis-server --save 20 1 --loglevel warning
-    volumes: 
+    volumes:
       - redis-cache:/data
 
 volumes:
