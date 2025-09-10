@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import { page } from '$app/state';
+	import { myAccountItems } from '$lib/config/navigation';
 
 	// Lucide Icons
 	import {
@@ -59,12 +60,6 @@
 		isMyAccountExpanded = !isMyAccountExpanded;
 	}
 
-	let myAccountItems = $state([
-		{ href: '/user', label: 'Profile', iconComponent: User },
-		{ href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
-		{ href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound }
-	]);
-
 	// Some items in the menu are rendered conditionally based on the presence of URLs set in the environment variables.
 	// This is to ensure no broken links
 	let menuItems = $state([
@@ -109,7 +104,7 @@
 	});
 </script>
 
-<div class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid">
+<div class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden">
 	<div class="h-full">
 		<Navigation.Rail
 			value={currentTab}
@@ -198,27 +193,29 @@
 		</Navigation.Rail>
 	</div>
 	<div
-		class="dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 flex h-full flex-col bg-conic-250 from-30% via-40% to-50%"
-	>
-		<div class="flex h-full flex-col backdrop-blur-2xl">
-			<div class="bg-opacity-0 flex items-center justify-end p-4">
-				<LightSwitch bind:mode={displayMode} />
-				{#if isAuthenticated}
-					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
-					<button type="button" class="btn preset-outlined-primary-500"
-						><a href="/logout">Logout</a></button
-					>
-				{:else}
-					<span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
-					<button type="button" class="btn preset-filled-surface-950-50"
-						><a href="/login/obp">Login</a></button
-					>
-				{/if}
-			</div>
+        class="dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 h-full bg-conic-250 from-30% via-40% to-50%"
+    >
+        <div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 80px);">
+            <div class="bg-opacity-0 flex items-center justify-end p-4" style="height: 80px; flex-shrink: 0;">
+                <LightSwitch bind:mode={displayMode} />
+                {#if isAuthenticated}
+                    <span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
+                    <button type="button" class="btn preset-outlined-primary-500"
+                        ><a href="/logout">Logout</a></button
+                    >
+                {:else}
+                    <span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
+                    <button type="button" class="btn preset-filled-surface-950-50"
+                        ><a href="/login/obp">Login</a></button
+                    >
+                {/if}
+            </div>
 
-			{@render children()}
-		</div>
-	</div>
+            <main class="flex flex-col" style="height: calc(100vh - 80px);">
+                {@render children()}
+            </main>
+        </div>
+    </div>
 </div>
 
 <!-- <AppBar leadClasses="hidden sm:block">
