@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Tabs } from '@skeletonlabs/skeleton-svelte';
+	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { type SessionData } from 'svelte-kit-sessions';
 	import { toast } from '$lib/utils/toastService.js';
 
-  	let currentTab: 'consents' | 'about' | 'manage' = $state('about');
+	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 
 	const { data } = $props();
-	const userData: SessionData["user"] = data.userData || undefined;
+	const userData: SessionData['user'] = data.userData || undefined;
 	const opeyConsentInfo = data.opeyConsentInfo || null;
 
 	function formatDate(dateString: string) {
@@ -26,51 +26,186 @@
 	function snakeCaseToTitleCase(snakeCase: string): string {
 		return snakeCase
 			.split('_')
-			.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
 			.join(' ');
 	}
 
 	// New function to copy text to clipboard with feedback
-    async function copyToClipboard(text: string, element: HTMLElement) {
-        try {
-            await navigator.clipboard.writeText(text);
-            toast.info('Copied to clipboard!');
-        } catch (err) {
-            console.error('Failed to copy: ', err);
+	async function copyToClipboard(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.info('Copied to clipboard!');
+		} catch (err) {
+			console.error('Failed to copy: ', err);
 			toast.error('Failed to copy to clipboard.');
+		}
+	}
+
+	async function copyJsonToClipboard(jsonData: object) {
+		try {
+			const jsonString = JSON.stringify(jsonData, null, 2);
+			await navigator.clipboard.writeText(jsonString);
+			toast.info('User JSON copied to clipboard!');
+		} catch (err) {
+			console.error('Failed to copy JSON: ', err);
+			toast.error('Failed to copy JSON to clipboard.');
+		}
+	}
+
+	// Track which complex data items are expanded
+    let expandedItems = $state([]);
+    
+    // Format complex data for display
+    function formatValue(value: any): string {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return String(value);
         }
+        return JSON.stringify(value, null, 2);
     }
 </script>
 
-{#snippet userInfo(userData: SessionData["user"])}
-{#if !userData || Object.keys(userData).length === 0}
-	<p>No user data available.</p>
-{:else}
-		{#each Object.entries(userData) as [key, value]}
-		<div class="gap-10 flex mb-2 mx-auto items-center">
-			<strong class="">{snakeCaseToTitleCase(key)}:</strong> 
-			<button 
-				class="rounded-sm backdrop-blur-2xl bg-gray-800/20 p-2"
-				onclick={(event) => copyToClipboard(value, event.currentTarget)}
-				>
-				{value}
-		</button>
-			
-		</div>
-		{/each}
-{/if}
-
+{#snippet userInfo(userData: SessionData['user'])}
+    {#if userData && Object.keys(userData).length > 0}
+        <div class="mx-10 pr-5">
+            <header class="flex items-center justify-between py-4">
+                <h1 class="h4 text-center align-middle">User Information</h1>
+                <button
+                    class="btn preset-outlined-tertiary-500 rounded-md p-1 text-sm"
+                    onclick={() => copyJsonToClipboard(userData)}>Copy JSON</button
+                >
+            </header>
+            <article class="border-primary-500 border-b-[1px] p-4 space-y-3">
+                <!-- Group entries by type -->
+                {#each Object.entries(userData) as [key, value]}
+                    {#if Array.isArray(value) || (value !== null && typeof value === 'object')}
+                        <!-- Complex values use accordion -->
+                        <Accordion 
+                            value={expandedItems} 
+                            onValueChange={(e) => (expandedItems = e.value)} 
+                            multiple 
+                            collapsible
+                        >
+                            <Accordion.Item value={key} classes="border-0">
+                                {#snippet control()}
+                                    <div class="flex items-center justify-between w-full">
+                                        <strong>{snakeCaseToTitleCase(key)}</strong>
+                                        <span class="text-sm text-tertiary-400">
+                                            {Array.isArray(value) 
+                                                ? `[${value.length} items]` 
+                                                : `{${Object.keys(value).length} properties}`
+                                            }
+                                        </span>
+                                    </div>
+                                {/snippet}
+                                
+                                {#snippet panel()}
+                                    {#if Array.isArray(value)}
+                                        <!-- Array rendering -->
+                                        <div class="space-y-2">
+                                            {#each value as item, i}
+                                                <div class="flex gap-2 items-start">
+                                                    <span class="text-tertiary-400 w-8">{i}:</span>
+                                                    {#if item !== null && typeof item === 'object'}
+                                                        <div class="flex-1">
+                                                            <pre class="bg-gray-800/10 p-2 rounded text-sm overflow-x-auto max-w-full">
+                                                                {JSON.stringify(item, null, 2)}
+                                                            </pre>
+                                                            <button 
+                                                                class="btn btn-sm mt-1 preset-outlined-tertiary-500"
+                                                                onclick={() => copyToClipboard(JSON.stringify(item, null, 2))}
+                                                            >
+                                                                Copy
+                                                            </button>
+                                                        </div>
+                                                    {:else}
+                                                        <div class="flex items-center gap-2">
+                                                            <span>{formatValue(item)}</span>
+                                                            <button 
+                                                                class="btn btn-sm variant-ghost-tertiary"
+                                                                onclick={() => copyToClipboard(String(item))}
+                                                            >
+                                                                Copy
+                                                            </button>
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {:else if value !== null && typeof value === 'object'}
+                                        <!-- Object rendering -->
+                                        <div class="space-y-2">
+                                            {#each Object.entries(value) as [subKey, subValue]}
+                                                <div class="flex gap-2 items-start">
+                                                    <span class="text-tertiary-400 min-w-20 font-semibold">{subKey}:</span>
+                                                    {#if subValue !== null && typeof subValue === 'object'}
+                                                        <div class="flex-1">
+                                                            <pre class="bg-gray-800/10 p-2 rounded text-sm overflow-x-auto max-w-full">
+                                                                {JSON.stringify(subValue, null, 2)}
+                                                            </pre>
+                                                            <button 
+                                                                class="btn btn-sm mt-1 preset-outlined-tertiary-500"
+                                                                onclick={() => copyToClipboard(JSON.stringify(subValue, null, 2))}
+                                                            >
+                                                                Copy
+                                                            </button>
+                                                        </div>
+                                                    {:else}
+                                                        <div class="flex items-center gap-2">
+                                                            <span>{formatValue(subValue)}</span>
+                                                            <button 
+                                                                class="btn btn-sm variant-ghost-tertiary"
+                                                                onclick={() => copyToClipboard(String(subValue))}
+                                                            >
+                                                                Copy
+                                                            </button>
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {/if}
+                                {/snippet}
+                            </Accordion.Item>
+                        </Accordion>
+                        <hr class="hr !my-1 opacity-30" />
+                    {:else}
+                        <!-- Simple values displayed directly -->
+                        <div class="flex items-center justify-between p-2 hover:bg-primary-500/5 rounded-md">
+                            <strong>{snakeCaseToTitleCase(key)}</strong>
+                            <div class="flex items-center gap-2">
+                                <span class="rounded-sm bg-gray-800/20 p-2 backdrop-blur-2xl">
+                                    {value}
+                                </span>
+                                <button
+                                    class="btn-icon btn-sm variant-ghost-tertiary"
+                                    onclick={() => copyToClipboard(String(value))}
+                                    title="Copy to clipboard"
+									aria-label="Copy to clipboard"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <hr class="hr !my-0 opacity-20" />
+                    {/if}
+                {/each}
+            </article>
+        </div>
+    {:else}
+        <div class="mx-10 pr-5">
+            <p>No user data available.</p>
+        </div>
+    {/if}
 {/snippet}
 
 <div class="flex flex-col space-y-6">
-		<header class="py-4">
-			<h1 class="h4">User Information</h1>
-		</header>
-		<article class="space-y-4 p-4">
-			{@render userInfo(userData)}
-		</article>
+	{@render userInfo(userData)}
 
-	
 	<div
 		class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 	>
@@ -119,8 +254,8 @@
 							</p>
 						</div>
 						<div class="mt-4">
-							<a 
-								href="/user/consents" 
+							<a
+								href="/user/consents"
 								class="hover:text-tertiary-400 text-sm font-medium underline"
 							>
 								All My Consents
@@ -146,8 +281,8 @@
 							</div>
 						{/if}
 						<div class="mt-4">
-							<a 
-								href="/user/consents" 
+							<a
+								href="/user/consents"
 								class="hover:text-tertiary-400 text-sm font-medium underline"
 							>
 								All My Consents
@@ -159,10 +294,7 @@
 				<div class="preset-filled-primary-50-950 m-1.5 rounded-lg p-4 shadow-md">
 					<p class="text-surface-600-400 text-center">Opey integration not configured.</p>
 					<div class="mt-4 text-center">
-						<a 
-							href="/user/consents" 
-							class="hover:text-tertiary-400 text-sm font-medium underline"
-						>
+						<a href="/user/consents" class="hover:text-tertiary-400 text-sm font-medium underline">
 							All My Consents
 						</a>
 					</div>
