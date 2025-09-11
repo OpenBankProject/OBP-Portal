@@ -126,6 +126,11 @@ export class HealthCheckRegistry {
         }
     }
 
+
+    getSnapshot(serviceName: string): HealthCheckSnapshot | undefined {
+        const service = this.services.get(serviceName);
+        return service?.getSnapshot();
+    }
     /**
      * get all health check snapshots
      */

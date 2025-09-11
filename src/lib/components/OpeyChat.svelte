@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { ShieldUserIcon } from '@lucide/svelte';
+	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
 
 	// Function to format tool output with better user experience
 	function formatToolOutput(message: ToolMessage): string {
@@ -106,6 +108,7 @@
 	import type { ToolMessage, ApprovalRequestMessage } from '$lib/opey/types';
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
 	import ApprovalRequest from './ApprovalRequest.svelte';
+	import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 
 	// Function to get display name with instance number
 	function getToolDisplayName(toolName: string, instanceNumber: number): string {
@@ -142,6 +145,7 @@
 		displayHeader: boolean; // Whether to display the header with the logo and title
 		currentlyActiveUserName: string; // Optional name of the currently active user
 		suggestedQuestions: SuggestedQuestion[]; // List of suggested questions to display
+		displayConnectionPips: boolean; // Whether to display connection status pips
 		initialAssistantMessage?: string;
 		headerClasses?: string; // Optional classes for the header
 		footerClasses?: string;
@@ -158,6 +162,7 @@
 		baseUrl: env.PUBLIC_OPEY_BASE_URL || 'http://localhost:5000',
 		displayHeader: true,
 		currentlyActiveUserName: 'Guest',
+		displayConnectionPips: true,
 		suggestedQuestions: []
 	};
 
@@ -176,7 +181,16 @@
 
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
-	let isConnecting = false;
+
+	// TODO: this is not quite working properly, returns unknown all the time
+	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $derived.by(() => {
+		const snapshots = $state.snapshot(healthCheckRegistry.getStore());
+		const opeySnapshot = snapshots['Opey II' as keyof typeof snapshots];
+
+		if (!opeySnapshot) return 'unknown';
+		if ('status' in opeySnapshot && opeySnapshot.status === 'degraded') return 'degraded';
+		return (opeySnapshot && 'status' in opeySnapshot && opeySnapshot.status === 'healthy') ? 'healthy' : 'unhealthy';
+	});
 
 	let splashScreenDisplay = $derived.by(() => {
 		return splash && chat.messages.length === 0;
@@ -204,6 +218,52 @@
 		//
 
 		await initializeOpeySession();
+
+		//return unsubscribeFromHealthCheck
+	});
+
+	// Derived colors for pips
+	let connectionPipColor: string = $derived.by(() => {
+		switch (connectionStatus) {
+			case 'healthy':
+				return 'preset-filled-success-500';
+			case 'unhealthy':
+				return 'preset-filled-error-500';
+			case 'degraded':
+				return 'preset-filled-warning-500';
+			case 'unknown':
+				return 'preset-filled-warning-500';
+			default:
+				return 'preset-filled-warning-500';
+		}
+	});
+
+	let connectionStatusString: string = $derived.by(() => {
+		switch (connectionStatus) {
+			case 'healthy':
+				return 'connected';
+			case 'unhealthy':
+				return 'disconnected';
+			case 'degraded':
+				return 'degraded';
+			case 'unknown':
+				return 'unknown';
+			default:
+				return 'unknown';
+		}
+	});
+
+	let authPipColor: string = $derived.by(() => {
+		switch (session.status) {
+			case 'ready':
+				return 'preset-filled-success-500';
+			case 'error':
+				return 'preset-filled-error-500';
+			case 'loading':
+				return 'preset-filled-warning-500';
+			default:
+				return 'preset-filled-warning-500';
+		}
 	});
 
 	async function sendMessage(text: string) {
@@ -462,29 +522,56 @@
 {/snippet}
 
 {#snippet inputField()}
-	<div class="relative w-full">
-		<img
-			src="/opey_avatar.png"
-			alt="Opey Avatar"
-			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
-		/>
-		<input
-			bind:value={messageInput}
-			type="text"
-			placeholder="Ask me about the Open Bank Project API"
-			class="input bg-primary-50 dark:bg-primary-600 h-15 w-full rounded-lg p-5 pr-7"
-			disabled={session?.status !== 'ready'}
-			onkeydown={handleKeyPress}
-		/>
-		{#if messageInput.length > 0}
-			<button
-				class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
-				disabled={session?.status !== 'ready' || !messageInput.trim()}
-				onclick={() => handleSendMessage(messageInput)}
-			>
-				<CircleArrowUp class="h-7 w-7" />
-			</button>
-		{/if}
+	<div class="flex w-full items-center gap-2">
+		<!-- Use flex to align input and pips horizontally -->
+		<div class="relative flex-1">
+			<!-- Input container -->
+			<img
+				src="/opey_avatar.png"
+				alt="Opey Avatar"
+				class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
+			/>
+			<input
+				bind:value={messageInput}
+				type="text"
+				placeholder="Ask me about the Open Bank Project API"
+				class="input bg-primary-50 dark:bg-primary-600 h-15 w-full rounded-lg p-5 pr-7"
+				disabled={session?.status !== 'ready'}
+				onkeydown={handleKeyPress}
+			/>
+			{#if messageInput.length > 0}
+				<button
+					class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
+					disabled={session?.status !== 'ready' || !messageInput.trim()}
+					onclick={() => handleSendMessage(messageInput)}
+				>
+					<CircleArrowUp class="h-7 w-7" />
+				</button>
+			{/if}
+		</div>
+		<!-- Pips outside the input, on the right -->
+		<div class="flex flex-col gap-1">
+			<!-- Connection Pip with Tooltip -->
+			<Tooltip classes="z-10">
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {connectionPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
+			</Tooltip>
+			<!-- Authentication Pip with Tooltip -->
+			<Tooltip classes="z-10">
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {authPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}Authentication Status{/snippet}
+			</Tooltip>
+		</div>
 	</div>
 {/snippet}
 
