@@ -3,6 +3,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import { page } from '$app/state';
 	import { myAccountItems } from '$lib/config/navigation';
+	import Toast from '$lib/components/Toast.svelte';
 
 	// Lucide Icons
 	import {
@@ -218,57 +219,5 @@
     </div>
 </div>
 
-<!-- <AppBar leadClasses="hidden sm:block">
-	{#snippet lead()}
-		<a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-			<img class="block h-10 w-auto md:object-contain" src={logoUrl} alt="Logo" />
-		</a>
-	{/snippet}
-	{#snippet headline()}{/snippet}
-	{#snippet trail()}
-		<div class="hidden flex-wrap items-center justify-end space-x-2 sm:flex rtl:space-x-reverse">
-			{#each headerLinks as link}
-				<button type="button" class="btn hover:preset-tonal"
-					><a href={link.href}>{link.label}</a></button
-				>
-			{/each}
-		</div>
-
-		<button type="button" class="btn-icon btn-lg block sm:hidden" onclick={toggleMobileMenu}>
-			{#if isMobileMenuOpen}
-				<X />
-			{:else}
-				<Menu />
-			{/if}
-		</button>
-
-		<span class="vr"></span>
-
-		{#if isAuthenticated}
-			<span class="hover:text-tertiary-400 mx-10 my-auto text-white"
-				><a href="/user">{data.username}</a></span
-			>
-			<button type="button" class="btn preset-outlined-primary-500"
-				><a href="/logout">Logout</a></button
-			>
-		{:else}
-			<span class="hover:text-tertiary-400 my-auto ml-2 font-bold text-white"
-				><a href="/register">Sign Up</a></span
-			>
-			<button type="button" class="btn preset-filled-primary-500"
-				><a href="/login/obp">Log on</a></button
-			>
-		{/if}
-	{/snippet}
-</AppBar>
-
-{#if isMobileMenuOpen}
-	<div
-		class="bg-primary-500/95 fixed top-16 right-0 left-0 z-50 flex flex-col space-y-2 p-4 shadow-lg transition-all duration-200 ease-in-out sm:hidden"
-	>
-		{#each headerLinks as link}
-			<a href={link.href} class="btn variant-filled-primary w-full py-3 text-center">{link.label}</a
-			>
-		{/each}
-	</div>
-{/if} -->
+<!-- Global Toast Component -->
+<Toast />
