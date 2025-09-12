@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import { ShieldUserIcon } from '@lucide/svelte';
 	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { createLogger } from '$lib/utils/logger';
+
+	const logger = createLogger('OpeyChat');
 
 	// Function to format tool output with better user experience
 	function formatToolOutput(message: ToolMessage): string {
@@ -197,7 +200,7 @@
 	});
 
 	onMount(async () => {
-		console.debug('OpeyChat component mounted with options:', options);
+		logger.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
 		chatState.subscribe((c) => {
 			if (c.messages.length > 0) {
@@ -215,11 +218,12 @@
 				timestamp: new Date()
 			});
 		}
-		//
+		
+		// Can set retry parameters here if desired
+		// e.g. await initializeOpeySessionWithRetry(5, 2000);
+		// would try 5 times with a base delay of 2 seconds
+		await initializeOpeySessionWithRetry();
 
-		await initializeOpeySession();
-
-		//return unsubscribeFromHealthCheck
 	});
 
 	// Derived colors for pips
@@ -298,19 +302,43 @@
 				throw new Error(data.error || 'Failed to initialize session');
 			}
 
-			console.debug('Opey session initialized:', data);
+			logger.debug('Opey session initialized:', data);
 			if (data.error) {
-				console.warn('Opey session initialization warning:', data.error);
+				logger.warn('Opey session initialization warning:', data.error);
 			}
 
 			// Update session state based on response
 			sessionState.setAuth(data.authenticated);
 			sessionState.setStatus('ready');
 		} catch (error: any) {
-			console.error('Failed to initialize Opey session:', error);
+			logger.error('Failed to initialize Opey session:', error);
 			sessionState.setStatus('error', error.message);
 		}
 	}
+
+	// Add retry logic with exponential backoff
+    async function initializeOpeySessionWithRetry(maxRetries = 3, baseDelay = 1000) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                await initializeOpeySession();
+                if (session.status === 'ready') {
+                    logger.debug(`Opey session initialized successfully on attempt ${attempt}`);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`Session initialization attempt ${attempt} failed:`, error);
+            }
+
+            if (attempt < maxRetries) {
+                const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+                logger.debug(`Retrying session initialization in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        logger.error(`Failed to initialize session after ${maxRetries} attempts`);
+        sessionState.setStatus('error', `Failed to initialize after ${maxRetries} attempts`);
+    }
 
 	/**
 	 * Connect to banking data (upgrade from anonymous to authenticated)
