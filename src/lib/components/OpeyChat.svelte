@@ -17,7 +17,10 @@
 	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
 	import ApprovalRequest from './ApprovalRequest.svelte';
 	import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
+
+	// Import other components
 	import { ToolError, ObpApiResponse, DefaultToolResponse } from './tool-messages';
+	import ChatMessage from './ChatMessage.svelte';
 
 	// Function to get display name with instance number
 	function getToolDisplayName(toolName: string, instanceNumber: number): string {
@@ -293,155 +296,19 @@
 {/snippet}
 
 {#snippet body()}
-	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
-		<div class="space-y-4">
-			{#each chat.messages as message, index (`${message.id}-${index}`)}
-				{#if message.role === 'user'}
-					<div class="flex flex-col items-end justify-start">
-						<div class="mb-2 flex items-center gap-2">
-							<!-- if the last message was a user message, no need to draw another avatar -->
-							{#if !(chat.messages[index - 1]?.role === 'user')}
-								<p class="text-s font-bold">{options.currentlyActiveUserName}</p>
-								<Avatar
-									name={options.currentlyActiveUserName}
-									classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
-								/>
-							{/if}
-						</div>
-						<div class="preset-filled-tertiary-500 max-w-3/5 rounded-2xl p-2 text-white">
-							{message.message}
-						</div>
-					</div>
-				{:else if message.role === 'assistant'}
-					<div class="flex flex-col items-start justify-start">
-						{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
-							<div class="mb-2 flex items-center gap-2">
-								<Avatar
-									src="/opey-icon-white.png"
-									name="opey"
-									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-								/>
-								<p class="text-s font-bold">Opey</p>
-							</div>
-							<hr class="hr" />
-						{/if}
-						<div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
-							{@html renderMarkdown(message.message)}
-						</div>
-					</div>
-				{:else if message.role === 'tool'}
-					<!-- if the last message was a tool message, no need to draw another avatar -->
-					{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
-						<div class="mb-2 flex items-center gap-2">
-							<Avatar
-								src="/opey-icon-white.png"
-								name="opey"
-								classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-							/>
-							<p class="text-s font-bold">Opey</p>
-						</div>
-						<hr class="hr" />
-					{/if}
-					<Accordion collapsible classes="max-w-full">
-						<Accordion.Item value={message.id}>
-							{#snippet lead()}<Hammer />{/snippet}
-							{#snippet control()}
-								<div class="flex justify-between">
-									<span class:text-error-700={(message as ToolMessage).status === 'error'}>
-										{getToolDisplayName(
-											(message as ToolMessage).toolName,
-											(message as ToolMessage).instanceNumber || 1
-										)}
-										{#if (message as ToolMessage).status === 'error'}
-											- Failed
-										{/if}
-									</span>
-									{#if (message as ToolMessage).status === 'error'}
-										<XCircle class="stroke-error-500" />
-									{:else if (message as ToolMessage).approvalStatus === 'approved'}
-										<Check class="stroke-success-500" />
-									{:else if (message as ToolMessage).approvalStatus === 'denied'}
-										<XCircle class="stroke-error-500" />
-									{:else if (message as ToolMessage).waitingForApproval}
-										<Diamond class="stroke-warning-500" />
-									{:else if message.isStreaming}
-										<LoaderCircle class="stroke-warning-500 animate-spin" />
-									{:else}
-										<Check class="stroke-success-500" />
-									{/if}
-								</div>
-							{/snippet}
-							{#snippet panel()}
-								<Accordion collapsible>
-									<Accordion.Item value="input">
-										{#snippet lead()}<Hammer />{/snippet}
-										{#snippet control()}Tool Input{/snippet}
-										{#snippet panel()}
-											<div class="preset-filled-primary-500 max-w-3/5 rounded-2xl p-2 text-white">
-												{JSON.stringify((message as ToolMessage).toolInput)}
-											</div>
-										{/snippet}
-									</Accordion.Item>
-									<Accordion.Item value="output" disabled={!!message.isStreaming}>
-										{#snippet lead()}<Hammer />{/snippet}
-										{#snippet control()}
-											<div class="flex justify-between">
-												<span class:text-error-700={(message as ToolMessage).status === 'error'}>
-													Tool Output
-													{#if (message as ToolMessage).status === 'error'}
-														- Error
-													{/if}
-												</span>
-												{#if (message as ToolMessage).status === 'error'}
-													<XCircle class="stroke-error-500" />
-												{:else if (message as ToolMessage).approvalStatus === 'approved'}
-													<Check class="stroke-success-500" />
-												{:else if (message as ToolMessage).approvalStatus === 'denied'}
-													<XCircle class="stroke-error-500" />
-												{:else if (message as ToolMessage).waitingForApproval}
-													<Diamond class="stroke-warning-500" />
-												{:else if message.isStreaming}
-													<LoaderCircle class="stroke-warning-500 animate-spin" />
-												{:else}
-													<Check class="stroke-success-500" />
-												{/if}
-											</div>
-										{/snippet}
-										{#snippet panel()}
-											<div class="max-w-full rounded-2xl p-2">
-												{@render toolOutput(message as ToolMessage)}
-											</div>
-										{/snippet}
-									</Accordion.Item>
-								</Accordion>
-							{/snippet}
-						</Accordion.Item>
-					</Accordion>
-				{:else if message.role === 'approval_request'}
-					<div class="flex flex-col items-start justify-start">
-						{#if !['tool', 'assistant', 'approval_request'].includes(chat.messages[index - 1]?.role)}
-							<div class="mb-2 flex items-center gap-2">
-								<Avatar
-									src="/opey-icon-white.png"
-									name="opey"
-									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-								/>
-								<p class="text-s font-bold">Opey</p>
-							</div>
-							<hr class="hr" />
-						{/if}
-						<div class="max-w-full">
-							<ApprovalRequest
-								message={message as ApprovalRequestMessage}
-								onApprove={handleApprove}
-								onDeny={handleDeny}
-							/>
-						</div>
-					</div>
-				{/if}
-			{/each}
-		</div>
-	</article>
+    <article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
+        <div class="space-y-4">
+            {#each chat.messages as message, index (`${message.id}-${index}`)}
+                <ChatMessage 
+                    {message}
+                    previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
+                    userName={options.currentlyActiveUserName}
+                    onApprove={handleApprove}
+                    onDeny={handleDeny}
+                />
+            {/each}
+        </div>
+    </article>
 {/snippet}
 
 {#snippet suggestedQuestions()}

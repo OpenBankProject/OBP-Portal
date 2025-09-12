@@ -144,14 +144,41 @@ export class ChatController {
 	}
 
 	async approveToolCall(toolCallId: string): Promise<void> {
-		this.state.updateApprovalRequest(toolCallId, true);
-		return this.service.sendApproval(toolCallId, true, this.state.getThreadId());
-	}
+        logger.debug(`Approving tool call: ${toolCallId}`);
+        this.state.updateApprovalRequest(toolCallId, true);
+        
+        // Update the tool message to show it's approved but processing
+        const toolMessage = this.state.getToolMessageByCallId(toolCallId);
+        if (toolMessage) {
+            logger.debug(`Found tool message to update for approval: ${toolMessage.id}`);
+            this.state.updateToolMessage(toolMessage.id, {
+                approvalStatus: 'approved',
+                waitingForApproval: false,
+                isStreaming: true // Show it's now executing
+            });
+        } else {
+            logger.warn(`No tool message found for tool call ID: ${toolCallId}`);
+        }
+        
+        return this.service.sendApproval(toolCallId, true, this.state.getThreadId());
+    }
 
-	async denyToolCall(toolCallId: string): Promise<void> {
-		this.state.updateApprovalRequest(toolCallId, false);
-		return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
-	}
+    async denyToolCall(toolCallId: string): Promise<void> {
+        logger.debug(`Denying tool call: ${toolCallId}`);
+        this.state.updateApprovalRequest(toolCallId, false);
+        
+        // Update the tool message to show it's denied
+        const toolMessage = this.state.getToolMessageByCallId(toolCallId);
+        if (toolMessage) {
+            this.state.updateToolMessage(toolMessage.id, {
+                approvalStatus: 'denied',
+                waitingForApproval: false,
+                isStreaming: false
+            });
+        }
+        
+        return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
+    }
 
 	private assignToolInstance(toolName: string): number {
 		if (!this.toolInstanceCounts[toolName]) {

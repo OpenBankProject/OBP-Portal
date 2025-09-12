@@ -63,93 +63,78 @@ export class ChatState {
 		this.emit();
 	}
 
-	addApprovalRequest(
-		toolCallId: string,
-		toolName: string,
-		toolInput: Record<string, any>,
-		description?: string
-	): void {
-		const approvalId = `approval_${toolCallId}`;
-
-		// Check for duplicate IDs
-		if (this.messages.some((existing) => existing.id === approvalId)) {
-			logger.warn(
-				`Duplicate approval request ID detected: ${approvalId}. Skipping duplicate request.`
-			);
-			return;
-		}
-
-		// Find corresponding tool message and set waitingForApproval=true
-		const toolMessage = this.messages.find(
-			(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
-		) as ToolMessage | undefined;
-		if (toolMessage) {
-			toolMessage.waitingForApproval = true;
-		}
-
-		const approvalMessage: ApprovalRequestMessage = {
-			id: approvalId,
-			role: 'approval_request',
-			message: `Approval required for ${toolName}`,
-			timestamp: new Date(),
-			toolCallId,
-			toolName,
-			toolInput,
-			description
-		};
-		this.messages.push(approvalMessage);
-		this.messages = [...this.messages]; // Force Svelte reactivity
-		this.emit();
-	}
-
-	updateApprovalRequest(toolCallId: string, approved: boolean): void {
-		const message = this.messages.find(
-			(msg) =>
-				msg.role === 'approval_request' && (msg as ApprovalRequestMessage).toolCallId === toolCallId
-		) as ApprovalRequestMessage | undefined;
-		if (message) {
-			message.approved = approved;
-		} else {
-			logger.debug(`Approval request with ID ${toolCallId} not found for update.`);
-		}
-
-		// Also update the corresponding tool message with approval status
-		const toolMessage = this.messages.find(
-			(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
-		) as ToolMessage | undefined;
-		if (toolMessage) {
-			toolMessage.approvalStatus = approved ? 'approved' : 'denied';
-			toolMessage.waitingForApproval = false; // No longer waiting
-		}
-
-		this.messages = [...this.messages]; // Force Svelte reactivity
-		this.emit();
-	}
-
-	removeApprovalRequest(toolCallId: string): void {
-		const initialLength = this.messages.length;
-
-		// Find corresponding tool message and set waitingForApproval=false
-		const toolMessage = this.messages.find(
-			(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
-		) as ToolMessage | undefined;
-		if (toolMessage) {
-			toolMessage.waitingForApproval = false;
-		}
-
-		this.messages = this.messages.filter(
-			(msg) =>
-				!(
-					msg.role === 'approval_request' &&
-					(msg as ApprovalRequestMessage).toolCallId === toolCallId
-				)
-		);
-		if (this.messages.length !== initialLength) {
-			logger.debug(`Removed approval request for tool call ID: ${toolCallId}`);
-			this.messages = [...this.messages]; // Force Svelte reactivity
-			this.emit();
-		}
-	}
+	// Helper to find a tool message by its toolCallId
+    getToolMessageByCallId(toolCallId: string): ToolMessage | undefined {
+        return this.messages.find(
+            (msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
+        ) as ToolMessage | undefined;
+    }
+    
+    // Modify this to not update based on approval
+    addApprovalRequest(
+        toolCallId: string,
+        toolName: string,
+        toolInput: Record<string, any>,
+        description?: string
+    ): void {
+        // Find corresponding tool message and set waitingForApproval=true
+        const toolMessage = this.getToolMessageByCallId(toolCallId);
+        
+        if (toolMessage) {
+            toolMessage.waitingForApproval = true;
+            toolMessage.approvalStatus = undefined; // Reset if previously set
+        } else {
+            logger.warn(`No tool message found for approval request: ${toolCallId}`);
+            // Create a new tool message if one doesn't exist
+            this.addToolMessage({
+                id: toolCallId,
+                role: 'tool',
+                message: '',
+                timestamp: new Date(),
+                toolCallId: toolCallId,
+                toolName: toolName,
+                toolInput: toolInput,
+                isStreaming: false,
+                waitingForApproval: true,
+                description
+            } as ToolMessage);
+        }
+        
+        this.messages = [...this.messages]; // Force Svelte reactivity
+        this.emit();
+    }
+    
+    // Update to set approval status and force update
+    updateApprovalRequest(toolCallId: string, approved: boolean): void {
+        // Update the tool message with approval status
+        const toolMessage = this.getToolMessageByCallId(toolCallId);
+        
+        if (toolMessage) {
+            toolMessage.approvalStatus = approved ? 'approved' : 'denied';
+            // Don't set waitingForApproval=false yet - that happens when the tool_start event comes
+        }
+        
+        this.messages = [...this.messages]; // Force Svelte reactivity
+        this.emit();
+    }
+    
+    // Update this to properly update the tool message on tool_start
+    removeApprovalRequest(toolCallId: string): void {
+        const toolMessage = this.getToolMessageByCallId(toolCallId);
+        
+        if (toolMessage) {
+            toolMessage.waitingForApproval = false;
+            // Don't reset approvalStatus - keep 'approved' or 'denied' status
+            
+            // Important: If tool was approved, ensure it's now marked as streaming
+            if (toolMessage.approvalStatus === 'approved') {
+                toolMessage.isStreaming = true;
+            }
+        }
+        
+        this.messages = [...this.messages]; // Force Svelte reactivity
+        this.emit();
+    }
 
 	appendToMessage(messageId: string, text: string): void {
 		const message = this.messages.find((msg) => msg.id === messageId);

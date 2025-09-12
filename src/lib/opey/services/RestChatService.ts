@@ -172,7 +172,6 @@ export class RestChatService implements ChatService {
 				});
 				break;
 			case 'tool_complete':
-			case 'tool_end':
 				this.streamEventCallback?.({
 					type: 'tool_complete',
 					toolCallId: eventData.tool_call_id,
