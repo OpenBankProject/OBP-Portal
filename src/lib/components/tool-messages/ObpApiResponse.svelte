@@ -63,7 +63,6 @@
     </div>
 {:else if parsedOutput}
     <div class="alert variant-filled-success">
-        <div class="font-bold">✅ API Request Successful</div>
         
         {#if keyInfo.length > 0}
             <div class="text-sm mt-2">

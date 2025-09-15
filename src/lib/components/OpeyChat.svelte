@@ -13,9 +13,7 @@
 	import { ChatController } from '$lib/opey/controllers/ChatController';
 	import { SessionState, type SessionSnapshot } from '$lib/opey/state/SessionState';
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
-	import type { ToolMessage, ApprovalRequestMessage } from '$lib/opey/types';
-	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
-	import ApprovalRequest from './ApprovalRequest.svelte';
+	import type { ToolMessage } from '$lib/opey/types';
 	import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 
 	// Import other components

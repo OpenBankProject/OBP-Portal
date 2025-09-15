@@ -65,7 +65,7 @@
     );
     
     // Determine status display
-    let statusDisplay = $derived(() => {
+    let statusDisplay = $derived.by(() => {
         if (message.status === 'error') return 'Error';
         if (message.approvalStatus === 'denied') return 'Denied';
         if (message.waitingForApproval) return 'Awaiting Approval';
@@ -74,7 +74,7 @@
         return 'Pending';
     });
     
-    let statusIcon = $derived(() => {
+    let statusIcon = $derived.by(() => {
         if (message.status === 'error') return XCircle;
         if (message.approvalStatus === 'denied') return XCircle;
         if (message.waitingForApproval) return AlertTriangle;

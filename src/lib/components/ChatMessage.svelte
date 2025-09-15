@@ -1,8 +1,7 @@
 <script lang="ts">
     import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
     import { renderMarkdown } from '$lib/markdown/helper-funcs';
-    import type { BaseMessage, ToolMessage as ToolMessageType, ApprovalRequestMessage } from '$lib/opey/types';
-    import ApprovalRequest from './ApprovalRequest.svelte';
+    import type { BaseMessage, ToolMessage as ToolMessageType } from '$lib/opey/types';
     import { ToolMessage } from './tool-messages';
 
     // Props
