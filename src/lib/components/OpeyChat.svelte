@@ -99,7 +99,9 @@
 
 		if (!opeySnapshot) return 'unknown';
 		if ('status' in opeySnapshot && opeySnapshot.status === 'degraded') return 'degraded';
-		return (opeySnapshot && 'status' in opeySnapshot && opeySnapshot.status === 'healthy') ? 'healthy' : 'unhealthy';
+		return opeySnapshot && 'status' in opeySnapshot && opeySnapshot.status === 'healthy'
+			? 'healthy'
+			: 'unhealthy';
 	});
 
 	let splashScreenDisplay = $derived.by(() => {
@@ -125,12 +127,11 @@
 				timestamp: new Date()
 			});
 		}
-		
+
 		// Can set retry parameters here if desired
 		// e.g. await initializeOpeySessionWithRetry(5, 2000);
 		// would try 5 times with a base delay of 2 seconds
 		await initializeOpeySessionWithRetry();
-
 	});
 
 	// Derived colors for pips
@@ -224,28 +225,28 @@
 	}
 
 	// Add retry logic with exponential backoff
-    async function initializeOpeySessionWithRetry(maxRetries = 3, baseDelay = 1000) {
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                await initializeOpeySession();
-                if (session.status === 'ready') {
-                    logger.debug(`Opey session initialized successfully on attempt ${attempt}`);
-                    return;
-                }
-            } catch (error) {
-                logger.warn(`Session initialization attempt ${attempt} failed:`, error);
-            }
+	async function initializeOpeySessionWithRetry(maxRetries = 3, baseDelay = 1000) {
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				await initializeOpeySession();
+				if (session.status === 'ready') {
+					logger.debug(`Opey session initialized successfully on attempt ${attempt}`);
+					return;
+				}
+			} catch (error) {
+				logger.warn(`Session initialization attempt ${attempt} failed:`, error);
+			}
 
-            if (attempt < maxRetries) {
-                const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
-                logger.debug(`Retrying session initialization in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
+			if (attempt < maxRetries) {
+				const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+				logger.debug(`Retrying session initialization in ${delay}ms...`);
+				await new Promise((resolve) => setTimeout(resolve, delay));
+			}
+		}
 
-        logger.error(`Failed to initialize session after ${maxRetries} attempts`);
-        sessionState.setStatus('error', `Failed to initialize after ${maxRetries} attempts`);
-    }
+		logger.error(`Failed to initialize session after ${maxRetries} attempts`);
+		sessionState.setStatus('error', `Failed to initialize after ${maxRetries} attempts`);
+	}
 
 	/**
 	 * Connect to banking data (upgrade from anonymous to authenticated)
@@ -294,19 +295,19 @@
 {/snippet}
 
 {#snippet body()}
-    <article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
-        <div class="space-y-4">
-            {#each chat.messages as message, index (`${message.id}-${index}`)}
-                <ChatMessage 
-                    {message}
-                    previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
-                    userName={options.currentlyActiveUserName}
-                    onApprove={handleApprove}
-                    onDeny={handleDeny}
-                />
-            {/each}
-        </div>
-    </article>
+	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
+		<div class="space-y-4">
+			{#each chat.messages as message, index (message.id)}
+				<ChatMessage
+					{message}
+					previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
+					userName={options.currentlyActiveUserName}
+					onApprove={handleApprove}
+					onDeny={handleDeny}
+				/>
+			{/each}
+		</div>
+	</article>
 {/snippet}
 
 {#snippet suggestedQuestions()}

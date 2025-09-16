@@ -15,15 +15,28 @@
     
     let { message, previousMessageRole, onApprove, onDeny, userName = 'Guest' }: Props = $props();
     
-    // Should we show the avatar?
+    // Helper to determine the display role (tool messages are treated as assistant for avatar purposes)
+    let displayRole = $derived(
+        message.role === 'tool' ? 'assistant' : message.role
+    );
+    
+    let previousDisplayRole = $derived(
+        previousMessageRole === 'tool' ? 'assistant' : previousMessageRole
+    );
+    
+    // Should we show the avatar? - Show avatar for first message or when display role changes
     let showAvatar = $derived(
-        message.role !== previousMessageRole || 
-        !['assistant', 'tool', 'approval_request'].includes(previousMessageRole || '')
+        !previousDisplayRole || displayRole !== previousDisplayRole
+    );
+    
+    // Compute alignment class
+    let alignmentClass = $derived(
+        message.role === 'user' ? 'items-end' : 'items-start'
     );
 </script>
 
 <!-- Message container -->
-<div class="flex flex-col items-{message.role === 'user' ? 'end' : 'start'} justify-start">
+<div class="flex flex-col {alignmentClass} justify-start">
     <!-- Avatar and name header -->
     {#if showAvatar}
         <div class="mb-2 flex items-center gap-2">
@@ -46,9 +59,9 @@
     {/if}
     
     <!-- Message content -->
-    <div class="max-w-full">
+    <div class="{message.role === 'user'? 'max-w-3/5' : 'max-w-full'} mt-3">
         {#if message.role === 'user'}
-            <div class="preset-filled-tertiary-500 max-w-3/5 rounded-2xl p-2 text-white">
+            <div class="preset-filled-tertiary-500 max-w-full rounded-2xl p-2 text-white">
                 {message.message}
             </div>
         {:else if message.role === 'assistant'}
