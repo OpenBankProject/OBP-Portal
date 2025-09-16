@@ -64,77 +64,77 @@ export class ChatState {
 	}
 
 	// Helper to find a tool message by its toolCallId
-    getToolMessageByCallId(toolCallId: string): ToolMessage | undefined {
-        return this.messages.find(
-            (msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
-        ) as ToolMessage | undefined;
-    }
-    
-    // Modify this to not update based on approval
-    addApprovalRequest(
-        toolCallId: string,
-        toolName: string,
-        toolInput: Record<string, any>,
-        description?: string
-    ): void {
-        // Find corresponding tool message and set waitingForApproval=true
-        const toolMessage = this.getToolMessageByCallId(toolCallId);
-        
-        if (toolMessage) {
-            toolMessage.waitingForApproval = true;
-            toolMessage.approvalStatus = undefined; // Reset if previously set
-        } else {
-            logger.warn(`No tool message found for approval request: ${toolCallId}`);
-            // Create a new tool message if one doesn't exist
-            this.addToolMessage({
-                id: toolCallId,
-                role: 'tool',
-                message: '',
-                timestamp: new Date(),
-                toolCallId: toolCallId,
-                toolName: toolName,
-                toolInput: toolInput,
-                isStreaming: false,
-                waitingForApproval: true,
-                description
-            } as ToolMessage);
-        }
-        
-        this.messages = [...this.messages]; // Force Svelte reactivity
-        this.emit();
-    }
-    
-    // Update to set approval status and force update
-    updateApprovalRequest(toolCallId: string, approved: boolean): void {
-        // Update the tool message with approval status
-        const toolMessage = this.getToolMessageByCallId(toolCallId);
-        
-        if (toolMessage) {
-            toolMessage.approvalStatus = approved ? 'approved' : 'denied';
-            // Don't set waitingForApproval=false yet - that happens when the tool_start event comes
-        }
-        
-        this.messages = [...this.messages]; // Force Svelte reactivity
-        this.emit();
-    }
-    
-    // Update this to properly update the tool message on tool_start
-    removeApprovalRequest(toolCallId: string): void {
-        const toolMessage = this.getToolMessageByCallId(toolCallId);
-        
-        if (toolMessage) {
-            toolMessage.waitingForApproval = false;
-            // Don't reset approvalStatus - keep 'approved' or 'denied' status
-            
-            // Important: If tool was approved, ensure it's now marked as streaming
-            if (toolMessage.approvalStatus === 'approved') {
-                toolMessage.isStreaming = true;
-            }
-        }
-        
-        this.messages = [...this.messages]; // Force Svelte reactivity
-        this.emit();
-    }
+	getToolMessageByCallId(toolCallId: string): ToolMessage | undefined {
+		return this.messages.find(
+			(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
+		) as ToolMessage | undefined;
+	}
+
+	// Modify this to not update based on approval
+	addApprovalRequest(
+		toolCallId: string,
+		toolName: string,
+		toolInput: Record<string, any>,
+		description?: string
+	): void {
+		// Find corresponding tool message and set waitingForApproval=true
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+
+		if (toolMessage) {
+			toolMessage.waitingForApproval = true;
+			toolMessage.approvalStatus = undefined; // Reset if previously set
+		} else {
+			logger.warn(`No tool message found for approval request: ${toolCallId}`);
+			// Create a new tool message if one doesn't exist
+			this.addToolMessage({
+				id: toolCallId,
+				role: 'tool',
+				message: '',
+				timestamp: new Date(),
+				toolCallId: toolCallId,
+				toolName: toolName,
+				toolInput: toolInput,
+				isStreaming: false,
+				waitingForApproval: true,
+				description
+			} as ToolMessage);
+		}
+
+		this.messages = [...this.messages]; // Force Svelte reactivity
+		this.emit();
+	}
+
+	// Update to set approval status and force update
+	updateApprovalRequest(toolCallId: string, approved: boolean): void {
+		// Update the tool message with approval status
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+
+		if (toolMessage) {
+			toolMessage.approvalStatus = approved ? 'approved' : 'denied';
+			// Don't set waitingForApproval=false yet - that happens when the tool_start event comes
+		}
+
+		this.messages = [...this.messages]; // Force Svelte reactivity
+		this.emit();
+	}
+
+	// Update this to properly update the tool message on tool_start
+	removeApprovalRequest(toolCallId: string): void {
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+
+		if (toolMessage) {
+			toolMessage.waitingForApproval = false;
+			// Don't reset approvalStatus - keep 'approved' or 'denied' status
+
+			// Important: If tool was approved, ensure it's now marked as streaming
+			if (toolMessage.approvalStatus === 'approved') {
+				toolMessage.isStreaming = true;
+			}
+		}
+
+		this.messages = [...this.messages]; // Force Svelte reactivity
+		this.emit();
+	}
 
 	appendToMessage(messageId: string, text: string): void {
 		const message = this.messages.find((msg) => msg.id === messageId);
@@ -143,47 +143,25 @@ export class ChatState {
 			this.messages = [...this.messages]; // Force Svelte reactivity
 			this.emit(); // Notify subscribers about the change
 		} else {
-			// Check if this is a stale message from a previous session
-			if (this.isStaleMessage(messageId)) {
-				logger.debug(`Ignoring stale message ${messageId} from previous session.`);
-				return;
-			}
-			// Reduce noise - only log if we're actually tracking messages
-			if (this.messages.length > 0) {
-				logger.debug(`Message with ID ${messageId} not found for append operation.`);
-			}
+			logger.debug(`Message with ID ${messageId} not found for append operation.`);
 		}
 	}
 
 	markMessageComplete(messageId: string): void {
 		const message = this.messages.find((msg) => msg.id === messageId);
 		if (!message) {
-			// Check if this is a stale message from a previous session
-			if (this.isStaleMessage(messageId)) {
-				logger.debug(`Ignoring stale completion for message ${messageId}`);
-				return;
-			}
-			// Only log if we're actually tracking messages
-			if (this.messages.length > 0) {
-				logger.debug(`Message ${messageId} not found for completion`);
-			}
-			return;
-		}
-
-		if (message.isStreaming === undefined) {
-			logger.debug(`Message ${messageId} does not have isStreaming property`);
+			logger.error(`Message ${messageId} not found for completion`);
 			return;
 		}
 
 		if (!message.isStreaming) {
-			logger.debug(`Message ${messageId} is already marked as complete`);
+			logger.error(`Message ${messageId} is already marked as complete`);
 			return;
 		}
 
-		// Mark the message as complete
 		message.isStreaming = false;
-		this.messages = [...this.messages]; // Force Svelte reactivity
-		this.emit(); // Notify subscribers about the change
+		this.messages = [...this.messages];
+		this.emit();
 		logger.debug(`Marked message ${messageId} as complete`);
 	}
 
