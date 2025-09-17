@@ -19,6 +19,9 @@
 	// Import other components
 	import { ToolError, ObpApiResponse, DefaultToolResponse } from './tool-messages';
 	import ChatMessage from './ChatMessage.svelte';
+	// import OpeyDebugMonitor from './OpeyDebugMonitor.svelte';
+	// import { opeyDebugConfig } from '$lib/opey/debug-config';
+	// import { browser } from '$app/environment';
 
 	// Function to get display name with instance number
 	function getToolDisplayName(toolName: string, instanceNumber: number): string {
@@ -417,4 +420,14 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Debug Monitor - Temporarily disabled to isolate 500 error -->
+	<!-- {#if browser && opeyDebugConfig.showDebugMonitor}
+		<OpeyDebugMonitor
+			{chatController}
+			{chatState}
+			enabled={opeyDebugConfig.enabled}
+			position={opeyDebugConfig.monitorPosition}
+		/>
+	{/if} -->
 </div>
