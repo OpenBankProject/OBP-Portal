@@ -7,6 +7,9 @@
 
 	const { data } = $props();
 	const userData: SessionData['user'] = data.userData || undefined;
+	
+	console.debug('USER DATA:', JSON.stringify(userData));
+
 	const opeyConsentInfo = data.opeyConsentInfo || null;
 
 	function formatDate(dateString: string) {

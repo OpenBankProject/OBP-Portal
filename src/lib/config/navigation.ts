@@ -1,9 +1,10 @@
-import { User, ShieldUser, KeyRound } from '@lucide/svelte';
+import { User, ShieldUser, KeyRound, IdCardLanyard } from '@lucide/svelte';
 
 export const myAccountItems = [
     { href: '/user', label: 'Profile', iconComponent: User },
     { href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
-    { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound }
+    { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound },
+    { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard } // New item
 ];
 
 export function getActiveMenuItem(pathname: string) {

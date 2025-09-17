@@ -170,10 +170,6 @@
 									</p>
 								{/if}
 								<p class="text-gray-700 dark:text-gray-300">
-									<strong>Everything Access:</strong>
-									{consent.everything ? 'Yes' : 'No'}
-								</p>
-								<p class="text-gray-700 dark:text-gray-300">
 									<strong>Roles:</strong>
 									{formatRoles(consent.jwt_payload?.entitlements || [])}
 								</p>

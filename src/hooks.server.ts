@@ -180,6 +180,16 @@ declare module 'svelte-kit-sessions' {
 			user_id: string;
 			email: string;
 			username: string;
+			entitlements: { 
+				list: Array<{
+					entitlement_id: string;
+					role_name: string;
+					bank_id: string;
+				}>
+			}
+			views: {
+				list: object[];
+			}
 		};
 		oauth?: {
 			access_token: string;

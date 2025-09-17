@@ -43,3 +43,8 @@ export interface OBPUserRegistrationRequestBody {
     first_name: string;
     last_name: string;
 }
+
+export interface OBPAddEntitlementBody {
+    role_name: string;
+    bank_id?: string;
+}
