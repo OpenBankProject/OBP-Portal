@@ -1,17 +1,21 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OAuth2Client');
-import { OAuth2Client } from "arctic";
-import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from "$lib/oauth/types";
-import { jwtDecode } from "jwt-decode";
+import { OAuth2Client } from 'arctic';
+import type { OpenIdConnectConfiguration, OAuth2AccessTokenPayload } from '$lib/oauth/types';
+import { jwtDecode } from 'jwt-decode';
 
 export class OAuth2ClientWithConfig extends OAuth2Client {
-    OIDCConfig?: OpenIdConnectConfiguration;
+	OIDCConfig?: OpenIdConnectConfiguration;
+	private _clientSecret: string;
+	private _redirectUri: string;
 
-    constructor(clientId: string, clientSecret: string, redirectUri: string) {
-        super(clientId, clientSecret, redirectUri);
+	constructor(clientId: string, clientSecret: string, redirectUri: string) {
+		super(clientId, clientSecret, redirectUri);
+		this._clientSecret = clientSecret;
+		this._redirectUri = redirectUri;
 
-        // get the OIDC configuration from the well-known URL if provided
-    }
+		// get the OIDC configuration from the well-known URL if provided
+	}
 
 	async initOIDCConfig(OIDCConfigUrl: string): Promise<void> {
 		logger.info('Initializing OIDC configuration from OIDC Config URL:', OIDCConfigUrl);
@@ -66,19 +70,23 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 		return super.createAuthorizationURL(authEndpoint, state, scopes);
 	}
 
-	async validateAuthorizationCode(tokenEndpoint: string, code: string, codeVerifier: string | null): Promise<any> {
+	async validateAuthorizationCode(
+		tokenEndpoint: string,
+		code: string,
+		codeVerifier: string | null
+	): Promise<any> {
 		logger.debug('Validating authorization code with explicit client_id');
-		
+
 		const body = new URLSearchParams();
 		body.set('grant_type', 'authorization_code');
 		body.set('code', code);
-		body.set('redirect_uri', this.redirectURI);
+		body.set('redirect_uri', this._redirectUri);
 		body.set('client_id', this.clientId);
-		
-		if (this.clientSecret) {
-			body.set('client_secret', this.clientSecret);
+
+		if (this._clientSecret) {
+			body.set('client_secret', this._clientSecret);
 		}
-		
+
 		if (codeVerifier) {
 			body.set('code_verifier', codeVerifier);
 		}
@@ -89,7 +97,7 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'Accept': 'application/json'
+				Accept: 'application/json'
 			},
 			body: body.toString()
 		});
@@ -102,11 +110,12 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 
 		const tokens = await response.json();
 		logger.debug('Token response received successfully');
-		
+
 		return {
 			accessToken: () => tokens.access_token,
 			refreshToken: () => tokens.refresh_token,
-			accessTokenExpiresAt: () => tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
+			accessTokenExpiresAt: () =>
+				tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
 		};
 	}
 }
