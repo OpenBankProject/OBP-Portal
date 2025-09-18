@@ -7,7 +7,7 @@
 
 	const { data } = $props();
 	const userData: SessionData['user'] = data.userData || undefined;
-	
+
 	console.debug('USER DATA:', JSON.stringify(userData));
 
 	const opeyConsentInfo = data.opeyConsentInfo || null;
@@ -56,7 +56,7 @@
 	}
 
 	// Track which complex data items are expanded
-	let expandedItems = $state([]);
+	let expandedItems: string[] = $state([]);
 
 	// Format complex data for display
 	function formatValue(value: any): string {
@@ -73,24 +73,24 @@
 		if (value === null || typeof value !== 'object' || Array.isArray(value)) {
 			return false;
 		}
-		
+
 		const keys = Object.keys(value);
 		// Check if it's an object with exactly one property
 		if (keys.length !== 1) {
 			return false;
 		}
-		
+
 		// Check if that one property is an array
 		return Array.isArray(value[keys[0]]);
 	}
-	
+
 	// Get the array from an object containing a single array property
 	function getSingleArray(value: any): any[] {
 		if (!isSingleArrayContainer(value)) return [];
 		const key = Object.keys(value)[0];
 		return value[key];
 	}
-	
+
 	// Get a display summary for complex values
 	function getComplexValueSummary(value: any): string {
 		if (Array.isArray(value)) {
@@ -115,27 +115,27 @@
 					onclick={() => copyJsonToClipboard(userData)}>Copy JSON</button
 				>
 			</header>
-			<article class="border-primary-500 border-b-[1px] p-4 space-y-3">
+			<article class="border-primary-500 space-y-3 border-b-[1px] p-4">
 				<!-- Group entries by type -->
 				{#each Object.entries(userData) as [key, value]}
 					{#if Array.isArray(value) || (value !== null && typeof value === 'object')}
 						<!-- Complex values use accordion -->
-						<Accordion 
-							value={expandedItems} 
-							onValueChange={(e) => (expandedItems = e.value)} 
-							multiple 
+						<Accordion
+							value={expandedItems}
+							onValueChange={(e) => (expandedItems = e.value)}
+							multiple
 							collapsible
 						>
 							<Accordion.Item value={key} classes="border-0">
 								{#snippet control()}
-									<div class="flex items-center justify-between w-full">
+									<div class="flex w-full items-center justify-between">
 										<strong>{snakeCaseToTitleCase(key)}</strong>
-										<span class="text-sm text-tertiary-400">
+										<span class="text-tertiary-400 text-sm">
 											{getComplexValueSummary(value)}
 										</span>
 									</div>
 								{/snippet}
-								
+
 								{#snippet panel()}
 									{#if Array.isArray(value)}
 										<!-- Array rendering -->
@@ -179,16 +179,22 @@
 													{#if Array.isArray(arrayValue)}
 														<div class="flex-1 space-y-2">
 															{#each arrayValue as item, i}
-																<div class="flex gap-2 items-start">
+																<div class="flex items-start gap-2">
 																	<span class="text-tertiary-400 w-8">{i}:</span>
 																	{#if item !== null && typeof item === 'object'}
 																		<div class="flex-1">
-																			<pre class="bg-gray-800/10 p-2 rounded text-sm overflow-x-auto max-w-full">
-                                                                                {JSON.stringify(item, null, 2)}
+																			<pre
+																				class="max-w-full overflow-x-auto rounded bg-gray-800/10 p-2 text-sm">
+                                                                                {JSON.stringify(
+																					item,
+																					null,
+																					2
+																				)}
                                                                             </pre>
-																			<button 
-																				class="btn btn-sm mt-1 preset-outlined-tertiary-500"
-																				onclick={() => copyToClipboard(JSON.stringify(item, null, 2))}
+																			<button
+																				class="btn btn-sm preset-outlined-tertiary-500 mt-1"
+																				onclick={() =>
+																					copyToClipboard(JSON.stringify(item, null, 2))}
 																			>
 																				Copy
 																			</button>
@@ -196,7 +202,7 @@
 																	{:else}
 																		<div class="flex items-center gap-2">
 																			<span>{formatValue(item)}</span>
-																			<button 
+																			<button
 																				class="btn btn-sm variant-ghost-tertiary"
 																				onclick={() => copyToClipboard(String(item))}
 																			>
@@ -308,8 +314,17 @@
 				<div class="preset-filled-primary-50-950 m-1.5 rounded-lg p-4 shadow-md">
 					{#if opeyConsentInfo.hasActiveConsent}
 						<div class="mb-4 flex items-center gap-2">
-							<div class="h-3 w-3 rounded-full bg-green-500"></div>
-							<span class="font-semibold text-gray-900 dark:text-gray-100">Active Consent</span>
+							{#if opeyConsentInfo.actuallyUsable}
+								<div class="h-3 w-3 rounded-full bg-green-500"></div>
+								<span class="font-semibold text-gray-900 dark:text-gray-100"
+									>Active & Working Consent</span
+								>
+							{:else}
+								<div class="h-3 w-3 rounded-full bg-red-500"></div>
+								<span class="font-semibold text-gray-900 dark:text-gray-100"
+									>Consent Found But Not Working</span
+								>
+							{/if}
 						</div>
 						<ul class="list-inside space-y-2 text-gray-900 dark:text-gray-100">
 							<li>
@@ -319,6 +334,24 @@
 							<li>
 								<strong class="text-tertiary-400">Status:</strong>
 								{opeyConsentInfo.status}
+							</li>
+							<li>
+								<strong class="text-tertiary-400">JWT Status:</strong>
+								<span
+									class="inline-block rounded px-2 py-1 text-xs {opeyConsentInfo.actuallyUsable
+										? 'bg-green-100 text-green-800'
+										: 'bg-red-100 text-red-800'}"
+								>
+									{opeyConsentInfo.actuallyUsable ? 'Working with Opey' : 'Rejected by Opey'}
+								</span>
+								{#if opeyConsentInfo.jwt_message}
+									<br /><span class="text-sm text-gray-600">{opeyConsentInfo.jwt_message}</span>
+								{/if}
+								{#if opeyConsentInfo.opey_validation && !opeyConsentInfo.opey_validation.valid}
+									<br /><span class="text-sm text-red-600"
+										>Opey Error: {opeyConsentInfo.opey_validation.error}</span
+									>
+								{/if}
 							</li>
 							<li>
 								<strong class="text-tertiary-400">Consumer ID:</strong>
@@ -337,13 +370,29 @@
 								</li>
 							{/if}
 						</ul>
-						<div class="bg-primary-100 dark:bg-primary-900/20 mt-4 rounded-lg p-3">
-							<p class="text-sm text-gray-700 dark:text-gray-300">
-								<strong>Info:</strong> This consent allows Opey to access your Open Bank Project data
-								on your behalf. The JWT token is used for secure communication between the portal and
-								Opey services.
-							</p>
-						</div>
+						{#if opeyConsentInfo.actuallyUsable}
+							<div class="bg-primary-100 dark:bg-primary-900/20 mt-4 rounded-lg p-3">
+								<p class="text-sm text-gray-700 dark:text-gray-300">
+									<strong>✅ Working:</strong> This consent is verified to work with Opey. You will have
+									authenticated chat sessions with access to your banking data.
+								</p>
+							</div>
+						{:else}
+							<div class="mt-4 rounded-lg bg-red-100 p-3 dark:bg-red-900/20">
+								<p class="text-sm text-red-700 dark:text-red-300">
+									<strong>⚠️ Not Working:</strong> This consent exists but is rejected by Opey. Anonymous
+									chat sessions will be used instead. This may be due to JWT signature mismatches or
+									configuration issues.
+								</p>
+								{#if opeyConsentInfo.opey_validation?.tested_at}
+									<p class="mt-2 text-xs text-red-600">
+										Last tested: {new Date(
+											opeyConsentInfo.opey_validation.tested_at
+										).toLocaleString()}
+									</p>
+								{/if}
+							</div>
+						{/if}
 						<div class="mt-4">
 							<a
 								href="/user/consents"
@@ -358,17 +407,45 @@
 							<span class="font-semibold text-gray-900 dark:text-gray-100">No Active Consent</span>
 						</div>
 						{#if opeyConsentInfo.error}
-							<div class="bg-primary-100 dark:bg-primary-900/20 rounded-lg p-3">
-								<p class="text-gray-700 dark:text-gray-300">
+							<div class="rounded-lg bg-red-100 p-3 dark:bg-red-900/20">
+								<p class="text-red-700 dark:text-red-300">
 									<strong>Error:</strong>
 									{opeyConsentInfo.error}
 								</p>
 							</div>
 						{:else}
-							<div class="bg-primary-100 dark:bg-primary-900/20 rounded-lg p-3">
-								<p class="text-gray-700 dark:text-gray-300">
+							<div class="rounded-lg bg-yellow-100 p-3 dark:bg-yellow-900/20">
+								<p class="text-yellow-700 dark:text-yellow-300">
 									{opeyConsentInfo.message}
 								</p>
+
+								{#if opeyConsentInfo.foundConsents && opeyConsentInfo.foundConsents.length > 0}
+									<details class="mt-3">
+										<summary class="cursor-pointer font-semibold"
+											>Found Opey Consents ({opeyConsentInfo.foundConsents.length})</summary
+										>
+										<ul class="mt-2 space-y-2 text-sm">
+											{#each opeyConsentInfo.foundConsents as consent}
+												<li class="border-l-2 border-yellow-300 pl-3">
+													<strong>ID:</strong>
+													{consent.consent_id}<br />
+													<strong>Status:</strong>
+													{consent.status}<br />
+													<strong>JWT:</strong>
+													<span
+														class="inline-block rounded px-2 py-1 text-xs {consent.jwt_status ===
+														'valid'
+															? 'bg-green-100 text-green-800'
+															: 'bg-red-100 text-red-800'}"
+													>
+														{consent.jwt_status}
+													</span><br />
+													<span class="text-xs text-gray-600">{consent.jwt_message}</span>
+												</li>
+											{/each}
+										</ul>
+									</details>
+								{/if}
 							</div>
 						{/if}
 						<div class="mt-4">

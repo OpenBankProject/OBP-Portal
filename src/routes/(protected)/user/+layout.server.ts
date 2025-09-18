@@ -50,6 +50,41 @@ export async function load(event: RequestEvent) {
 				logger.debug('Found matching Opey consent:', opeyConsent ? 'Yes' : 'No');
 
 				if (opeyConsent) {
+					// Get detailed consent status including JWT validity
+					const consentStatus = obpIntegration.getConsentStatus(opeyConsent);
+
+					// Get the full consent with JWT for Opey validation
+					let opeyValidation = null;
+					try {
+						const consentWithJwt = await obp_requests.get(
+							`/obp/v5.1.0/user/current/consents/${opeyConsent.consent_id}`,
+							accessToken
+						);
+
+						if (consentWithJwt.jwt && env.OPEY_BASE_URL) {
+							const validationResult = await obpIntegration.validateConsentJWT(consentWithJwt.jwt);
+							opeyValidation = {
+								valid: validationResult.valid,
+								error: validationResult.error,
+								tested_at: new Date().toISOString()
+							};
+							logger.debug('Opey validation result:', opeyValidation);
+						} else {
+							opeyValidation = {
+								valid: false,
+								error: 'No JWT available or Opey not configured',
+								tested_at: new Date().toISOString()
+							};
+						}
+					} catch (validationError) {
+						logger.error('Error validating consent with Opey:', validationError);
+						opeyValidation = {
+							valid: false,
+							error: `Validation failed: ${validationError instanceof Error ? validationError.message : 'Unknown error'}`,
+							tested_at: new Date().toISOString()
+						};
+					}
+
 					opeyConsentInfo = {
 						consent_id: opeyConsent.consent_id,
 						status: opeyConsent.status,
@@ -58,7 +93,13 @@ export async function load(event: RequestEvent) {
 						jwt_expires: opeyConsent.jwt_payload?.exp
 							? new Date(opeyConsent.jwt_payload.exp * 1000).toISOString()
 							: null,
-						hasActiveConsent: true
+						jwt_status: consentStatus.status,
+						jwt_message: consentStatus.message,
+						jwt_expires_at: consentStatus.expiresAt?.toISOString() || null,
+						hasActiveConsent: true,
+						isJwtValid: consentStatus.status === 'valid',
+						opey_validation: opeyValidation,
+						actuallyUsable: opeyValidation?.valid === true
 					};
 					logger.debug('Active consent info prepared:', opeyConsentInfo);
 				} else {
@@ -69,9 +110,32 @@ export async function load(event: RequestEvent) {
 					if (anyOpeyConsent) {
 						logger.debug(`Found Opey consent but wrong status: ${anyOpeyConsent.status}`);
 					}
+					// Check if there are any Opey consents with status info
+					const anyOpeyConsents = consents.filter(
+						(consent: OBPConsent) => consent.consumer_id === env.OPEY_CONSUMER_ID
+					);
+
+					let detailedMessage = 'Opey consent found but not in ACCEPTED status';
+					if (anyOpeyConsent && anyOpeyConsents.length > 0) {
+						const statusInfo = anyOpeyConsents
+							.map((c: OBPConsent) => {
+								const status = obpIntegration.getConsentStatus(c);
+								return `${c.consent_id}: ${c.status} (JWT: ${status.status})`;
+							})
+							.join(', ');
+						detailedMessage = `Found ${anyOpeyConsents.length} Opey consent(s): ${statusInfo}`;
+					}
+
 					opeyConsentInfo = {
 						hasActiveConsent: false,
-						message: 'Opey consent found but not in ACCEPTED status or no matching consent'
+						message: detailedMessage,
+						foundConsents: anyOpeyConsents.map((c: OBPConsent) => ({
+							consent_id: c.consent_id,
+							status: c.status,
+							jwt_status: obpIntegration.getConsentStatus(c).status,
+							jwt_message: obpIntegration.getConsentStatus(c).message
+						})),
+						actuallyUsable: false
 					};
 				}
 			} else {
@@ -79,14 +143,16 @@ export async function load(event: RequestEvent) {
 				opeyConsentInfo = {
 					hasActiveConsent: false,
 					message:
-						'No active Opey consent found. A consent will be created automatically when you use Opey chat.'
+						'No active Opey consent found. A consent will be created automatically when you use Opey chat.',
+					actuallyUsable: false
 				};
 			}
 		} catch (error) {
 			logger.error('Error fetching Opey consent info:', error);
 			opeyConsentInfo = {
 				hasActiveConsent: false,
-				error: 'Unable to fetch Opey consent information'
+				error: 'Unable to fetch Opey consent information',
+				actuallyUsable: false
 			};
 		}
 	}

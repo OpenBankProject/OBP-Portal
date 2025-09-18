@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import type { OBPConsent } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
 import { env } from '$env/dynamic/private';
+import { DefaultOBPIntegrationService } from '$lib/opey/services/OBPIntegrationService';
 
 const displayConsent = (consent: OBPConsent): boolean => {
 	// We want to display the consent if it is revoked and not more than a day old
@@ -60,13 +61,51 @@ export async function load(event: RequestEvent) {
 	}
 
 	// Split consents into Opey and Other consents
-	const opeyConsents = consents.filter((consent: OBPConsent) => 
-		consent.consumer_id === env.OPEY_CONSUMER_ID
+	const opeyConsents = consents.filter(
+		(consent: OBPConsent) => consent.consumer_id === env.OPEY_CONSUMER_ID
 	);
-	
-	const otherConsents = consents.filter((consent: OBPConsent) => 
-		consent.consumer_id !== env.OPEY_CONSUMER_ID
+
+	const otherConsents = consents.filter(
+		(consent: OBPConsent) => consent.consumer_id !== env.OPEY_CONSUMER_ID
 	);
+
+	// Validate Opey consents with actual Opey service if configured
+	if (env.OPEY_CONSUMER_ID && env.OPEY_BASE_URL) {
+		const obpIntegration = new DefaultOBPIntegrationService(env.OPEY_CONSUMER_ID);
+
+		for (const consent of opeyConsents) {
+			try {
+				// Get the full consent with JWT for validation
+				const consentWithJwt = await obp_requests.get(
+					`/obp/v5.1.0/user/current/consents/${consent.consent_id}`,
+					token
+				);
+
+				if (consentWithJwt.jwt) {
+					const validationResult = await obpIntegration.validateConsentJWT(consentWithJwt.jwt);
+					// Add Opey validation results to consent object
+					(consent as any).opey_validation = {
+						valid: validationResult.valid,
+						error: validationResult.error,
+						tested_at: new Date().toISOString()
+					};
+				} else {
+					(consent as any).opey_validation = {
+						valid: false,
+						error: 'No JWT available for validation',
+						tested_at: new Date().toISOString()
+					};
+				}
+			} catch (validationError) {
+				logger.error(`Error validating consent ${consent.consent_id} with Opey:`, validationError);
+				(consent as any).opey_validation = {
+					valid: false,
+					error: `Validation failed: ${validationError instanceof Error ? validationError.message : 'Unknown error'}`,
+					tested_at: new Date().toISOString()
+				};
+			}
+		}
+	}
 
 	// Sort both arrays by created date, most recent first (only if created_date exists)
 	const sortByCreatedDate = (a: OBPConsent, b: OBPConsent) => {
@@ -80,7 +119,8 @@ export async function load(event: RequestEvent) {
 
 	return {
 		opeyConsents,
-		otherConsents
+		otherConsents,
+		opeyConsumerId: env.OPEY_CONSUMER_ID
 	};
 }
 

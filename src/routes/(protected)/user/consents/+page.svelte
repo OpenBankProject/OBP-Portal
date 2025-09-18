@@ -44,7 +44,7 @@
 		if (consent.created_date) {
 			return formatDate(consent.created_date);
 		}
-		
+
 		// If not present, show None
 		return 'None';
 	}
@@ -53,7 +53,7 @@
 		if (!entitlements || entitlements.length === 0) {
 			return 'None';
 		}
-		
+
 		// Extract role names from entitlements
 		const roles = entitlements.map((entitlement) => {
 			if (typeof entitlement === 'string') {
@@ -66,7 +66,7 @@
 				return JSON.stringify(entitlement);
 			}
 		});
-		
+
 		return roles.join(', ');
 	}
 
@@ -74,7 +74,7 @@
 		if (!views || views.length === 0) {
 			return 'None';
 		}
-		
+
 		// Extract view information
 		const viewNames = views.map((view) => {
 			if (typeof view === 'string') {
@@ -89,7 +89,7 @@
 				return JSON.stringify(view);
 			}
 		});
-		
+
 		return viewNames.join(', ');
 	}
 
@@ -112,6 +112,80 @@
 		}
 		return true;
 	}
+
+	function isOpeyConsent(consent: any): boolean {
+		return consent.consumer_id === data.opeyConsumerId;
+	}
+
+	function getJWTStatus(consent: any): {
+		status: string;
+		message: string;
+		class: string;
+		expiresAt?: Date;
+		opeyStatus?: string;
+		opeyMessage?: string;
+	} {
+		// Check if we have Opey validation results
+		if ((consent as any).opey_validation) {
+			const opeyValid = (consent as any).opey_validation.valid;
+			const opeyError = (consent as any).opey_validation.error;
+
+			if (!opeyValid) {
+				return {
+					status: 'Rejected by Opey',
+					message: `Opey validation failed: ${opeyError}`,
+					class: 'bg-red-100 text-red-800',
+					opeyStatus: 'rejected',
+					opeyMessage: opeyError
+				};
+			}
+		}
+
+		if (!consent.jwt_payload?.exp) {
+			return {
+				status: 'No JWT',
+				message: 'No JWT expiration information available',
+				class: 'bg-gray-100 text-gray-800'
+			};
+		}
+
+		const exp = consent.jwt_payload.exp;
+		const now = Math.floor(Date.now() / 1000);
+		const expiresAt = new Date(exp * 1000);
+
+		if (exp < now) {
+			const expiredAgo = Math.floor((now - exp) / 60); // minutes ago
+			return {
+				status: 'Expired',
+				message: `JWT expired ${expiredAgo} minutes ago`,
+				class: 'bg-red-100 text-red-800',
+				expiresAt
+			};
+		}
+
+		const expiresIn = Math.floor((exp - now) / 60); // minutes until expiration
+		let status = 'Valid (Local)';
+		let message = `JWT valid locally, expires in ${expiresIn} minutes`;
+		let cssClass = 'bg-yellow-100 text-yellow-800';
+
+		// If we have positive Opey validation, show it as fully valid
+		if ((consent as any).opey_validation && (consent as any).opey_validation.valid) {
+			status = 'Valid (Verified)';
+			message = `JWT verified with Opey, expires in ${expiresIn} minutes`;
+			cssClass = 'bg-green-100 text-green-800';
+		}
+
+		return {
+			status,
+			message,
+			class: cssClass,
+			expiresAt,
+			opeyStatus: (consent as any).opey_validation?.valid ? 'verified' : 'untested',
+			opeyMessage: (consent as any).opey_validation
+				? 'Tested with Opey service'
+				: 'Not tested with Opey'
+		};
+	}
 </script>
 
 <h1 class="text-gray-900 dark:text-gray-100">Consents Management</h1>
@@ -129,6 +203,9 @@
 	</p>
 	<p class="mt-1 text-xs text-blue-600 dark:text-blue-300">
 		Use this to compare with consent expiration times to check for timezone offset issues.
+		<br />
+		<strong>Note:</strong> Opey consents are now validated with the actual Opey service to show real
+		usability status.
 	</p>
 </div>
 
@@ -138,6 +215,7 @@
 	{#if data.opeyConsents && data.opeyConsents.length > 0}
 		<ul class="list-none pl-5">
 			{#each data.opeyConsents as consent (consent.consent_id)}
+				{@const jwtStatus = getJWTStatus(consent)}
 				<li>
 					<div
 						class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800"
@@ -150,6 +228,40 @@
 								<p class="text-gray-900 dark:text-gray-100">
 									<strong>Status:</strong>
 									{consent.status}
+									{#if isOpeyConsent(consent)}
+										<span class="ml-2 rounded bg-blue-100 px-2 py-1 text-xs text-blue-800"
+											>OPEY</span
+										>
+									{/if}
+								</p>
+								<p class="text-gray-900 dark:text-gray-100">
+									<strong>JWT Status:</strong>
+									<span class="inline-block rounded px-2 py-1 text-xs {jwtStatus.class}">
+										{jwtStatus.status}
+									</span>
+									<br />
+									<span class="text-sm text-gray-600">{jwtStatus.message}</span>
+									{#if jwtStatus.expiresAt}
+										<br />
+										<span class="text-xs text-gray-500"
+											>Expires: {jwtStatus.expiresAt.toLocaleString()}</span
+										>
+									{/if}
+									{#if jwtStatus.opeyStatus === 'rejected'}
+										<br />
+										<span class="text-xs font-semibold text-red-600">
+											⚠️ This consent will not work with Opey chat - anonymous session will be used
+											instead
+										</span>
+									{/if}
+									{#if (consent as any).opey_validation}
+										<br />
+										<span class="text-xs text-gray-500">
+											Opey validation: {(consent as any).opey_validation.tested_at
+												? new Date((consent as any).opey_validation.tested_at).toLocaleString()
+												: 'Unknown time'}
+										</span>
+									{/if}
 								</p>
 								<p class="text-gray-700 dark:text-gray-300">
 									<strong>Consumer ID:</strong>
@@ -216,6 +328,7 @@
 	{#if data.otherConsents && data.otherConsents.length > 0}
 		<ul class="list-none pl-5">
 			{#each data.otherConsents as consent (consent.consent_id)}
+				{@const jwtStatus = getJWTStatus(consent)}
 				<li>
 					<div
 						class="mx-auto my-5 max-w-screen-xl rounded-lg bg-gray-100 p-6 shadow-md dark:bg-gray-800"
@@ -228,6 +341,20 @@
 								<p class="text-gray-900 dark:text-gray-100">
 									<strong>Status:</strong>
 									{consent.status}
+								</p>
+								<p class="text-gray-900 dark:text-gray-100">
+									<strong>JWT Status:</strong>
+									<span class="inline-block rounded px-2 py-1 text-xs {jwtStatus.class}">
+										{jwtStatus.status}
+									</span>
+									<br />
+									<span class="text-sm text-gray-600">{jwtStatus.message}</span>
+									{#if jwtStatus.expiresAt}
+										<br />
+										<span class="text-xs text-gray-500"
+											>Expires: {jwtStatus.expiresAt.toLocaleString()}</span
+										>
+									{/if}
 								</p>
 								<p class="text-gray-700 dark:text-gray-300">
 									<strong>Consumer ID:</strong>
