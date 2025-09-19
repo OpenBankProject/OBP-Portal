@@ -6,14 +6,14 @@ import { obp_requests } from '$lib/obp/requests';
 import type { OBPConsent } from '$lib/obp/types';
 
 export interface OBPIntegrationService {
-  getOrCreateOpeyConsent(session: Session): Promise<string>;
-  checkExistingOpeyConsent(session: Session): Promise<string | null>;
+  getOrCreateOpeyConsent(session: Session): Promise<OBPConsent>;
+  checkExistingOpeyConsent(session: Session): Promise<OBPConsent | null>;
 }
 
 export class DefaultOBPIntegrationService implements OBPIntegrationService {
   constructor(private opeyConsumerId: string) {}
 
-  async getOrCreateOpeyConsent(session: Session): Promise<string> {
+  async getOrCreateOpeyConsent(session: Session): Promise<OBPConsent> {
     if (!session.data.oauth?.access_token) {
       throw new Error('User not authenticated with OBP');
     }
@@ -21,7 +21,7 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
     // Check for existing consent first
     const existingConsentId = await this.checkExistingOpeyConsent(session);
     if (existingConsentId) {
-      const userIdentifier = extractUsernameFromJWT(existingConsentId);
+      const userIdentifier = extractUsernameFromJWT(existingConsentId.jwt);
       logger.info(`getOrCreateOpeyConsent says: Found existing consent JWT - Primary user: ${userIdentifier}`);
       return existingConsentId;
     }
@@ -30,10 +30,10 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
     const consent = await this.createImplicitConsent(session.data.oauth.access_token);
     const userIdentifier = extractUsernameFromJWT(consent.jwt);
     logger.info(`getOrCreateOpeyConsent says: Created new consent JWT - Primary user: ${userIdentifier}`);
-    return consent.jwt;
+    return consent;
   }
 
-  async checkExistingOpeyConsent(session: Session): Promise<string | null> {
+  async checkExistingOpeyConsent(session: Session): Promise<OBPConsent | null> {
     if (!session.data.oauth?.access_token) {
       return null;
     }
@@ -56,16 +56,13 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
 					!this.isConsentExpired(consent)
 				) {
 					logger.debug(`checkExistingOpeyConsent: Found matching consent ${consent.consent_id}`);
-					// Return the JWT, not just the consent_id
-					const fullConsent = await obp_requests.get(
-						`/obp/v5.1.0/user/current/consents/${consent.consent_id}`,
-						session.data.oauth.access_token
-					);
-					const userIdentifier = extractUsernameFromJWT(fullConsent.jwt);
+					
+					const userIdentifier = extractUsernameFromJWT(consent.jwt);
 					logger.info(
-						`checkExistingOpeyConsent says: Retrieved existing consent JWT - Primary user: ${userIdentifier}`
+						`checkExistingOpeyConsent says: Retrieved existing consent JWT - User: ${userIdentifier}`
 					);
-					return fullConsent.jwt;
+					logger.debug(`checkExistingOpeyConsent: Full consent details: ${JSON.stringify(consent)}`);
+					return consent;
 				} else if (consent.consumer_id === this.opeyConsumerId) {
 					logger.debug(
 						`checkExistingOpeyConsent: Found Opey consent but status is ${consent.status} or consent is expired`

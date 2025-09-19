@@ -1,23 +1,27 @@
 <script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { type SessionData } from 'svelte-kit-sessions';
+	import ConsentCard from '$lib/components/ConsentCard.svelte';
 	import { toast } from '$lib/utils/toastService.js';
-
-	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 
 	const { data } = $props();
 	const userData: SessionData['user'] = data.userData || undefined;
-	
+
 	console.debug('USER DATA:', JSON.stringify(userData));
 
 	const opeyConsentInfo = data.opeyConsentInfo || null;
 
-	function formatDate(dateString: string) {
-		return new Date(dateString).toLocaleString();
+	function formatDateFromUnix(epochDateMilliseconds: number | string): string {
+		console.log('Formatting date:', epochDateMilliseconds);
+		return new Date(epochDateMilliseconds).toLocaleString();
 	}
 
-	function formatJwtExpiration(timestamp: string) {
-		const date = new Date(timestamp);
+	function fromatDateFromISO(isoDateString: string): string {
+		return new Date(isoDateString).toLocaleString();
+	}
+
+	function formatJwtExpiration(epochDateMilliseconds: number | string) {
+		const date = new Date(epochDateMilliseconds);
 		const now = new Date();
 		const isExpired = date < now;
 		return {
@@ -73,24 +77,24 @@
 		if (value === null || typeof value !== 'object' || Array.isArray(value)) {
 			return false;
 		}
-		
+
 		const keys = Object.keys(value);
 		// Check if it's an object with exactly one property
 		if (keys.length !== 1) {
 			return false;
 		}
-		
+
 		// Check if that one property is an array
 		return Array.isArray(value[keys[0]]);
 	}
-	
+
 	// Get the array from an object containing a single array property
 	function getSingleArray(value: any): any[] {
 		if (!isSingleArrayContainer(value)) return [];
 		const key = Object.keys(value)[0];
 		return value[key];
 	}
-	
+
 	// Get a display summary for complex values
 	function getComplexValueSummary(value: any): string {
 		if (Array.isArray(value)) {
@@ -115,27 +119,27 @@
 					onclick={() => copyJsonToClipboard(userData)}>Copy JSON</button
 				>
 			</header>
-			<article class="border-primary-500 border-b-[1px] p-4 space-y-3">
+			<article class="border-primary-500 space-y-3 border-b-[1px] p-4">
 				<!-- Group entries by type -->
 				{#each Object.entries(userData) as [key, value]}
 					{#if Array.isArray(value) || (value !== null && typeof value === 'object')}
 						<!-- Complex values use accordion -->
-						<Accordion 
-							value={expandedItems} 
-							onValueChange={(e) => (expandedItems = e.value)} 
-							multiple 
+						<Accordion
+							value={expandedItems}
+							onValueChange={(e) => (expandedItems = e.value)}
+							multiple
 							collapsible
 						>
 							<Accordion.Item value={key} classes="border-0">
 								{#snippet control()}
-									<div class="flex items-center justify-between w-full">
+									<div class="flex w-full items-center justify-between">
 										<strong>{snakeCaseToTitleCase(key)}</strong>
-										<span class="text-sm text-tertiary-400">
+										<span class="text-tertiary-400 text-sm">
 											{getComplexValueSummary(value)}
 										</span>
 									</div>
 								{/snippet}
-								
+
 								{#snippet panel()}
 									{#if Array.isArray(value)}
 										<!-- Array rendering -->
@@ -179,16 +183,22 @@
 													{#if Array.isArray(arrayValue)}
 														<div class="flex-1 space-y-2">
 															{#each arrayValue as item, i}
-																<div class="flex gap-2 items-start">
+																<div class="flex items-start gap-2">
 																	<span class="text-tertiary-400 w-8">{i}:</span>
 																	{#if item !== null && typeof item === 'object'}
 																		<div class="flex-1">
-																			<pre class="bg-gray-800/10 p-2 rounded text-sm overflow-x-auto max-w-full">
-                                                                                {JSON.stringify(item, null, 2)}
+																			<pre
+																				class="max-w-full overflow-x-auto rounded bg-gray-800/10 p-2 text-sm">
+                                                                                {JSON.stringify(
+																					item,
+																					null,
+																					2
+																				)}
                                                                             </pre>
-																			<button 
-																				class="btn btn-sm mt-1 preset-outlined-tertiary-500"
-																				onclick={() => copyToClipboard(JSON.stringify(item, null, 2))}
+																			<button
+																				class="btn btn-sm preset-outlined-tertiary-500 mt-1"
+																				onclick={() =>
+																					copyToClipboard(JSON.stringify(item, null, 2))}
 																			>
 																				Copy
 																			</button>
@@ -196,7 +206,7 @@
 																	{:else}
 																		<div class="flex items-center gap-2">
 																			<span>{formatValue(item)}</span>
-																			<button 
+																			<button
 																				class="btn btn-sm variant-ghost-tertiary"
 																				onclick={() => copyToClipboard(String(item))}
 																			>
@@ -296,8 +306,15 @@
 
 <div class="flex flex-col space-y-6">
 	{@render userInfo(userData)}
-
-	<div
+	{#if opeyConsentInfo && opeyConsentInfo.hasActiveConsent && opeyConsentInfo.consent}
+		<header class="py-4">
+			<h1 class="h4 text-center">Consent for Opey</h1>
+		</header>
+		<div class="mx-auto w-4/6">
+			<ConsentCard consent={opeyConsentInfo.consent} showDeleteButton={false} />
+		</div>
+	{/if}
+	<!-- <div
 		class="card preset-filled-primary-100-900 border-primary-200-800 divide-primary-200-800 mx-auto my-10 flex max-w-md flex-col divide-y border-[1px] shadow-lg sm:max-w-2xl lg:max-w-3xl"
 	>
 		<header class="py-4">
@@ -325,11 +342,17 @@
 								{opeyConsentInfo.consumer_id}
 							</li>
 							<li>
-								<strong class="text-tertiary-400">Created/Last Action:</strong>
-								{formatDate(opeyConsentInfo.created_date)}
+								<strong class="text-tertiary-400">Created At:</strong>
+								{opeyConsentInfo.jwt_payload?.iat ? formatDateFromUnix(opeyConsentInfo.jwt_payload?.iat * 1000) : 'Not available'}
 							</li>
-							{#if opeyConsentInfo.jwt_expires}
-								{@const jwtExp = formatJwtExpiration(opeyConsentInfo.jwt_expires)}
+							{#if opeyConsentInfo.last_usage_date}
+								<li>
+									<strong class="text-tertiary-400">Last Usage Date:</strong>
+									{fromatDateFromISO(opeyConsentInfo.last_usage_date)}
+								</li>
+							{/if}
+							{#if opeyConsentInfo.jwt_payload?.exp}
+								{@const jwtExp = formatJwtExpiration(opeyConsentInfo.jwt_payload?.exp * 1000)}
 								<li>
 									<strong class="text-tertiary-400">JWT Expires:</strong>
 									{jwtExp.formatted}
@@ -392,5 +415,5 @@
 				</div>
 			{/if}
 		</article>
-	</div>
+	</div> -->
 </div>

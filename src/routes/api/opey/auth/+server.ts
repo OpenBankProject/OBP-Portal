@@ -49,7 +49,8 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
     // AUTHENTICATED FLOW - Create consent and authenticated Opey session
 
     const obpIntegration = new DefaultOBPIntegrationService(opeyConsumerId);
-    const consentJwt = await obpIntegration.getOrCreateOpeyConsent(portalSession);
+    const consent = await obpIntegration.getOrCreateOpeyConsent(portalSession);
+    const consentJwt = consent.jwt;
 
     // Extract and log user identifier from consent JWT
     const userIdentifier = extractUsernameFromJWT(consentJwt);
