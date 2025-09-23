@@ -22,21 +22,15 @@
 		Settings,
 		CreditCard
 	} from '@lucide/svelte';
+
 	import { env } from '$env/dynamic/public';
 	import LightSwitch from '$lib/components/LightSwitch.svelte';
+	import type { RootLayoutData } from './+layout.server';
 
-	interface LayoutData {
-		email?: string;
-		userId?: string;
-		username?: string;
-		apiExplorerUrl?: string;
-	}
-
-	let { data, children } = $props<{ data: LayoutData }>();
+	let { data, children } = $props();
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
 	let isMyAccountExpanded = $state(false);
-
 	let displayMode: 'dark' | 'light' = $state('dark');
 
 	if (data.email) {
@@ -46,6 +40,7 @@
 	}
 
 	let isMyAccountActive = $derived(page.url.pathname.startsWith('/user'));
+
 	// Watch for route changes to auto-expand My Account section
 	$effect(() => {
 		if (isMyAccountActive) {
@@ -64,40 +59,58 @@
 	// Some items in the menu are rendered conditionally based on the presence of URLs set in the environment variables.
 	// This is to ensure no broken links
 	let menuItems = $state([
-		...(data.API_EXPLORER_URL
-			? [{ href: data.API_EXPLORER_URL, label: 'API Explorer', iconComponent: Compass }]
+		...(data.externalLinks.API_EXPLORER_URL
+			? [
+					{
+						href: data.externalLinks.API_EXPLORER_URL,
+						label: 'API Explorer',
+						iconComponent: Compass
+					}
+				]
 			: []), // unpacks a conditional list so we can add menu items where we want
-		{ label: 'Get API Key', href: '/consumers/register', iconComponent: KeyRound },
+		{
+			label: 'Get API Key',
+			href: '/consumers/register',
+			iconComponent: KeyRound
+		},
 		// ...(data.SUBSCRIPTIONS_URL
 		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 		// 	: []),
 		//{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
 		//{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
 		//{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
-		...(data.API_MANAGER_URL
-			? [{ href: data.API_MANAGER_URL, label: 'API Manager', iconComponent: SquareTerminal }]
+		...(data.externalLinks.API_MANAGER_URL
+			? [
+					{
+						href: data.externalLinks.API_MANAGER_URL,
+						label: 'API Manager',
+						iconComponent: SquareTerminal
+					}
+				]
 			: [])
 	]);
 
 	let footerLinks = $state([
 		//{ href: '/privacy', label: 'Privacy Policy' },
-		{ href: 'https://github.com/OpenBankProject', label: 'GitHub' }
-		//{ href: '/terms', label: 'Terms of Service' },
-		//{ href: '/support', label: 'Support' },
-		//{ href: '/sitemap', label: 'Sitemap' }
-	]);
+		{
+			href: 'https://github.com/OpenBankProject',
+			label: 'GitHub'
+		}
+	]); //{ href: '/terms', label: 'Terms of Service' },
 
+	//{ href: '/support', label: 'Support' },
+	//{ href: '/sitemap', label: 'Sitemap' }
 	let currentTab = $state('home');
-
 	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
 	const defaultLogoUrl = '/logo2x-1.png';
 	const defaultDarkLogoUrl = '/obp_logo.png';
-
 	let lightLogoUrl = $state(env.PUBLIC_LOGO_URL || defaultLogoUrl);
+
 	if (!env.PUBLIC_DARK_LOGO_URL) {
 		// If no dark logo URL is provided, use the same as light logo
 		env.PUBLIC_DARK_LOGO_URL = env.PUBLIC_LOGO_URL || defaultLogoUrl;
 	}
+
 	let darkLogoUrl = $state(env.PUBLIC_DARK_LOGO_URL || defaultDarkLogoUrl);
 
 	let logoUrl = $derived.by(() => {
@@ -105,7 +118,9 @@
 	});
 </script>
 
-<div class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden">
+<div
+	class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden"
+>
 	<div class="h-full">
 		<Navigation.Rail
 			value={currentTab}
@@ -156,7 +171,7 @@
 						</button>
 
 						{#if isMyAccountExpanded}
-							<div class="mt-1 ml-4 space-y-1">
+							<div class="ml-4 mt-1 space-y-1">
 								{#each myAccountItems as subItem}
 									<Navigation.Tile
 										id={subItem.label.toLowerCase().replace(/\s+/g, '-')}
@@ -194,29 +209,32 @@
 		</Navigation.Rail>
 	</div>
 	<div
-        class="dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 h-full bg-conic-250 from-30% via-40% to-50%"
-    >
-        <div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 80px);">
-            <div class="bg-opacity-0 flex items-center justify-end p-4" style="height: 80px; flex-shrink: 0;">
-                <LightSwitch bind:mode={displayMode} />
-                {#if isAuthenticated}
-                    <span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
-                    <button type="button" class="btn preset-outlined-primary-500"
-                        ><a href="/logout">Logout</a></button
-                    >
-                {:else}
-                    <span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
-                    <button type="button" class="btn preset-filled-surface-950-50"
-                        ><a href="/login/obp">Login</a></button
-                    >
-                {/if}
-            </div>
+		class="bg-conic-250 dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 h-full from-30% via-40% to-50%"
+	>
+		<div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 80px);">
+			<div
+				class="flex items-center justify-end bg-opacity-0 p-4"
+				style="height: 80px; flex-shrink: 0;"
+			>
+				<LightSwitch bind:mode={displayMode} />
+				{#if isAuthenticated}
+					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
+					<button type="button" class="btn preset-outlined-primary-500"
+						><a href="/logout">Logout</a></button
+					>
+				{:else}
+					<span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
+					<button type="button" class="btn preset-filled-surface-950-50"
+						><a href="/login/obp">Login</a></button
+					>
+				{/if}
+			</div>
 
-            <main class="flex flex-col" style="height: calc(100vh - 80px);">
-                {@render children()}
-            </main>
-        </div>
-    </div>
+			<main class="flex flex-col" style="height: calc(100vh - 80px);">
+				{@render children()}
+			</main>
+		</div>
+	</div>
 </div>
 
 <!-- Global Toast Component -->

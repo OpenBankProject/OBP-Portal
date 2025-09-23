@@ -148,7 +148,7 @@
                     <div class="flex gap-2">
                         <button 
                             onclick={handleApprove}
-                            class="btn variant-filled-success" 
+                            class="btn preset-filled-success-500" 
                             disabled={isProcessing}>
                             {#if isProcessing}
                                 <LoaderCircle class="animate-spin" size={16} />
@@ -159,7 +159,7 @@
                         </button>
                         <button 
                             onclick={handleDeny}
-                            class="btn variant-filled-error" 
+                            class="btn preset-filled-error-500" 
                             disabled={isProcessing}>
                             {#if isProcessing}
                                 <LoaderCircle class="animate-spin" size={16} />

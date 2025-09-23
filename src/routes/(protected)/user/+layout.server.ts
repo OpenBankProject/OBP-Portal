@@ -1,7 +1,7 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('UserPageServer');
 import type { RequestEvent } from '@sveltejs/kit';
-import { DefaultOBPIntegrationService } from '$lib/opey/services/OBPIntegrationService';
+import { obpIntegrationService } from '$lib/opey/services/OBPIntegrationService';
 import { env } from '$env/dynamic/private';
 
 export async function load(event: RequestEvent) {
@@ -17,8 +17,7 @@ export async function load(event: RequestEvent) {
 		try {
 			logger.debug('Checking for Opey consent with consumer ID:', env.OPEY_CONSUMER_ID);
 
-			const obpIntegration = new DefaultOBPIntegrationService(env.OPEY_CONSUMER_ID);
-			const existingConsent = await obpIntegration.checkExistingOpeyConsent(session);
+			const existingConsent = await obpIntegrationService.checkExistingOpeyConsent(session);
 
 			if (existingConsent) {
 				opeyConsentInfo = {

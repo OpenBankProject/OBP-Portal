@@ -3,7 +3,8 @@ const logger = createLogger('OBPIntegrationService');
 import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import type { Session } from 'svelte-kit-sessions';
 import { obp_requests } from '$lib/obp/requests';
-import type { OBPConsent } from '$lib/obp/types';
+import type { OBPConsent, OBPConsentInfo } from '$lib/obp/types';
+import { env } from '$env/dynamic/private';
 
 export interface OBPIntegrationService {
   getOrCreateOpeyConsent(session: Session): Promise<OBPConsent>;
@@ -31,6 +32,29 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
     const userIdentifier = extractUsernameFromJWT(consent.jwt);
     logger.info(`getOrCreateOpeyConsent says: Created new consent JWT - Primary user: ${userIdentifier}`);
     return consent;
+  }
+
+  async getCurrentConsentInfo(session: Session): Promise<OBPConsentInfo | null> {
+	if (!session.data.oauth?.access_token) {
+		return null;
+	}
+
+	try {
+		const currentConsent = await this.checkExistingOpeyConsent(session);
+		return currentConsent ? {
+			consent_id: currentConsent.consent_id,
+			consumer_id: currentConsent.consumer_id,
+			created_by_user_id: currentConsent.created_by_user_id,
+			last_action_date: currentConsent.last_action_date,
+			last_usage_date: currentConsent.last_usage_date,
+			status: currentConsent.status,
+			api_standard: currentConsent.api_standard,
+			api_version: currentConsent.api_version
+		} : null;
+	} catch (error) {
+		logger.error('[getCurrentConsentInfo] Error fetching current consent info:', error);
+		return null;
+	}
   }
 
   async checkExistingOpeyConsent(session: Session): Promise<OBPConsent | null> {
@@ -108,3 +132,5 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
 		return exp < now;
 	}
 }
+
+export const obpIntegrationService = new DefaultOBPIntegrationService(env.OPEY_CONSUMER_ID);

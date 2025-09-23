@@ -3,7 +3,7 @@ const logger = createLogger('OpeyAuthServer');
 import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "./$types";
-import { DefaultOBPIntegrationService } from "$lib/opey/services/OBPIntegrationService";
+import { obpIntegrationService } from "$lib/opey/services/OBPIntegrationService";
 import { env } from "$env/dynamic/private";
 import type { Session } from "svelte-kit-sessions";
 
@@ -48,8 +48,7 @@ export async function POST(event: RequestEvent) {
 async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: Session) {
     // AUTHENTICATED FLOW - Create consent and authenticated Opey session
 
-    const obpIntegration = new DefaultOBPIntegrationService(opeyConsumerId);
-    const consent = await obpIntegration.getOrCreateOpeyConsent(portalSession);
+    const consent = await obpIntegrationService.getOrCreateOpeyConsent(portalSession);
     const consentJwt = consent.jwt;
 
     // Extract and log user identifier from consent JWT

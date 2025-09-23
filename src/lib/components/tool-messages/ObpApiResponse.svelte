@@ -47,7 +47,7 @@
 </script>
 
 {#if isError}
-    <div class="alert variant-filled-error">
+    <div class="alert preset-filled-error-500">
         <div class="font-bold">❌ API Request Failed</div>
         <div class="text-sm mt-1">
             <strong>Status:</strong> {parsedOutput?.code || parsedOutput?.status || 'Unknown'}<br/>
@@ -62,7 +62,7 @@
         </details>
     </div>
 {:else if parsedOutput}
-    <div class="alert variant-filled-success">
+    <div class="alert preset-filled-success-500">
         
         {#if keyInfo.length > 0}
             <div class="text-sm mt-2">
@@ -82,7 +82,7 @@
     </div>
 {:else}
     <!-- Fallback for non-JSON output -->
-    <div class="alert variant-filled-tertiary">
+    <div class="alert preset-filled-tertiary-500">
         <div class="font-bold">📄 Tool Response</div>
         <details class="mt-2">
             <summary class="cursor-pointer text-xs">View Raw Output</summary>

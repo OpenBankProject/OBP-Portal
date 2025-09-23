@@ -164,7 +164,7 @@
 														<div class="flex items-center gap-2">
 															<span>{formatValue(item)}</span>
 															<button
-																class="btn btn-sm variant-ghost-tertiary"
+																class="btn btn-sm preset-tonal-tertiary"
 																onclick={() => copyToClipboard(String(item))}
 															>
 																Copy
@@ -207,7 +207,7 @@
 																		<div class="flex items-center gap-2">
 																			<span>{formatValue(item)}</span>
 																			<button
-																				class="btn btn-sm variant-ghost-tertiary"
+																				class="btn btn-sm preset-tonal-tertiary"
 																				onclick={() => copyToClipboard(String(item))}
 																			>
 																				Copy
@@ -246,7 +246,7 @@
 														<div class="flex items-center gap-2">
 															<span>{formatValue(subValue)}</span>
 															<button
-																class="btn btn-sm variant-ghost-tertiary"
+																class="btn btn-sm preset-tonal-tertiary"
 																onclick={() => copyToClipboard(String(subValue))}
 															>
 																Copy
@@ -270,7 +270,7 @@
 									{value}
 								</span>
 								<button
-									class="btn-icon btn-sm variant-ghost-tertiary"
+									class="btn-icon btn-sm preset-tonal-tertiary"
 									onclick={() => copyToClipboard(String(value))}
 									title="Copy to clipboard"
 									aria-label="Copy to clipboard"

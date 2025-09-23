@@ -133,7 +133,7 @@
         
         <!-- Copy button for consent ID -->
         <button
-            class="btn-icon btn-sm variant-ghost-tertiary ml-2"
+            class="btn-icon btn-sm preset-filled-tertiary ml-2"
             onclick={() => copyToClipboard(consent.consent_id, 'Consent ID')}
             title="Copy consent ID"
             aria-label="Copy consent ID"
@@ -153,7 +153,7 @@
             <div class="flex items-center gap-2">
                 <span class="text-gray-900 dark:text-gray-100">{consent.consumer_id}</span>
                 <button
-                    class="btn-icon btn-sm variant-ghost-tertiary"
+                    class="btn-icon btn-sm preset-filled-tertiary"
                     onclick={() => copyToClipboard(consent.consumer_id, 'Consumer ID')}
                     title="Copy consumer ID"
                     aria-label="Copy consumer ID"

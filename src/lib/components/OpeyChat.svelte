@@ -14,6 +14,7 @@
 	import { SessionState, type SessionSnapshot } from '$lib/opey/state/SessionState';
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
 	import type { ToolMessage } from '$lib/opey/types';
+	import type { OBPConsentInfo } from '$lib/obp/types';
 	import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
 
 	// Import other components
@@ -32,17 +33,10 @@
 		}
 	}
 	import {
-		Check,
 		CircleArrowUp,
-		Diamond,
-		Hammer,
-		LoaderCircle,
-		XCircle,
 		type Icon as IconType
 	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import { renderMarkdown } from '$lib/markdown/helper-funcs';
-	import { fly } from 'svelte/transition';
 
 	// Interface for chat options
 	export type SuggestedQuestion = {
@@ -57,6 +51,7 @@
 		suggestedQuestions: SuggestedQuestion[]; // List of suggested questions to display
 		displayConnectionPips: boolean; // Whether to display connection status pips
 		initialAssistantMessage?: string;
+		currentConsentInfo?: OBPConsentInfo; // Consent info for the status pip
 		headerClasses?: string; // Optional classes for the header
 		footerClasses?: string;
 		bodyClasses?: string;
@@ -177,6 +172,10 @@
 				return 'preset-filled-warning-500';
 		}
 	});
+
+	// async function formatAuthStatusPip(session: SessionSnapshot, consentInfo?: OBPConsentInfo): {
+	// 	const 
+	// }
 
 	async function sendMessage(text: string) {
 		if (!text.trim()) return;
@@ -329,6 +328,52 @@
 	{/if}
 {/snippet}
 
+{#snippet statusPips(session: SessionSnapshot, consentInfo?: OBPConsentInfo)}
+	{#if options.displayConnectionPips}
+		<div class="flex flex-col items-center">
+			<!-- Connection Pip with Tooltip -->
+			<Tooltip classes="z-10">
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {connectionPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
+			</Tooltip>
+			<!-- Authentication Pip with Tooltip -->
+			<Tooltip classes="z-10">
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {authPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}
+					{#if session.status === 'loading'}
+						Authenticating...
+					{:else if session.status === 'error'}
+						Error during authentication: {session.error}
+					{:else if session.isAuthenticated}
+						Authenticated
+						{#if consentInfo}
+							<br />
+							Consent ID: {consentInfo.consent_id}
+						{/if}
+					{:else}
+						Not Authenticated
+					{/if}
+				{/snippet}
+			</Tooltip>
+			<!-- {#if !session.isAuthenticated}
+				<button class="btn btn-sm btn-primary" onclick={upgradeSession} disabled={session.status === 'loading'}>
+					Log in to connect banking data
+				</button>
+			{/if} -->
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet inputField()}
 	<div class="flex w-full items-center gap-2">
 		<!-- Use flex to align input and pips horizontally -->
@@ -359,26 +404,7 @@
 		</div>
 		<!-- Pips outside the input, on the right -->
 		<div class="flex flex-col gap-1">
-			<!-- Connection Pip with Tooltip -->
-			<Tooltip classes="z-10">
-				<!-- Added z-10 for higher stacking -->
-				{#snippet trigger()}
-					<div class="badge-icon {connectionPipColor} h-3 w-3">
-						<ShieldUserIcon size={12} />
-					</div>
-				{/snippet}
-				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
-			</Tooltip>
-			<!-- Authentication Pip with Tooltip -->
-			<Tooltip classes="z-10">
-				<!-- Added z-10 for higher stacking -->
-				{#snippet trigger()}
-					<div class="badge-icon {authPipColor} h-3 w-3">
-						<ShieldUserIcon size={12} />
-					</div>
-				{/snippet}
-				{#snippet content()}Authentication Status{/snippet}
-			</Tooltip>
+			{@render statusPips(session, options.currentConsentInfo)}
 		</div>
 	</div>
 {/snippet}

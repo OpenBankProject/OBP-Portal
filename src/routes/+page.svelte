@@ -6,26 +6,7 @@
 
 	let { data } = $props();
 	let name = data.username || 'Guest';
-	let opeyConsentStatus = data.opeyConsentStatus || 'none';
-	let opeyConsentReferenceId = data.opeyConsentReferenceId || null;
-
-	function getStatusTitle(status: string): string {
-		const baseTitle = (() => {
-			switch (status) {
-				case 'ready':
-					return 'Opey Consent Ready (ACCEPTED)';
-				case 'initiated':
-					return 'Opey Consent Created (INITIATED)';
-				case 'none':
-				default:
-					return 'No Opey Consent';
-			}
-		})();
-
-		return opeyConsentReferenceId
-			? `${baseTitle}\nConsent Reference ID: ${opeyConsentReferenceId}`
-			: baseTitle;
-	}
+	let opeyConsentInfo = data.opeyConsentInfo;
 
 	const suggestedQuestions: SuggestedQuestion[] = [
 		{
@@ -54,9 +35,11 @@
 		displayHeader: false,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
+		currentConsentInfo: opeyConsentInfo ? opeyConsentInfo : undefined,
 		bodyClasses: 'bg-opacity-0',
 		footerClasses: 'bg-opacity-0'
 	};
+	
 </script>
 
 <div class="flex h-full w-full items-center justify-center p-4">
