@@ -173,6 +173,8 @@
 		}
 	});
 
+	let authPipOpenState = $state(false);
+
 	// async function formatAuthStatusPip(session: SessionSnapshot, consentInfo?: OBPConsentInfo): {
 	// 	const 
 	// }
@@ -332,7 +334,13 @@
 	{#if options.displayConnectionPips}
 		<div class="flex flex-col items-center">
 			<!-- Connection Pip with Tooltip -->
-			<Tooltip classes="z-10">
+			<Tooltip 
+				classes="z-10"
+				positioning={{ placement: 'top' }}
+				contentBase="card bg-primary-200-800 text-xs p-1"
+				arrowBackground="var(--color-primary-200-800)"
+				arrow
+			>
 				<!-- Added z-10 for higher stacking -->
 				{#snippet trigger()}
 					<div class="badge-icon {connectionPipColor} h-3 w-3">
@@ -342,7 +350,14 @@
 				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
 			</Tooltip>
 			<!-- Authentication Pip with Tooltip -->
-			<Tooltip classes="z-10">
+			<Tooltip 
+				classes="z-10"
+				open={authPipOpenState}
+				contentBase="card bg-primary-200-800 text-xs p-1"
+				arrowBackground="var(--color-primary-200-800)"
+				onclick={() => { authPipOpenState = !authPipOpenState; }}
+				arrow
+			>
 				<!-- Added z-10 for higher stacking -->
 				{#snippet trigger()}
 					<div class="badge-icon {authPipColor} h-3 w-3">
@@ -355,10 +370,10 @@
 					{:else if session.status === 'error'}
 						Error during authentication: {session.error}
 					{:else if session.isAuthenticated}
-						Authenticated
+						<h1 class="font-bold text-success-500">Authenticated</h1>
 						{#if consentInfo}
 							<br />
-							Consent ID: {consentInfo.consent_id}
+							Consent ID: <a href="/user#opey-consent" aria-label="view opey consent">{consentInfo.consent_id}</a>
 						{/if}
 					{:else}
 						Not Authenticated

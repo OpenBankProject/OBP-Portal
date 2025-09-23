@@ -307,7 +307,7 @@
 <div class="flex flex-col space-y-6">
 	{@render userInfo(userData)}
 	{#if opeyConsentInfo && opeyConsentInfo.hasActiveConsent && opeyConsentInfo.consent}
-		<header class="py-4">
+		<header class="py-4" id="opey-consent">
 			<h1 class="h4 text-center">Consent for Opey</h1>
 		</header>
 		<div class="mx-auto w-4/6">
