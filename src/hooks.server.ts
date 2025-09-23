@@ -1,7 +1,7 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('HooksServer');
 import type { Handle } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
@@ -96,6 +96,54 @@ function needsAuthorization(routeId: string): boolean {
 	// protected routes are put in the /(protected)/ route group
 	return routeId.startsWith('/(protected)/');
 }
+
+const checkSessionValidity: Handle = async ({ event, resolve }) => {
+    const session = event.locals.session;
+    if (session.data.user) {
+        // Here you can add additional checks if needed
+        // For example, check if the session has expired based on your own logic
+        // or if certain required data is present in the session
+        const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
+        if (!sessionOAuth) {
+            logger.warn('No valid OAuth data found in session. Destroying session.');
+            await session.destroy();
+
+            // Redirect to trigger a fresh load instead of just resolving
+            throw redirect(302, event.url.pathname);
+        }
+
+        const sessionExpired = await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)
+        // Check if the access token is expired,
+        // if it is, attempt to refresh it
+        if (sessionExpired) {
+            // will return true if the token is expired
+            try {
+                await SessionOAuthHelper.refreshAccessToken(session);
+                return await resolve(event);
+            } catch (error) {
+                logger.info(
+                    'Token refresh failed - redirecting user to login (normal OAuth behavior):',
+                    error
+                );
+                // If the refresh fails, redirect to login
+                // Destroy the session
+                logger.info('Destroying expired session.');
+                await session.destroy();
+                // Redirect to trigger a fresh load and clear client-side cache
+                throw redirect(302, event.url.pathname);
+            }
+        }
+
+        // If we reach here, the session is valid (either not expired or successfully refreshed)
+        logger.debug('Session is valid for user:', session.data.user?.username);
+        return await resolve(event);
+
+    }
+    
+    // Always return a response, even when there's no session
+    return await resolve(event);
+}
+
 // Middleware to check user authorization
 const checkAuthorization: Handle = async ({ event, resolve }) => {
 	const session = event.locals.session;
@@ -107,43 +155,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 			logger.warn('OAuth2 providers not ready:', oauth2ProviderManager.getStatus().error);
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
-		// Check token expiration
-		const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
-		if (!sessionOAuth) {
-			logger.warn('No valid OAuth data found in session. Redirecting to login.');
-			// Redirect to login page if no OAuth data is found
-			return new Response(null, {
-				status: 302,
-				headers: {
-					Location: '/login'
-				}
-			});
-		}
-
-		// Check if the access token is expired,
-		// if it is, attempt to refresh it
-		if (await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)) {
-			// will return true if the token is expired
-			try {
-				await SessionOAuthHelper.refreshAccessToken(session);
-			} catch (error) {
-				logger.info(
-					'Token refresh failed - redirecting user to login (normal OAuth behavior):',
-					error
-				);
-				// If the refresh fails, redirect to login
-				// Destroy the session
-				logger.info('Destroying expired session and redirecting to login.');
-				await session.destroy();
-
-				return new Response(null, {
-					status: 302,
-					headers: {
-						Location: '/login'
-					}
-				});
-			}
-		}
+		
 
 		if (!session || !session.data.user) {
 			// Redirect to login page if not authenticated
@@ -169,6 +181,7 @@ export const handle: Handle = sequence(
 		secret: 'secret',
 		store: new RedisStore({ client: redisClient })
 	}),
+	checkSessionValidity,
 	checkAuthorization
 	// add other handles here if needed
 );
