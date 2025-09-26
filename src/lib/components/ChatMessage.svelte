@@ -55,7 +55,6 @@
                 <p class="text-s font-bold">Opey</p>
             {/if}
         </div>
-        <hr class="hr" />
     {/if}
     
     <!-- Message content -->
@@ -65,6 +64,7 @@
                 {message.message}
             </div>
         {:else if message.role === 'assistant'}
+            <hr class="hr" />
             <div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
                 {@html renderMarkdown(message.message)}
             </div>

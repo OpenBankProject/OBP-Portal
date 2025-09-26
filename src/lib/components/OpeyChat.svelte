@@ -191,7 +191,8 @@
 	}
 
 	function handleKeyPress(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault(); // Prevent newline
 			handleSendMessage(messageInput);
 		}
 	}
@@ -262,7 +263,20 @@
 		await initializeOpeySession();
 	}
 
+	// Track if the input is multiline (due to either wrapping or newlines)
+	let isMultiline = $state(false);
 	let messageInput = $state('');
+
+	function autoResize(event: Event) {
+		const textarea = event.target as HTMLTextAreaElement;
+		textarea.style.height = 'auto'; // Reset height
+		textarea.style.height = `${textarea.scrollHeight}px`; // Set to scrollHeight
+
+		// Check if content exceeds a single line (approximately)
+		// We compare scrollHeight to a typical single-line height
+		const singleLineHeight = 50; // Adjust based on your font size and padding
+		isMultiline = textarea.scrollHeight > singleLineHeight * 1.5;
+	}
 
 	async function handleApprove(toolCallId: string) {
 		await chatController.approveToolCall(toolCallId);
@@ -390,37 +404,64 @@
 {/snippet}
 
 {#snippet inputField()}
-	<div class="flex w-full items-center gap-2">
-		<!-- Use flex to align input and pips horizontally -->
-		<div class="relative flex-1">
-			<!-- Input container -->
-			<img
-				src="/opey_avatar.png"
-				alt="Opey Avatar"
-				class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
-			/>
-			<input
-				bind:value={messageInput}
-				type="text"
-				placeholder="Ask me about the Open Bank Project API"
-				class="input bg-primary-50 dark:bg-primary-600 h-15 w-full rounded-lg p-5 pr-7"
-				disabled={session?.status !== 'ready'}
-				onkeydown={handleKeyPress}
-			/>
-			{#if messageInput.length > 0}
-				<button
-					class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
-					disabled={session?.status !== 'ready' || !messageInput.trim()}
-					onclick={() => handleSendMessage(messageInput)}
-				>
-					<CircleArrowUp class="h-7 w-7" />
-				</button>
-			{/if}
-		</div>
-		<!-- Pips outside the input, on the right -->
-		<div class="flex flex-col gap-1">
-			{@render statusPips(session, options.currentConsentInfo)}
-		</div>
+	<!-- Single unified container for input and controls -->
+	<div class="relative w-full bg-primary-50 dark:bg-primary-600 rounded-lg">
+		<!-- Avatar positioned outside the unified container -->
+		<img
+			src="/opey_avatar.png"
+			alt="Opey Avatar"
+			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
+		/>
+		
+		<!-- Text area - no bottom border radius when expanded -->
+		<textarea
+			bind:value={messageInput}
+			placeholder={(chat.messages.length > 0) ? "Ask me about the Open Bank Project API" : "Ask me anything..."}
+			class="input w-full p-5 pr-7 resize-none overflow-hidden bg-transparent min-h-15 border-none outline-none focus:outline-none
+				{isMultiline ? 'rounded-t-lg mb-0' : 'rounded-lg'}"
+			disabled={session?.status !== 'ready'}
+			onkeydown={handleKeyPress}
+			oninput={autoResize}
+			rows="1"
+		></textarea>
+		
+		<!-- Single-line mode controls -->
+		{#if messageInput.length > 0 && !isMultiline}
+			<button
+				class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
+				disabled={session?.status !== 'ready' || !messageInput.trim()}
+				onclick={() => handleSendMessage(messageInput)}
+			>
+				<CircleArrowUp class="h-7 w-7" />
+			</button>
+		{:else if messageInput.length === 0}
+			<!-- When empty, show pips inline -->
+			<div class="absolute right-3 top-1/2 -translate-y-1/2">
+				{@render statusPips(session, options.currentConsentInfo)}
+			</div>
+		{/if}
+		
+		<!-- Footer - visually connected to textarea when multiline -->
+		{#if isMultiline}
+			<div class="flex justify-between items-center w-full p-2 pt-0 bg-primary-50 dark:bg-primary-600 rounded-b-lg">
+				<div>
+					<!-- Placeholder for future buttons (like file upload) -->
+					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
+				</div>
+				
+				<div class="flex items-center gap-2">
+					<button
+						class="btn btn-primary"
+						disabled={session?.status !== 'ready' || !messageInput.trim()}
+						onclick={() => handleSendMessage(messageInput)}
+					>
+						<CircleArrowUp class="h-7 w-7" />
+					</button>
+					
+					{@render statusPips(session, options.currentConsentInfo)}
+				</div>
+			</div>
+		{/if}
 	</div>
 {/snippet}
 

@@ -191,6 +191,7 @@
 			{/snippet}
 			{#snippet footer()}
 				<div class="text-surface-800-200 flex flex-wrap items-center gap-3 text-xs">
+					<LightSwitch bind:mode={displayMode} />
 					{#each footerLinks as link, index}
 						<a href={link.href} class="hover:text-tertiary-400 flex items-center gap-2">
 							{#if link.label === 'GitHub'}
@@ -216,7 +217,6 @@
 				class="flex items-center justify-end bg-opacity-0 p-4"
 				style="height: 80px; flex-shrink: 0;"
 			>
-				<LightSwitch bind:mode={displayMode} />
 				{#if isAuthenticated}
 					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
 					<button type="button" class="btn preset-outlined-primary-500"
