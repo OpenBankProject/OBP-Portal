@@ -175,11 +175,31 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+// Get parent domain for cookie sharing (set COOKIE_DOMAIN in .env for subdomain sharing)
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+const SESSION_SECRET = env.SESSION_SECRET || 'secret';
+
+// Log session configuration for debugging
+if (COOKIE_DOMAIN) {
+	logger.info(`Session cookie domain configured for subdomain sharing: ${COOKIE_DOMAIN}`);
+} else {
+	logger.info('Session cookie domain not set - cookies will be single-domain only');
+}
+
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
-	sveltekitSessionHandle({ 
-		secret: 'secret',
-		store: new RedisStore({ client: redisClient })
+	sveltekitSessionHandle({
+		secret: SESSION_SECRET,
+		store: new RedisStore({ client: redisClient }),
+		cookie: {
+			name: 'session',
+			httpOnly: true,
+			path: '/',
+			sameSite: 'lax', // 'lax' allows subdomain sharing
+			secure: env.NODE_ENV === 'production', // HTTPS only in production
+			domain: COOKIE_DOMAIN, // KEY: Enables subdomain cookie sharing when set
+			maxAge: 60 * 60 * 24 * 7 // 7 days
+		}
 	}),
 	checkSessionValidity,
 	checkAuthorization
