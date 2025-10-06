@@ -27,7 +27,7 @@ export class RestChatService implements ChatService {
 			})
 		});
 
-		return this.handleStreamingResponse(`${this.baseUrl}/approval/${threadId}`, init);
+		return this.handleStreamingResponse(`/api/opey/approval/${threadId}`, init);
 	}
 
 	private async buildInit(init: RequestInit = {}): Promise<RequestInit> {
@@ -48,8 +48,8 @@ export class RestChatService implements ChatService {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(streamInput)
 		});
-		
-		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init, threadId);
+
+		return this.handleStreamingResponse(`/api/opey/stream`, init, threadId);
 	}
 
 	private async handleStreamingResponse(url: string, init: RequestInit, threadId?: string): Promise<void> {

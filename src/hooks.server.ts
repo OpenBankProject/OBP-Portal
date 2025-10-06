@@ -139,7 +139,7 @@ const checkSessionValidity: Handle = async ({ event, resolve }) => {
         return await resolve(event);
 
     }
-    
+
     // Always return a response, even when there's no session
     return await resolve(event);
 }
@@ -155,7 +155,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 			logger.warn('OAuth2 providers not ready:', oauth2ProviderManager.getStatus().error);
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
-		
+
 
 		if (!session || !session.data.user) {
 			// Redirect to login page if not authenticated
@@ -177,9 +177,18 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
-	sveltekitSessionHandle({ 
-		secret: 'secret',
-		store: new RedisStore({ client: redisClient })
+	sveltekitSessionHandle({
+		secret: env.SESSION_SECRET || 'default-dev-secret',
+		store: new RedisStore({ client: redisClient }),
+		cookie: {
+			secure: env.NODE_ENV === 'production',
+			httpOnly: true,
+			sameSite: 'none',
+			path: '/',
+			maxAge: 60 * 60 * 24 * 7 // 7 days
+		},
+		saveUninitialized: false,
+		rolling: true
 	}),
 	checkSessionValidity,
 	checkAuthorization
@@ -193,7 +202,7 @@ declare module 'svelte-kit-sessions' {
 			user_id: string;
 			email: string;
 			username: string;
-			entitlements: { 
+			entitlements: {
 				list: Array<{
 					entitlement_id: string;
 					role_name: string;

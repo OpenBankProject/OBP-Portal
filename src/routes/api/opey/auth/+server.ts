@@ -13,6 +13,10 @@ export async function POST(event: RequestEvent) {
         const session = event.locals.session;
         const accessToken = session?.data?.oauth?.access_token;
 
+        logger.debug('Auth endpoint - Portal session ID:', session?.id || 'no session');
+        logger.debug('Auth endpoint - Portal session data keys:', Object.keys(session?.data || {}));
+        logger.debug('Auth endpoint - Has access token:', !!accessToken);
+
         // Check if this is an authenticated request
         if (accessToken) {
 
@@ -63,6 +67,9 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
         }
     });
 
+    logger.debug('Opey create-session response status:', opeyResponse.status);
+    logger.debug('Opey create-session response headers:', Object.fromEntries(opeyResponse.headers.entries()));
+
     if (!opeyResponse.ok) {
         const errorText = await opeyResponse.text();
         logger.error(`_getAuthenticatedSession says: Failed to create authenticated Opey session - Primary user: ${userIdentifier} - Error: ${errorText}`);
@@ -73,9 +80,14 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 
     // Forward the session cookie to the client
     const setCookieHeaders = opeyResponse.headers.get('set-cookie');
+    logger.debug('Set-Cookie headers from Opey:', setCookieHeaders);
+
+    const responseOptions = setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {};
+    logger.debug('Response options being sent to client:', responseOptions);
+
     return json(
         { success: true, authenticated: true },
-        setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {}
+        responseOptions
     );
 }
 
@@ -83,7 +95,7 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 async function _getAnonymousSession(error?: string) {
     // ANONYMOUS FLOW - Create anonymous Opey session
     logger.info(`_getAnonymousSession says: Creating anonymous Opey session - Making request to ${env.OPEY_BASE_URL}/create-session (no consent JWT)`);
-    
+
     const opeyResponse = await fetch(`${env.OPEY_BASE_URL}/create-session`, {
         method: 'POST',
         headers: {
@@ -91,6 +103,9 @@ async function _getAnonymousSession(error?: string) {
         }
         // No Consent-JWT header = anonymous session
     });
+
+    logger.debug('Anonymous Opey create-session response status:', opeyResponse.status);
+    logger.debug('Anonymous Opey create-session response headers:', Object.fromEntries(opeyResponse.headers.entries()));
 
     if (!opeyResponse.ok) {
         const errorText = await opeyResponse.text();
@@ -102,14 +117,19 @@ async function _getAnonymousSession(error?: string) {
 
     // Forward the session cookie to the client
     const setCookieHeaders = opeyResponse.headers.get('set-cookie');
+    logger.debug('Anonymous Set-Cookie headers from Opey:', setCookieHeaders);
+
     const responseData: any = { success: true, authenticated: false };
-    
+
     if (error) {
         responseData.error = error;
     }
-    
+
+    const responseOptions = setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {};
+    logger.debug('Anonymous response options being sent to client:', responseOptions);
+
     return json(
         responseData,
-        setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {}
+        responseOptions
     );
 }

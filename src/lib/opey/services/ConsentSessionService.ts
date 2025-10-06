@@ -21,7 +21,7 @@ export class ConsentSessionService implements SessionService {
             logger.info("createSession says: Creating anonymous session - no consent JWT");
             // No Consent-JWT header means anonymous session
         }
-        const res = await fetch(`${this.baseUrl}/create-session`, {
+        const res = await fetch(`/api/opey/create-session`, {
             method: 'POST',
             headers,
             credentials: 'include',
@@ -42,7 +42,7 @@ export class ConsentSessionService implements SessionService {
     }
 
     async deleteSession(): Promise<void> {
-        const res = await fetch(`${this.baseUrl}/delete-session`, {
+        const res = await fetch(`/api/opey/delete-session`, {
             method: 'POST',
             credentials: 'include'
         });
@@ -52,7 +52,7 @@ export class ConsentSessionService implements SessionService {
     }
 
     async getStatus(): Promise<{ status: string }> {
-        const res = await fetch(`${this.baseUrl}/status`, {
+        const res = await fetch(`/api/opey/status`, {
             method: 'GET',
             credentials: 'include'
         });
