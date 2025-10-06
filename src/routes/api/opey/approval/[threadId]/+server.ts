@@ -54,9 +54,9 @@ export async function POST(event: RequestEvent) {
         };
 
         // Forward thread ID header if present
-        const threadId = opeyResponse.headers.get('X-Thread-ID');
-        if (threadId) {
-            responseHeaders['X-Thread-ID'] = threadId;
+        const responseThreadId = opeyResponse.headers.get('X-Thread-ID');
+        if (responseThreadId) {
+            responseHeaders['X-Thread-ID'] = responseThreadId;
         }
 
         // Forward other relevant headers

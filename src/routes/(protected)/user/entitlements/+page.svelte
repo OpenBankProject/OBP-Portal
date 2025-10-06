@@ -18,9 +18,11 @@
 	let selectedEntitlement = $state({ role: '', requires_bank_id: false });
 	let selectedBank = $state({ bank_id: '', name: '' });
 
-	console.log('User Entitlements:', userEntitlements);
-	console.log('All Entitlements:', allEntitlements);
-	console.log('Can Create Entitlements:', canCreateEntitlements);
+	$effect(() => {
+		console.log('User Entitlements:', userEntitlements);
+		console.log('All Entitlements:', allEntitlements);
+		console.log('Can Create Entitlements:', canCreateEntitlements);
+	});
 </script>
 
 <h2 class="mb-4 text-xl font-semibold">Your Entitlements</h2>
