@@ -36,15 +36,16 @@ export interface ToolMessage extends BaseMessage {
 	instanceNumber?: number; // Instance number for display (e.g., "retrieve_endpoints (2)")
 	waitingForApproval?: boolean; // Whether tool is waiting for user approval
 	approvalStatus?: 'approved' | 'denied'; // Whether tool was approved or denied by user
-}
-
-export interface ApprovalRequestMessage extends BaseMessage {
-	role: 'approval_request';
-	toolName: string; // Name of the tool requesting approval
-	toolCallId: string;
-	toolInput: Record<string, any>; // Input parameters for the tool call
-	description?: string; // Human-readable description of what the tool will do
-	approved?: boolean; // Whether the user has approved/denied this request
+	approvalLevel?: string; // The approval level used (e.g., 'auto', 'user', 'admin')
+	// Approval metadata from backend
+	approvalMessage?: string; // Human-readable description of what the tool will do
+	riskLevel?: string;
+	affectedResources?: string[];
+	reversible?: boolean;
+	estimatedImpact?: string;
+	similarOperationsCount?: number;
+	availableApprovalLevels?: string[];
+	defaultApprovalLevel?: string;
 }
 
 export interface ToolCall {

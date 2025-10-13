@@ -10,6 +10,7 @@
         Diamond,
         AlertTriangle,
     } from '@lucide/svelte';
+	import ToolApprovalCard from '../ToolApprovalCard.svelte';
 
     interface Props {
         message: ToolMessage;
@@ -130,46 +131,11 @@
             
             <!-- Approval Interface - Shown only when waiting for approval -->
             {#if showApprovalInterface}
-                <div class="mb-4 border-l-4 border-warning-500 bg-warning-50 p-4 dark:bg-warning-950">
-                    <div class="mb-2 text-sm font-semibold text-warning-700 dark:text-warning-300">
-                        Tool Approval Required
-                    </div>
-                    
-                    <div class="mb-3 text-sm text-warning-600 dark:text-warning-400">
-                        This tool needs your permission to run.
-                    </div>
-                    
-                    <div class="mb-3 text-xs">
-                        <strong>Tool:</strong> {message.toolName}
-                        <br>
-                        <strong>Input:</strong> {JSON.stringify(message.toolInput)}
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        <button 
-                            onclick={handleApprove}
-                            class="btn preset-filled-success-500" 
-                            disabled={isProcessing}>
-                            {#if isProcessing}
-                                <LoaderCircle class="animate-spin" size={16} />
-                            {:else}
-                                <Check size={16} />
-                            {/if}
-                            Approve
-                        </button>
-                        <button 
-                            onclick={handleDeny}
-                            class="btn preset-filled-error-500" 
-                            disabled={isProcessing}>
-                            {#if isProcessing}
-                                <LoaderCircle class="animate-spin" size={16} />
-                            {:else}
-                                <XCircle size={16} />
-                            {/if}
-                            Deny
-                        </button>
-                    </div>
-                </div>
+                <ToolApprovalCard
+                    toolMessage={message}
+                    onApprove={handleApprove}
+                    onDeny={handleDeny}
+                />
             {/if}
             
             <!-- Tool Input/Output Sections -->

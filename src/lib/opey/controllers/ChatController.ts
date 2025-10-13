@@ -110,7 +110,16 @@ export class ChatController {
 							event.toolCallId,
 							event.toolName,
 							event.toolInput,
-							event.description
+							event.message,
+							{
+								riskLevel: event.riskLevel,
+								affectedResources: event.affectedResources,
+								reversible: event.reversible,
+								estimatedImpact: event.estimatedImpact,
+								similarOperationsCount: event.similarOperationsCount,
+								availableApprovalLevels: event.availableApprovalLevels,
+								defaultApprovalLevel: event.defaultApprovalLevel
+							}
 						);
 						break;
 				}
@@ -144,41 +153,70 @@ export class ChatController {
 		return this.service.send(msg, this.state.getThreadId());
 	}
 
-	async approveToolCall(toolCallId: string): Promise<void> {
-		logger.debug(`Approving tool call: ${toolCallId}`);
-		this.state.updateApprovalRequest(toolCallId, true);
-
-		// Update the tool message to show it's approved but processing
+	/**
+	 * Approve a tool call that's waiting for user approval.
+	 * Updates the UI state optimistically and sends approval to backend.
+	 * 
+	 * @param toolCallId - The tool call ID to approve
+	 * @param approvalLevel - Optional approval level (defaults to the tool's defaultApprovalLevel or 'user')
+	 */
+	async approveToolCall(toolCallId: string, approvalLevel?: string): Promise<void> {
+		logger.debug(`Approving tool call: ${toolCallId} with level: ${approvalLevel || 'default'}`);
+		
+		// Get the tool message to access its default approval level
 		const toolMessage = this.state.getToolMessageByCallId(toolCallId);
-		if (toolMessage) {
-			logger.debug(`Found tool message to update for approval: ${toolMessage.id}`);
-			this.state.updateToolMessage(toolMessage.id, {
-				approvalStatus: 'approved',
-				waitingForApproval: false,
-				isStreaming: true // Show it's now executing
-			});
-		} else {
-			logger.warn(`No tool message found for tool call ID: ${toolCallId}`);
-		}
+		const levelToUse = approvalLevel || toolMessage?.defaultApprovalLevel || 'user';
+		
+		// Update state optimistically
+		this.state.updateApprovalRequest(toolCallId, true);
+		this.state.updateToolMessage(toolCallId, {
+			approvalStatus: 'approved',
+			approvalLevel: levelToUse,
+			waitingForApproval: false
+			// Note: isStreaming will be set to true when tool_start event arrives
+		});
 
-		return this.service.sendApproval(toolCallId, true, this.state.getThreadId());
+		try {
+			await this.service.sendApproval(toolCallId, true, this.state.getThreadId(), levelToUse);
+		} catch (error) {
+			logger.error(`Failed to send approval for ${toolCallId}:`, error);
+			// Revert optimistic update on error
+			this.state.updateToolMessage(toolCallId, {
+				approvalStatus: undefined,
+				approvalLevel: undefined,
+				waitingForApproval: true,
+				error: `Failed to send approval: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+			throw error;
+		}
 	}
 
+	/**
+	 * Deny a tool call that's waiting for user approval.
+	 * Updates the UI state and sends denial to backend.
+	 */
 	async denyToolCall(toolCallId: string): Promise<void> {
 		logger.debug(`Denying tool call: ${toolCallId}`);
+		
+		// Update state
 		this.state.updateApprovalRequest(toolCallId, false);
+		this.state.updateToolMessage(toolCallId, {
+			approvalStatus: 'denied',
+			waitingForApproval: false,
+			isStreaming: false,
+			status: 'error',
+			toolOutput: 'Tool execution was denied by user'
+		});
 
-		// Update the tool message to show it's denied
-		const toolMessage = this.state.getToolMessageByCallId(toolCallId);
-		if (toolMessage) {
-			this.state.updateToolMessage(toolMessage.id, {
-				approvalStatus: 'denied',
-				waitingForApproval: false,
-				isStreaming: false
+		try {
+			await this.service.sendApproval(toolCallId, false, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send denial for ${toolCallId}:`, error);
+			// Error sending denial - but user already saw it as denied, so just log
+			this.state.updateToolMessage(toolCallId, {
+				error: `Failed to send denial: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});
 		}
-
-		return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
 	}
 
 	private assignToolInstance(toolName: string): number {

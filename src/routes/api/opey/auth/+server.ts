@@ -73,6 +73,7 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 
     // Forward the session cookie to the client
     const setCookieHeaders = opeyResponse.headers.get('set-cookie');
+    logger.info(`setCookieHeaders: ${setCookieHeaders}`);
     return json(
         { success: true, authenticated: true },
         setCookieHeaders ? { headers: { 'Set-Cookie': setCookieHeaders } } : {}

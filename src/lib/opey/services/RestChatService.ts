@@ -16,15 +16,29 @@ export class RestChatService implements ChatService {
 		logger.info("Initialized Opey Chat with baseUrl:", baseUrl)
 	}
 
-	async sendApproval(toolCallId: string, approved: boolean, threadId: string): Promise<void> {
-		logger.info(`Sending approval for toolCallId=${toolCallId}, approved=${approved}, threadId=${threadId}`);
+	async sendApproval(
+		toolCallId: string, 
+		approved: boolean, 
+		threadId: string, 
+		approvalLevel?: string
+	): Promise<void> {
+		logger.info(`Sending approval for toolCallId=${toolCallId}, approved=${approved}, level=${approvalLevel}, threadId=${threadId}`);
+		
+		const payload: Record<string, any> = {
+			tool_call_id: toolCallId,
+			approval: approved ? 'approve' : 'deny',
+			level: approvalLevel || 'once'
+		};
+		
+		// Include approval level if provided
+		if (approvalLevel) {
+			payload.approval_level = approvalLevel;
+		}
+		
 		const init = await this.buildInit({
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				tool_call_id: toolCallId,
-				approval: approved ? 'approve' : 'deny'
-			})
+			body: JSON.stringify(payload)
 		});
 
 		return this.handleStreamingResponse(`${this.baseUrl}/approval/${threadId}`, init);
@@ -193,7 +207,14 @@ export class RestChatService implements ChatService {
 					toolCallId: eventData.tool_call_id,
 					toolName: eventData.tool_name,
 					toolInput: eventData.tool_input,
-					description: eventData.description
+					message: eventData.message || 'Approval required',
+					riskLevel: eventData.risk_level || 'medium',
+					affectedResources: eventData.affected_resources || [],
+					reversible: eventData.reversible !== undefined ? eventData.reversible : true,
+					estimatedImpact: eventData.estimated_impact || '',
+					similarOperationsCount: eventData.similar_operations_count || 0,
+					availableApprovalLevels: eventData.available_approval_levels || ['user'],
+					defaultApprovalLevel: eventData.default_approval_level || 'user'
 				});
 				break;
 			default:
