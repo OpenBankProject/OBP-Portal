@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { ToolMessage } from '$lib/opey/types';
 	import { CheckCircle, XCircle, AlertTriangle, Shield, Info } from '@lucide/svelte';
-	import { slide } from 'svelte/transition';
 
 	interface Props {
 		toolMessage: ToolMessage;
@@ -11,24 +10,8 @@
 
 	let { toolMessage, onApprove, onDeny }: Props = $props();
 
-	let selectedApprovalLevel = $state(toolMessage.defaultApprovalLevel || 'user');
+	let selectedApprovalLevel = $state(toolMessage.defaultApprovalLevel || 'once');
 	let isProcessing = $state(false);
-	let showDropdown = $state(false);
-	let dropdownContainer: HTMLDivElement;
-
-	// Close dropdown when clicking outside
-	function handleClickOutside(event: MouseEvent) {
-		if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
-			showDropdown = false;
-		}
-	}
-
-	$effect(() => {
-		if (showDropdown) {
-			document.addEventListener('click', handleClickOutside);
-			return () => document.removeEventListener('click', handleClickOutside);
-		}
-	});
 
 	async function handleApprove() {
 		if (isProcessing) return;
@@ -159,89 +142,49 @@
 		</details>
 	{/if}
 
-	<!-- Action Buttons with Approval Level Dropdown -->
-	<div class="flex gap-3">
-		<!-- Approve Button Group -->
-		<div class="btn-group variant-filled-success flex-1 relative" bind:this={dropdownContainer}>
-			<!-- Main Approve Button -->
-			<button class="flex-1" onclick={handleApprove} disabled={isProcessing}>
+	<!-- Action Buttons with Approval Level Select -->
+	<div class="flex flex-col gap-3">
+		<!-- Approval Level Selector (only show if multiple levels available) -->
+		{#if toolMessage.availableApprovalLevels && toolMessage.availableApprovalLevels.length > 1}
+			<label class="label">
+				<span class="label-text text-sm font-medium">Approval Level:</span>
+				<select class="select" bind:value={selectedApprovalLevel} disabled={isProcessing}>
+					{#each toolMessage.availableApprovalLevels as level}
+						<option value={level}>
+							{level.charAt(0).toUpperCase() + level.slice(1)}
+							{#if level === toolMessage.defaultApprovalLevel}(default){/if}
+						</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
+
+		<!-- Action Buttons -->
+		<div class="flex gap-3">
+			<!-- Approve Button -->
+			<button
+				class="btn variant-filled-success flex-1"
+				onclick={handleApprove}
+				disabled={isProcessing}
+			>
 				{#if isProcessing}
 					<span class="animate-pulse">Approving...</span>
 				{:else}
 					<CheckCircle size={18} />
-					<span>
-						Approve
-						{#if selectedApprovalLevel !== toolMessage.defaultApprovalLevel}
-							({selectedApprovalLevel})
-						{/if}
-					</span>
+					<span>Approve</span>
 				{/if}
 			</button>
 
-			<!-- Dropdown for Approval Levels (only show if multiple levels available) -->
-			{#if toolMessage.availableApprovalLevels && toolMessage.availableApprovalLevels.length > 1}
-				<button
-					class="px-3"
-					onclick={() => (showDropdown = !showDropdown)}
-					disabled={isProcessing}
-					aria-label="Select approval level"
-				>
-					<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-						<path
-							fill-rule="evenodd"
-							d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-				</button>
-
-				<!-- Approval Level Dropdown -->
-				{#if showDropdown}
-					<div
-						class="card absolute bottom-full left-0 mb-2 w-48 p-2 shadow-xl z-10"
-						transition:slide={{ duration: 150 }}
-					>
-						<div
-							class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-1 px-2 py-1"
-						>
-							Approval Level:
-						</div>
-						<nav class="list-nav">
-							{#each toolMessage.availableApprovalLevels as level}
-								<button
-									class="w-full rounded px-3 py-2 text-left text-sm transition-colors
-										{level === selectedApprovalLevel ? 'variant-soft-primary' : 'hover:variant-soft-primary'}"
-									onclick={() => {
-										selectedApprovalLevel = level;
-										showDropdown = false;
-									}}
-								>
-									<span class="flex-auto">
-										{level.charAt(0).toUpperCase() + level.slice(1)}
-									</span>
-									{#if level === toolMessage.defaultApprovalLevel}
-										<span class="text-xs opacity-60">(default)</span>
-									{/if}
-									{#if level === selectedApprovalLevel}
-										<CheckCircle size={14} class="opacity-60" />
-									{/if}
-								</button>
-							{/each}
-						</nav>
-					</div>
+			<!-- Deny Button -->
+			<button class="btn variant-filled-error flex-1" onclick={handleDeny} disabled={isProcessing}>
+				{#if isProcessing}
+					<span class="animate-pulse">Denying...</span>
+				{:else}
+					<XCircle size={18} />
+					<span>Deny</span>
 				{/if}
-			{/if}
+			</button>
 		</div>
-
-		<!-- Deny Button -->
-		<button class="btn variant-filled-error flex-1" onclick={handleDeny} disabled={isProcessing}>
-			{#if isProcessing}
-				<span class="animate-pulse">Denying...</span>
-			{:else}
-				<XCircle size={18} />
-				<span>Deny</span>
-			{/if}
-		</button>
 	</div>
 </div>
 

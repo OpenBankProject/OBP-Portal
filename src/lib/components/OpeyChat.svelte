@@ -278,12 +278,36 @@
 		isMultiline = textarea.scrollHeight > singleLineHeight * 1.5;
 	}
 
-	async function handleApprove(toolCallId: string) {
-		await chatController.approveToolCall(toolCallId);
+	async function handleApprove(toolCallId: string, approvalLevel?: string) {
+		await chatController.approveToolCall(toolCallId, approvalLevel);
 	}
 
 	async function handleDeny(toolCallId: string) {
 		await chatController.denyToolCall(toolCallId);
+	}
+
+	// TEMPORARY: Test function to manually trigger an approval message
+	function addTestApprovalMessage() {
+		chatState.addApprovalRequest(
+			'test-tool-call-123',
+			'test_api_call',
+			{ endpoint: '/accounts', method: 'POST' },
+			'Test approval request - checking dropdown functionality',
+			{
+				riskLevel: 'medium',
+				affectedResources: ['Account 123', 'Transaction ABC'],
+				reversible: true,
+				estimatedImpact: 'This will modify 2 resources in the test environment',
+				similarOperationsCount: 5,
+				availableApprovalLevels: ['once', 'session', 'user'],
+				defaultApprovalLevel: 'once'
+			}
+		);
+	}
+
+	// TEMPORARY: Expose test function globally for debugging
+	if (typeof window !== 'undefined') {
+		(window as any).addTestApprovalMessage = addTestApprovalMessage;
 	}
 </script>
 
@@ -295,6 +319,10 @@
 		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
 			<h1 class="h4 p-2">Chat With Opey</h1>
+			<!-- TEMPORARY: Test button for approval dropdown -->
+			<button class="btn variant-filled-warning btn-sm mx-2" onclick={addTestApprovalMessage}>
+				Test Approval
+			</button>
 		</header>
 	{/if}
 {/snippet}
