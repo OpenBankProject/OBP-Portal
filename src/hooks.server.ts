@@ -1,16 +1,20 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('HooksServer');
 import type { Handle } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { sveltekitSessionHandle } from 'svelte-kit-sessions';
 import RedisStore from 'svelte-kit-connect-redis';
-import { Redis } from 'ioredis';
+
 import { env } from '$env/dynamic/private';
 import { obp_requests } from '$lib/obp/requests';
-import { oauth2ProviderFactory, type WellKnownUri } from '$lib/oauth/providerFactory';
+import { oauth2ProviderManager } from '$lib/oauth/providerManager';
 import { SessionOAuthHelper } from '$lib/oauth/sessionHelper';
 import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
+import { PUBLIC_OBP_BASE_URL } from '$env/static/public';
+
+import { redisService } from '$lib/redis/services/RedisService';
+import { RedisHealthCheckService } from '$lib/health-check/services/RedisHealthCheckService';
 
 // Constants
 const DEFAULT_PORT = 5174;
@@ -42,10 +46,17 @@ function checkServerPort() {
 	}
 }
 
+// Startup scripts
+// Check server port
+checkServerPort();
+
+// Init Redis
+const redisClient = redisService.getClient();
+
 function initHealthChecks() {
 	healthCheckRegistry.register({
 		serviceName: 'OBP API',
-		url: `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
+		url: `${PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
 	});
 
 	healthCheckRegistry.register({
@@ -53,112 +64,21 @@ function initHealthChecks() {
 		url: `${env.OPEY_BASE_URL}/status`,
 	});
 
+	const redisHealthCheck = new RedisHealthCheckService();
+	healthCheckRegistry.register(redisHealthCheck)
+
+	const oauthHealthChecks = oauth2ProviderManager.getHealthCheckEntries();
+	for (const check of oauthHealthChecks) {
+		healthCheckRegistry.register(check);
+	}
+
 	healthCheckRegistry.startAll();
 }
 
+await oauth2ProviderManager.start();
+
 initHealthChecks();
 
-// Startup scripts
-// Check server port
-checkServerPort();
-
-// Init Redis
-let client: Redis;
-if (!env.REDIS_HOST || !env.REDIS_PORT) {
-	logger.warn('Redis host or port is not set. Using defaults.');
-
-	client = new Redis({
-		host: 'localhost',
-		port: 6379
-	});
-} else {
-	logger.debug('Connecting to Redis at:', env.REDIS_HOST, env.REDIS_PORT);
-	logger.debug('Redis password provided:', !!env.REDIS_PASSWORD);
-
-	const redisConfig: any = {
-		host: env.REDIS_HOST,
-		port: parseInt(env.REDIS_PORT)
-	};
-	if (env.REDIS_PASSWORD) {
-		redisConfig.password = env.REDIS_PASSWORD;
-	}
-
-	client = new Redis(redisConfig);
-}
-
-async function fetchWellKnownUris(): Promise<WellKnownUri[]> {
-	try {
-		const response = await obp_requests.get('/obp/v5.1.0/well-known');
-		return response.well_known_uris;
-	} catch (error) {
-		logger.error('Failed to fetch well-known URIs:', error);
-		throw error;
-	}
-}
-
-async function initOauth2Providers() {
-
-	let providers = [];
-	try {
-		const wellKnownUris: WellKnownUri[] = await fetchWellKnownUris();
-		logger.debug('Well-known URIs fetched successfully:', wellKnownUris);
-
-		for (const providerUri of wellKnownUris) {
-			const oauth2Client = await oauth2ProviderFactory.initializeProvider(providerUri);
-			if (oauth2Client) {
-				providers.push(providerUri);
-			}
-		}
-
-		for (const registeredStrategy of oauth2ProviderFactory.getSupportedProviders()) {
-			if (!providers.find((p) => p.provider === registeredStrategy)) {
-				logger.warn(
-					`No OAuth2 provider initialized for registered strategy: ${registeredStrategy}`
-				);
-			}
-		}
-
-		// If no providers were found, log error and return
-		if (providers.length === 0) {
-			logger.error(
-				'Could not initialize any OAuth2 provider. Please check your OBP configuration.'
-			);
-			return;
-		}
-	} catch (error) {
-		logger.error('Failed to init OAuth2 providers: ', error);
-		throw error;
-	}
-}
-
-let oauth2Ready = false;
-let oauth2InitError: any = null;
-
-async function tryInitOauth2Providers() {
-	try {
-		await initOauth2Providers();
-		oauth2Ready = true;
-		oauth2InitError = null;
-		logger.info('OAuth2 providers initialized successfully.');
-	} catch (error) {
-		oauth2Ready = false;
-		oauth2InitError = error;
-		logger.error('Error initializing OAuth2 providers:', error);
-	}
-}
-
-// Attempt to initialize OAuth2 providers on startup
-await tryInitOauth2Providers();
-
-// Periody retry init if it failed for whatever reason
-if (!oauth2Ready) {
-	setInterval(async () => {
-		if (!oauth2Ready) {
-			logger.info('Retrying OAuth2 providers initialization...');
-			await tryInitOauth2Providers();
-		}
-	}, 30000); // Retry every 30 seconds
-}
 
 async function initWebUIProps() {
 	try {
@@ -171,19 +91,59 @@ async function initWebUIProps() {
 	}
 }
 
-// Get WebUI props from OBP
-// try {
-//     const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
-//     logger.debug('WebUI props fetched successfully:', webuiProps);
-// } catch (error) {
-//     // Handle the error as needed, e.g., log it, throw it, etc.
-//     throw error
-// }
 
 function needsAuthorization(routeId: string): boolean {
 	// protected routes are put in the /(protected)/ route group
 	return routeId.startsWith('/(protected)/');
 }
+
+const checkSessionValidity: Handle = async ({ event, resolve }) => {
+    const session = event.locals.session;
+    if (session.data.user) {
+        // Here you can add additional checks if needed
+        // For example, check if the session has expired based on your own logic
+        // or if certain required data is present in the session
+        const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
+        if (!sessionOAuth) {
+            logger.warn('No valid OAuth data found in session. Destroying session.');
+            await session.destroy();
+
+            // Redirect to trigger a fresh load instead of just resolving
+            throw redirect(302, event.url.pathname);
+        }
+
+        const sessionExpired = await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)
+        // Check if the access token is expired,
+        // if it is, attempt to refresh it
+        if (sessionExpired) {
+            // will return true if the token is expired
+            try {
+                await SessionOAuthHelper.refreshAccessToken(session);
+                return await resolve(event);
+            } catch (error) {
+                logger.info(
+                    'Token refresh failed - redirecting user to login (normal OAuth behavior):',
+                    error
+                );
+                // If the refresh fails, redirect to login
+                // Destroy the session
+                logger.info('Destroying expired session.');
+                await session.destroy();
+                // Redirect to trigger a fresh load and clear client-side cache
+                throw redirect(302, event.url.pathname);
+            }
+        }
+
+        // If we reach here, the session is valid (either not expired or successfully refreshed)
+        logger.debug('Session is valid for user:', session.data.user?.username);
+        return await resolve(event);
+
+    }
+    
+    // Always return a response, even when there's no session
+    return await resolve(event);
+}
+
 // Middleware to check user authorization
 const checkAuthorization: Handle = async ({ event, resolve }) => {
 	const session = event.locals.session;
@@ -191,47 +151,11 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 	if (!!routeId && needsAuthorization(routeId)) {
 		logger.debug('Checking authorization for user route:', event.url.pathname);
-		if (!oauth2Ready) {
-			logger.warn('OAuth2 providers not ready:', oauth2InitError);
+		if (!oauth2ProviderManager.isReady()) {
+			logger.warn('OAuth2 providers not ready:', oauth2ProviderManager.getStatus().error);
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
-		// Check token expiration
-		const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
-		if (!sessionOAuth) {
-			logger.warn('No valid OAuth data found in session. Redirecting to login.');
-			// Redirect to login page if no OAuth data is found
-			return new Response(null, {
-				status: 302,
-				headers: {
-					Location: '/login'
-				}
-			});
-		}
-
-		// Check if the access token is expired,
-		// if it is, attempt to refresh it
-		if (await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)) {
-			// will return true if the token is expired
-			try {
-				await SessionOAuthHelper.refreshAccessToken(session);
-			} catch (error) {
-				logger.info(
-					'Token refresh failed - redirecting user to login (normal OAuth behavior):',
-					error
-				);
-				// If the refresh fails, redirect to login
-				// Destroy the session
-				logger.info('Destroying expired session and redirecting to login.');
-				await session.destroy();
-
-				return new Response(null, {
-					status: 302,
-					headers: {
-						Location: '/login'
-					}
-				});
-			}
-		}
+		
 
 		if (!session || !session.data.user) {
 			// Redirect to login page if not authenticated
@@ -253,7 +177,11 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
-	sveltekitSessionHandle({ secret: 'secret', store: new RedisStore({ client }) }),
+	sveltekitSessionHandle({ 
+		secret: 'secret',
+		store: new RedisStore({ client: redisClient })
+	}),
+	checkSessionValidity,
 	checkAuthorization
 	// add other handles here if needed
 );
@@ -265,6 +193,16 @@ declare module 'svelte-kit-sessions' {
 			user_id: string;
 			email: string;
 			username: string;
+			entitlements: { 
+				list: Array<{
+					entitlement_id: string;
+					role_name: string;
+					bank_id: string;
+				}>
+			}
+			views: {
+				list: object[];
+			}
 		};
 		oauth?: {
 			access_token: string;

@@ -12,7 +12,9 @@ export class ChatController {
 		private service: ChatService,
 		public state: ChatState
 	) {
+
 		service.onStreamEvent((event: StreamEvent) => {
+			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
 					case 'thread_sync':
@@ -20,6 +22,7 @@ export class ChatController {
 						state.syncThreadId(event.threadId);
 						break;
 					case 'assistant_start':
+						logger.debug(`assistant_start: Creating new assistant message with ID: ${event.messageId}`);
 						state.addMessage({
 							id: event.messageId,
 							role: 'assistant',
@@ -29,6 +32,7 @@ export class ChatController {
 						});
 						break;
 					case 'assistant_token':
+						logger.debug(`assistant_token: Appending token to message ID: ${event.messageId}`);
 						state.appendToMessage(event.messageId, event.token);
 						break;
 					case 'assistant_complete':
@@ -106,7 +110,16 @@ export class ChatController {
 							event.toolCallId,
 							event.toolName,
 							event.toolInput,
-							event.description
+							event.message,
+							{
+								riskLevel: event.riskLevel,
+								affectedResources: event.affectedResources,
+								reversible: event.reversible,
+								estimatedImpact: event.estimatedImpact,
+								similarOperationsCount: event.similarOperationsCount,
+								availableApprovalLevels: event.availableApprovalLevels,
+								defaultApprovalLevel: event.defaultApprovalLevel
+							}
 						);
 						break;
 				}
@@ -140,14 +153,70 @@ export class ChatController {
 		return this.service.send(msg, this.state.getThreadId());
 	}
 
-	async approveToolCall(toolCallId: string): Promise<void> {
+	/**
+	 * Approve a tool call that's waiting for user approval.
+	 * Updates the UI state optimistically and sends approval to backend.
+	 * 
+	 * @param toolCallId - The tool call ID to approve
+	 * @param approvalLevel - Optional approval level (defaults to the tool's defaultApprovalLevel or 'user')
+	 */
+	async approveToolCall(toolCallId: string, approvalLevel?: string): Promise<void> {
+		logger.debug(`Approving tool call: ${toolCallId} with level: ${approvalLevel || 'default'}`);
+		
+		// Get the tool message to access its default approval level
+		const toolMessage = this.state.getToolMessageByCallId(toolCallId);
+		const levelToUse = approvalLevel || toolMessage?.defaultApprovalLevel || 'user';
+		
+		// Update state optimistically
 		this.state.updateApprovalRequest(toolCallId, true);
-		return this.service.sendApproval(toolCallId, true, this.state.getThreadId());
+		this.state.updateToolMessage(toolCallId, {
+			approvalStatus: 'approved',
+			approvalLevel: levelToUse,
+			waitingForApproval: false
+			// Note: isStreaming will be set to true when tool_start event arrives
+		});
+
+		try {
+			await this.service.sendApproval(toolCallId, true, this.state.getThreadId(), levelToUse);
+		} catch (error) {
+			logger.error(`Failed to send approval for ${toolCallId}:`, error);
+			// Revert optimistic update on error
+			this.state.updateToolMessage(toolCallId, {
+				approvalStatus: undefined,
+				approvalLevel: undefined,
+				waitingForApproval: true,
+				error: `Failed to send approval: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+			throw error;
+		}
 	}
 
+	/**
+	 * Deny a tool call that's waiting for user approval.
+	 * Updates the UI state and sends denial to backend.
+	 */
 	async denyToolCall(toolCallId: string): Promise<void> {
+		logger.debug(`Denying tool call: ${toolCallId}`);
+		
+		// Update state
 		this.state.updateApprovalRequest(toolCallId, false);
-		return this.service.sendApproval(toolCallId, false, this.state.getThreadId());
+		this.state.updateToolMessage(toolCallId, {
+			approvalStatus: 'denied',
+			waitingForApproval: false,
+			isStreaming: false,
+			status: 'error',
+			toolOutput: 'Tool execution was denied by user'
+		});
+
+		try {
+			await this.service.sendApproval(toolCallId, false, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send denial for ${toolCallId}:`, error);
+			// Error sending denial - but user already saw it as denied, so just log
+			this.state.updateToolMessage(toolCallId, {
+				error: `Failed to send denial: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		}
 	}
 
 	private assignToolInstance(toolName: string): number {

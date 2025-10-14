@@ -15,7 +15,7 @@ export interface HealthCheckOptions {
 }
 
 export class HealthCheckService {
-    private state: HealthCheckState;
+    protected state: HealthCheckState;
     private checkInterval: ReturnType<typeof setInterval> | null = null;
     private abortController: AbortController | null = null;
     private options: HealthCheckOptions;
@@ -151,6 +151,10 @@ export class HealthCheckService {
      */
     getSnapshot(): HealthCheckSnapshot {
         return { ...this.state['snapshot'] };
+    }
+
+    getName(): string {
+        return this.options.serviceName;
     }
 
     /**

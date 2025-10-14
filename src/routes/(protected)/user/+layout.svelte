@@ -1,70 +1,27 @@
 <script lang="ts">
-	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import { FileKey, Waypoints, SettingsIcon, MenuIcon} from '@lucide/svelte'
-    
+    import { page } from '$app/state';
+    import { getActiveMenuItem } from '$lib/config/navigation';
 
     let { children } = $props();
 
-	let isExpanded = $state(true);
-
-    // What items should be on the user menu
-    let userMenuItems = $state([
-        { label: 'Manage Consents', href: '?/consents', iconComponent: FileKey},
-        { label: 'Manage Consumers', href: '?/consumers', iconComponent: Waypoints },
-        { label: 'Account Settings', href: '?/account', iconComponent: SettingsIcon },
-    ]);
-
-    // State
-    let currentTab = $state('consents');
-
-	function toggleExpand() {
-		isExpanded = !isExpanded;
-	}
+    let activeMenuItem = $derived(getActiveMenuItem(page.url.pathname));
 </script>
 
-<div class="grid h-[760px] w-full grid-cols-[auto_1fr] ">
-	<!-- Component -->
-	<Navigation.Rail value={currentTab} onValueChange={(newTab) => (currentTab = newTab)} expanded={isExpanded}>
-		{#snippet header()}
-			<Navigation.Tile labelExpanded="Menu" onclick={toggleExpand} title="Toggle Menu Width" active="none"
-				><MenuIcon /></Navigation.Tile
-			>
-		{/snippet}
-		{#snippet tiles()}
-            {#each userMenuItems as item}
-                <Navigation.Tile
-                    id={item.label.toLowerCase().replace(/\s+/g, '-')}
-                    labelExpanded={item.label}
-                    href={item.href}
-                    title={item.label}
-					active="preset-filled-primary-50-950 border border-solid-secondary-500"
-                    ><item.iconComponent /></Navigation.Tile
-                >
-            {/each}
-			<!-- <Navigation.Tile id="consents" labelExpanded="Manage Consents" href="?/consents">
-				<IconFolder />
-			</Navigation.Tile>
-			<Navigation.Tile labelExpanded="Browse Images" href="?/account">
-				<IconImage />
-			</Navigation.Tile>
-			<Navigation.Tile labelExpanded="Browse Music" href="#/music">
-				<IconMusic />
-			</Navigation.Tile>
-			<Navigation.Tile labelExpanded="Browse Videos" href="#/videos">
-				<IconVideo />
-			</Navigation.Tile>
-			<Navigation.Tile labelExpanded="Browse Games" href="/games">
-				<IconGames />
-			</Navigation.Tile> -->
-		{/snippet}
-		<!-- {#snippet footer()}
-			<Navigation.Tile labelExpanded="Settings" href="/settings" title="Settings"
-				><IconSettings /></Navigation.Tile
-			>
-		{/snippet} -->
-	</Navigation.Rail>
-	<!-- Content -->
-	<div class="flex items-center justify-center">
-        {@render children()}
-	</div>
+<div class="flex flex-col flex-1 min-h-0">
+    <!-- Title Bar -->
+    <header class="border-b border-surface-300-600 bg-surface-50-900 px-6 py-4 flex-shrink-0">
+        <h1 class="text-2xl font-semibold text-surface-900-50">
+            {activeMenuItem.label}
+        </h1>
+        <p class="text-surface-600-400 text-sm mt-1">
+            Manage your {activeMenuItem.label.toLowerCase()} settings
+        </p>
+    </header>
+
+    <!-- Page Content -->
+    <div class="flex-1 overflow-y-auto min-h-0">
+        <div class="p-6">
+            {@render children()}
+        </div>
+    </div>
 </div>

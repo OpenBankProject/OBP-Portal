@@ -12,11 +12,22 @@ export class HealthCheckRegistry {
 
     /**
      * Register a new health check service
+     * @param optionsOrService HealthCheckOptions or an existing HealthCheckService instance
+     * @returns The registered HealthCheckService instance
      */
-    register(options: HealthCheckOptions): HealthCheckService {
-        if (this.services.has(options.serviceName)) {
-            logger.warn(`HealthCheckService for ${options.serviceName} already registered. Returning existing instance.`);
-            return this.services.get(options.serviceName)!;
+    register(optionsOrService: HealthCheckOptions | HealthCheckService): HealthCheckService {
+        // Check if service with same name exists
+        if (optionsOrService instanceof HealthCheckService) {
+            return this.registerService(optionsOrService);
+        }
+
+        const options = optionsOrService as HealthCheckOptions;
+        const existingService = this.services.get(options.serviceName);
+        // Stop the service and replace it with the new one
+        if (existingService) {
+            logger.info(`HealthCheckService for ${options.serviceName} already exists. Replacing with new configuration.`);
+            existingService.stop();
+            this.services.delete(options.serviceName);
         }
 
         const service = new HealthCheckService(options);
@@ -30,6 +41,33 @@ export class HealthCheckRegistry {
         });
 
         logger.info(`Registered HealthCheckService for ${options.serviceName}`);
+        return service;
+    }
+
+    /**
+     * Register an existing HealthCheckService instance
+     */
+    registerService(service: HealthCheckService): HealthCheckService {
+        const serviceName = service.getName();
+        
+        // Check if service with same name exists
+        const existingService = this.services.get(serviceName);
+        if (existingService && existingService !== service) {
+            logger.info(`HealthCheckService for ${serviceName} already exists. Replacing with new service.`);
+            existingService.stop();
+        }
+
+        this.services.set(serviceName, service);
+        
+        // Subscribe to the service's state changes
+        service.subscribe((snapshot) => {
+            this.store.update(state => ({
+                ...state,
+                [serviceName]: snapshot
+            }));
+        });
+
+        logger.info(`Registered HealthCheckService for ${serviceName}`);
         return service;
     }
 
@@ -88,6 +126,11 @@ export class HealthCheckRegistry {
         }
     }
 
+
+    getSnapshot(serviceName: string): HealthCheckSnapshot | undefined {
+        const service = this.services.get(serviceName);
+        return service?.getSnapshot();
+    }
     /**
      * get all health check snapshots
      */

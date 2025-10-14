@@ -13,4 +13,4 @@
 @import '../obp-theme.css';
 
 /* for dark mode toggling */
-@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+@custom-variant dark (&:where([data-mode=dark], [data-mode=dark] *));

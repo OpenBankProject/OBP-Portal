@@ -1,101 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { ShieldUserIcon } from '@lucide/svelte';
+	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { createLogger } from '$lib/utils/logger';
 
-	// Function to format tool output with better user experience
-	function formatToolOutput(message: ToolMessage): string {
-		// Handle tool execution errors first
-		if (message.status === 'error') {
-			const errorOutput = message.toolOutput
-				? typeof message.toolOutput === 'string'
-					? message.toolOutput
-					: JSON.stringify(message.toolOutput, null, 2)
-				: 'Tool execution failed with no additional details';
+	const logger = createLogger('OpeyChat');
 
-			return `
-				<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-					<div class="font-bold">❌ Tool Execution Failed</div>
-					<div class="text-sm mt-2">
-						<strong>Tool:</strong> ${message.toolName}<br/>
-						<strong>Error:</strong> ${errorOutput}
-					</div>
-				</div>
-			`;
-		}
-
-		if (!message.toolOutput) {
-			return '<div class="text-gray-500">No output available</div>';
-		}
-
-		// Handle OBP API responses specifically
-		if (message.toolName === 'obp_requests') {
-			try {
-				const output =
-					typeof message.toolOutput === 'string'
-						? JSON.parse(message.toolOutput)
-						: message.toolOutput;
-
-				// Check if this is an error response
-				if (output.error || output.message || (output.code && output.code !== 200)) {
-					const errorCode = output.code || output.status || 'Unknown';
-					const errorMessage = output.message || output.error || 'Unknown error';
-					const errorDetail = output.error_message || output.detail || '';
-
-					return `
-						<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-							<div class="font-bold">❌ API Request Failed</div>
-							<div class="text-sm mt-1">
-								<strong>Status:</strong> ${errorCode}<br/>
-								<strong>Message:</strong> ${errorMessage}
-								${errorDetail ? `<br/><strong>Detail:</strong> ${errorDetail}` : ''}
-							</div>
-						</div>
-					`;
-				}
-
-				// Success response
-				if (output && typeof output === 'object') {
-					// Format successful responses with key highlights
-					let formatted =
-						'<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">';
-					formatted += '<div class="font-bold">✅ API Request Successful</div>';
-					formatted += '<div class="text-sm mt-2">';
-
-					// Extract key information
-					if (output.bank_id) formatted += `<strong>Bank ID:</strong> ${output.bank_id}<br/>`;
-					if (output.user_id) formatted += `<strong>User ID:</strong> ${output.user_id}<br/>`;
-					if (output.account_id)
-						formatted += `<strong>Account ID:</strong> ${output.account_id}<br/>`;
-					if (output.transaction_id)
-						formatted += `<strong>Transaction ID:</strong> ${output.transaction_id}<br/>`;
-					if (output.banks && Array.isArray(output.banks)) {
-						formatted += `<strong>Banks Found:</strong> ${output.banks.length}<br/>`;
-					}
-					if (output.accounts && Array.isArray(output.accounts)) {
-						formatted += `<strong>Accounts Found:</strong> ${output.accounts.length}<br/>`;
-					}
-
-					formatted += '</div>';
-					formatted +=
-						'<details class="mt-2"><summary class="cursor-pointer text-xs text-green-600">View Full Response</summary>';
-					formatted += `<pre class="text-xs mt-2 bg-green-50 p-2 rounded overflow-x-auto">${JSON.stringify(output, null, 2)}</pre>`;
-					formatted += '</details>';
-					formatted += '</div>';
-
-					return formatted;
-				}
-			} catch (e) {
-				// If JSON parsing fails, treat as plain text
-			}
-		}
-
-		// Default formatting for other tools or plain text
-		const outputStr =
-			typeof message.toolOutput === 'string'
-				? message.toolOutput
-				: JSON.stringify(message.toolOutput, null, 2);
-
-		return `<pre class="text-sm bg-gray-50 p-3 rounded overflow-x-auto">${outputStr}</pre>`;
-	}
 	import { env } from '$env/dynamic/public';
 	import { CookieAuthStrategy } from '$lib/opey/services/AuthStrategy';
 	import { ChatState, type ChatStateSnapshot } from '$lib/opey/state/ChatState';
@@ -103,9 +13,13 @@
 	import { ChatController } from '$lib/opey/controllers/ChatController';
 	import { SessionState, type SessionSnapshot } from '$lib/opey/state/SessionState';
 	import { ConsentSessionService } from '$lib/opey/services/ConsentSessionService';
-	import type { ToolMessage, ApprovalRequestMessage } from '$lib/opey/types';
-	import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
-	import ApprovalRequest from './ApprovalRequest.svelte';
+	import type { ToolMessage } from '$lib/opey/types';
+	import type { OBPConsentInfo } from '$lib/obp/types';
+	import { healthCheckRegistry } from '$lib/health-check/HealthCheckRegistry';
+
+	// Import other components
+	import { ToolError, ObpApiResponse, DefaultToolResponse } from './tool-messages';
+	import ChatMessage from './ChatMessage.svelte';
 
 	// Function to get display name with instance number
 	function getToolDisplayName(toolName: string, instanceNumber: number): string {
@@ -119,17 +33,10 @@
 		}
 	}
 	import {
-		Check,
 		CircleArrowUp,
-		Diamond,
-		Hammer,
-		LoaderCircle,
-		XCircle,
 		type Icon as IconType
 	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import { renderMarkdown } from '$lib/markdown/helper-funcs';
-	import { fly } from 'svelte/transition';
 
 	// Interface for chat options
 	export type SuggestedQuestion = {
@@ -142,7 +49,9 @@
 		displayHeader: boolean; // Whether to display the header with the logo and title
 		currentlyActiveUserName: string; // Optional name of the currently active user
 		suggestedQuestions: SuggestedQuestion[]; // List of suggested questions to display
+		displayConnectionPips: boolean; // Whether to display connection status pips
 		initialAssistantMessage?: string;
+		currentConsentInfo?: OBPConsentInfo; // Consent info for the status pip
 		headerClasses?: string; // Optional classes for the header
 		footerClasses?: string;
 		bodyClasses?: string;
@@ -158,6 +67,7 @@
 		baseUrl: env.PUBLIC_OPEY_BASE_URL || 'http://localhost:5000',
 		displayHeader: true,
 		currentlyActiveUserName: 'Guest',
+		displayConnectionPips: true,
 		suggestedQuestions: []
 	};
 
@@ -176,26 +86,30 @@
 
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
-	let isConnecting = false;
+
+	// TODO: this is not quite working properly, returns unknown all the time
+	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $derived.by(() => {
+		const snapshots = $state.snapshot(healthCheckRegistry.getStore());
+		const opeySnapshot = snapshots['Opey II' as keyof typeof snapshots];
+
+		if (!opeySnapshot) return 'unknown';
+		if ('status' in opeySnapshot && opeySnapshot.status === 'degraded') return 'degraded';
+		return opeySnapshot && 'status' in opeySnapshot && opeySnapshot.status === 'healthy'
+			? 'healthy'
+			: 'unhealthy';
+	});
 
 	let splashScreenDisplay = $derived.by(() => {
 		return splash && chat.messages.length === 0;
 	});
 
 	onMount(async () => {
-		console.debug('OpeyChat component mounted with options:', options);
+		logger.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
 		chatState.subscribe((c) => {
-			console.error('OPEY_CHAT_DEBUG: ChatState subscription callback fired');
-			console.error('OPEY_CHAT_DEBUG: Received chat state with', c.messages.length, 'messages');
 			if (c.messages.length > 0) {
 				const toolMessages = c.messages.filter((m) => m.role === 'tool');
-				console.error('OPEY_CHAT_DEBUG: Tool messages in state:', toolMessages.length);
-				toolMessages.forEach((tm, index) => {
-					console.error(
-						`OPEY_CHAT_DEBUG: Tool message ${index}: id=${tm.id}, isStreaming=${tm.isStreaming}`
-					);
-				});
+				toolMessages.forEach((tm, index) => {});
 			}
 			chat = c;
 		});
@@ -208,10 +122,62 @@
 				timestamp: new Date()
 			});
 		}
-		//
 
-		await initializeOpeySession();
+		// Can set retry parameters here if desired
+		// e.g. await initializeOpeySessionWithRetry(5, 2000);
+		// would try 5 times with a base delay of 2 seconds
+		await initializeOpeySessionWithRetry();
 	});
+
+	// Derived colors for pips
+	let connectionPipColor: string = $derived.by(() => {
+		switch (connectionStatus) {
+			case 'healthy':
+				return 'preset-filled-success-500';
+			case 'unhealthy':
+				return 'preset-filled-error-500';
+			case 'degraded':
+				return 'preset-filled-warning-500';
+			case 'unknown':
+				return 'preset-filled-warning-500';
+			default:
+				return 'preset-filled-warning-500';
+		}
+	});
+
+	let connectionStatusString: string = $derived.by(() => {
+		switch (connectionStatus) {
+			case 'healthy':
+				return 'connected';
+			case 'unhealthy':
+				return 'disconnected';
+			case 'degraded':
+				return 'degraded';
+			case 'unknown':
+				return 'unknown';
+			default:
+				return 'unknown';
+		}
+	});
+
+	let authPipColor: string = $derived.by(() => {
+		switch (session.status) {
+			case 'ready':
+				return 'preset-filled-success-500';
+			case 'error':
+				return 'preset-filled-error-500';
+			case 'loading':
+				return 'preset-filled-warning-500';
+			default:
+				return 'preset-filled-warning-500';
+		}
+	});
+
+	let authPipOpenState = $state(false);
+
+	// async function formatAuthStatusPip(session: SessionSnapshot, consentInfo?: OBPConsentInfo): {
+	// 	const 
+	// }
 
 	async function sendMessage(text: string) {
 		if (!text.trim()) return;
@@ -225,7 +191,8 @@
 	}
 
 	function handleKeyPress(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault(); // Prevent newline
 			handleSendMessage(messageInput);
 		}
 	}
@@ -245,18 +212,42 @@
 				throw new Error(data.error || 'Failed to initialize session');
 			}
 
-			console.debug('Opey session initialized:', data);
+			logger.debug('Opey session initialized:', data);
 			if (data.error) {
-				console.warn('Opey session initialization warning:', data.error);
+				logger.warn('Opey session initialization warning:', data.error);
 			}
 
 			// Update session state based on response
 			sessionState.setAuth(data.authenticated);
 			sessionState.setStatus('ready');
 		} catch (error: any) {
-			console.error('Failed to initialize Opey session:', error);
+			logger.error('Failed to initialize Opey session:', error);
 			sessionState.setStatus('error', error.message);
 		}
+	}
+
+	// Add retry logic with exponential backoff
+	async function initializeOpeySessionWithRetry(maxRetries = 3, baseDelay = 1000) {
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				await initializeOpeySession();
+				if (session.status === 'ready') {
+					logger.debug(`Opey session initialized successfully on attempt ${attempt}`);
+					return;
+				}
+			} catch (error) {
+				logger.warn(`Session initialization attempt ${attempt} failed:`, error);
+			}
+
+			if (attempt < maxRetries) {
+				const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+				logger.debug(`Retrying session initialization in ${delay}ms...`);
+				await new Promise((resolve) => setTimeout(resolve, delay));
+			}
+		}
+
+		logger.error(`Failed to initialize session after ${maxRetries} attempts`);
+		sessionState.setStatus('error', `Failed to initialize after ${maxRetries} attempts`);
 	}
 
 	/**
@@ -272,14 +263,51 @@
 		await initializeOpeySession();
 	}
 
+	// Track if the input is multiline (due to either wrapping or newlines)
+	let isMultiline = $state(false);
 	let messageInput = $state('');
 
-	async function handleApprove(toolCallId: string) {
-		await chatController.approveToolCall(toolCallId);
+	function autoResize(event: Event) {
+		const textarea = event.target as HTMLTextAreaElement;
+		textarea.style.height = 'auto'; // Reset height
+		textarea.style.height = `${textarea.scrollHeight}px`; // Set to scrollHeight
+
+		// Check if content exceeds a single line (approximately)
+		// We compare scrollHeight to a typical single-line height
+		const singleLineHeight = 50; // Adjust based on your font size and padding
+		isMultiline = textarea.scrollHeight > singleLineHeight * 1.5;
+	}
+
+	async function handleApprove(toolCallId: string, approvalLevel?: string) {
+		await chatController.approveToolCall(toolCallId, approvalLevel);
 	}
 
 	async function handleDeny(toolCallId: string) {
 		await chatController.denyToolCall(toolCallId);
+	}
+
+	// TEMPORARY: Test function to manually trigger an approval message
+	function addTestApprovalMessage() {
+		chatState.addApprovalRequest(
+			'test-tool-call-123',
+			'test_api_call',
+			{ endpoint: '/accounts', method: 'POST' },
+			'Test approval request - checking dropdown functionality',
+			{
+				riskLevel: 'medium',
+				affectedResources: ['Account 123', 'Transaction ABC'],
+				reversible: true,
+				estimatedImpact: 'This will modify 2 resources in the test environment',
+				similarOperationsCount: 5,
+				availableApprovalLevels: ['once', 'session', 'user'],
+				defaultApprovalLevel: 'once'
+			}
+		);
+	}
+
+	// TEMPORARY: Expose test function globally for debugging
+	if (typeof window !== 'undefined') {
+		(window as any).addTestApprovalMessage = addTestApprovalMessage;
 	}
 </script>
 
@@ -291,173 +319,35 @@
 		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
 			<h1 class="h4 p-2">Chat With Opey</h1>
+			<!-- TEMPORARY: Test button for approval dropdown -->
+			<button class="btn variant-filled-warning btn-sm mx-2" onclick={addTestApprovalMessage}>
+				Test Approval
+			</button>
 		</header>
+	{/if}
+{/snippet}
+
+{#snippet toolOutput(message: ToolMessage)}
+	{#if message.status === 'error'}
+		<ToolError {message} />
+	{:else if message.toolName === 'obp_requests'}
+		<ObpApiResponse {message} />
+	{:else}
+		<DefaultToolResponse {message} />
 	{/if}
 {/snippet}
 
 {#snippet body()}
 	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
 		<div class="space-y-4">
-			{#each chat.messages as message, index (`${message.id}-${index}`)}
-				{#if message.role === 'user'}
-					<div class="flex flex-col items-end justify-start">
-						<div class="mb-2 flex items-center gap-2">
-							<!-- if the last message was a user message, no need to draw another avatar -->
-							{#if !(chat.messages[index - 1]?.role === 'user')}
-								<p class="text-s font-bold">{options.currentlyActiveUserName}</p>
-								<Avatar
-									name={options.currentlyActiveUserName}
-									classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
-								/>
-							{/if}
-						</div>
-						<div class="preset-filled-tertiary-500 max-w-3/5 rounded-2xl p-2 text-white">
-							{message.message}
-						</div>
-					</div>
-				{:else if message.role === 'assistant'}
-					<div class="flex flex-col items-start justify-start">
-						{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
-							<div class="mb-2 flex items-center gap-2">
-								<Avatar
-									src="/opey-icon-white.png"
-									name="opey"
-									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-								/>
-								<p class="text-s font-bold">Opey</p>
-							</div>
-							<hr class="hr" />
-						{/if}
-						<div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
-							{@html renderMarkdown(message.message)}
-						</div>
-					</div>
-				{:else if message.role === 'tool'}
-					<!-- if the last message was a tool message, no need to draw another avatar -->
-					{#if !['tool', 'assistant'].includes(chat.messages[index - 1]?.role)}
-						<div class="mb-2 flex items-center gap-2">
-							<Avatar
-								src="/opey-icon-white.png"
-								name="opey"
-								classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-							/>
-							<p class="text-s font-bold">Opey</p>
-						</div>
-						<hr class="hr" />
-					{/if}
-					<Accordion collapsible classes="max-w-full">
-						<Accordion.Item value={message.id}>
-							{#snippet lead()}<Hammer />{/snippet}
-							{#snippet control()}
-								<div class="flex justify-between">
-									<span class:text-error-700={(message as ToolMessage).status === 'error'}>
-										{getToolDisplayName(
-											(message as ToolMessage).toolName,
-											(message as ToolMessage).instanceNumber || 1
-										)}
-										{#if (message as ToolMessage).status === 'error'}
-											- Failed
-										{/if}
-									</span>
-									<!-- Debug: Tool message isStreaming status -->
-									{console.error(
-										'TEMPLATE_DEBUG: Tool message',
-										message.id,
-										'isStreaming:',
-										message.isStreaming
-									)}
-									{#if (message as ToolMessage).status === 'error'}
-										<XCircle class="stroke-error-500" />
-									{:else if (message as ToolMessage).approvalStatus === 'approved'}
-										<Check class="stroke-success-500" />
-									{:else if (message as ToolMessage).approvalStatus === 'denied'}
-										<XCircle class="stroke-error-500" />
-									{:else if (message as ToolMessage).waitingForApproval}
-										<Diamond class="stroke-warning-500" />
-									{:else if message.isStreaming}
-										<LoaderCircle class="stroke-warning-500 animate-spin" />
-									{:else}
-										<Check class="stroke-success-500" />
-									{/if}
-								</div>
-							{/snippet}
-							{#snippet panel()}
-								<Accordion collapsible>
-									<Accordion.Item value="input">
-										{#snippet lead()}<Hammer />{/snippet}
-										{#snippet control()}Tool Input{/snippet}
-										{#snippet panel()}
-											<div class="preset-filled-primary-500 max-w-3/5 rounded-2xl p-2 text-white">
-												{JSON.stringify((message as ToolMessage).toolInput)}
-											</div>
-										{/snippet}
-									</Accordion.Item>
-									<Accordion.Item value="output" disabled={!!message.isStreaming}>
-										{#snippet lead()}<Hammer />{/snippet}
-										{#snippet control()}
-											<div class="flex justify-between">
-												<span class:text-error-700={(message as ToolMessage).status === 'error'}>
-													Tool Output
-													{#if (message as ToolMessage).status === 'error'}
-														- Error
-													{/if}
-												</span>
-												<!-- Debug: Tool output isStreaming status -->
-												{console.error(
-													'TEMPLATE_DEBUG: Tool output',
-													message.id,
-													'isStreaming:',
-													message.isStreaming
-												)}
-												{#if (message as ToolMessage).status === 'error'}
-													<XCircle class="stroke-error-500" />
-												{:else if (message as ToolMessage).approvalStatus === 'approved'}
-													<Check class="stroke-success-500" />
-												{:else if (message as ToolMessage).approvalStatus === 'denied'}
-													<XCircle class="stroke-error-500" />
-												{:else if (message as ToolMessage).waitingForApproval}
-													<Diamond class="stroke-warning-500" />
-												{:else if message.isStreaming}
-													<LoaderCircle class="stroke-warning-500 animate-spin" />
-												{:else}
-													<Check class="stroke-success-500" />
-												{/if}
-											</div>
-										{/snippet}
-										{#snippet panel()}
-											<div class="preset-filled-primary-500 max-w-full rounded-2xl p-2 text-white">
-												<div class="overflow-x-auto">
-													{@html formatToolOutput(message as ToolMessage)}
-												</div>
-											</div>
-										{/snippet}
-									</Accordion.Item>
-								</Accordion>
-							{/snippet}
-						</Accordion.Item>
-					</Accordion>
-				{:else if message.role === 'approval_request'}
-					<div class="flex flex-col items-start justify-start">
-						{#if !['tool', 'assistant', 'approval_request'].includes(chat.messages[index - 1]?.role)}
-							<div class="mb-2 flex items-center gap-2">
-								<Avatar
-									src="/opey-icon-white.png"
-									name="opey"
-									classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-								/>
-								<p class="text-s font-bold">Opey</p>
-							</div>
-							<hr class="hr" />
-						{/if}
-						<div class="max-w-full">
-							<ApprovalRequest
-								message={message as ApprovalRequestMessage}
-								onApprove={handleApprove}
-								onDeny={handleDeny}
-							/>
-						</div>
-					</div>
-				{/if}
+			{#each chat.messages as message, index (message.id)}
+				<ChatMessage
+					{message}
+					previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
+					userName={options.currentlyActiveUserName}
+					onApprove={handleApprove}
+					onDeny={handleDeny}
+				/>
 			{/each}
 		</div>
 	</article>
@@ -482,22 +372,89 @@
 	{/if}
 {/snippet}
 
+{#snippet statusPips(session: SessionSnapshot, consentInfo?: OBPConsentInfo)}
+	{#if options.displayConnectionPips}
+		<div class="flex flex-col items-center">
+			<!-- Connection Pip with Tooltip -->
+			<Tooltip 
+				classes="z-10"
+				positioning={{ placement: 'top' }}
+				contentBase="card bg-primary-200-800 text-xs p-1"
+				arrowBackground="var(--color-primary-200-800)"
+				arrow
+			>
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {connectionPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
+			</Tooltip>
+			<!-- Authentication Pip with Tooltip -->
+			<Tooltip 
+				classes="z-10"
+				open={authPipOpenState}
+				contentBase="card bg-primary-200-800 text-xs p-1"
+				arrowBackground="var(--color-primary-200-800)"
+				onclick={() => { authPipOpenState = !authPipOpenState; }}
+				arrow
+			>
+				<!-- Added z-10 for higher stacking -->
+				{#snippet trigger()}
+					<div class="badge-icon {authPipColor} h-3 w-3">
+						<ShieldUserIcon size={12} />
+					</div>
+				{/snippet}
+				{#snippet content()}
+					{#if session.status === 'loading'}
+						Authenticating...
+					{:else if session.status === 'error'}
+						Error during authentication: {session.error}
+					{:else if session.isAuthenticated}
+						<h1 class="font-bold text-success-500">Authenticated</h1>
+						{#if consentInfo}
+							<br />
+							Consent ID: <a href="/user#opey-consent" aria-label="view opey consent">{consentInfo.consent_id}</a>
+						{/if}
+					{:else}
+						Not Authenticated
+					{/if}
+				{/snippet}
+			</Tooltip>
+			<!-- {#if !session.isAuthenticated}
+				<button class="btn btn-sm btn-primary" onclick={upgradeSession} disabled={session.status === 'loading'}>
+					Log in to connect banking data
+				</button>
+			{/if} -->
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet inputField()}
-	<div class="relative w-full">
+	<!-- Single unified container for input and controls -->
+	<div class="relative w-full bg-primary-50 dark:bg-primary-600 rounded-lg">
+		<!-- Avatar positioned outside the unified container -->
 		<img
 			src="/opey_avatar.png"
 			alt="Opey Avatar"
 			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
 		/>
-		<input
+		
+		<!-- Text area - no bottom border radius when expanded -->
+		<textarea
 			bind:value={messageInput}
-			type="text"
-			placeholder="Ask me about the Open Bank Project API"
-			class="input bg-primary-50 dark:bg-primary-600 h-15 w-full rounded-lg p-5 pr-7"
+			placeholder={(chat.messages.length > 0) ? "Ask me about the Open Bank Project API" : "Ask me anything..."}
+			class="input w-full p-5 pr-7 resize-none overflow-hidden bg-transparent min-h-15 border-none outline-none focus:outline-none
+				{isMultiline ? 'rounded-t-lg mb-0' : 'rounded-lg'}"
 			disabled={session?.status !== 'ready'}
 			onkeydown={handleKeyPress}
-		/>
-		{#if messageInput.length > 0}
+			oninput={autoResize}
+			rows="1"
+		></textarea>
+		
+		<!-- Single-line mode controls -->
+		{#if messageInput.length > 0 && !isMultiline}
 			<button
 				class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
 				disabled={session?.status !== 'ready' || !messageInput.trim()}
@@ -505,6 +462,33 @@
 			>
 				<CircleArrowUp class="h-7 w-7" />
 			</button>
+		{:else if messageInput.length === 0}
+			<!-- When empty, show pips inline -->
+			<div class="absolute right-3 top-1/2 -translate-y-1/2">
+				{@render statusPips(session, options.currentConsentInfo)}
+			</div>
+		{/if}
+		
+		<!-- Footer - visually connected to textarea when multiline -->
+		{#if isMultiline}
+			<div class="flex justify-between items-center w-full p-2 pt-0 bg-primary-50 dark:bg-primary-600 rounded-b-lg">
+				<div>
+					<!-- Placeholder for future buttons (like file upload) -->
+					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
+				</div>
+				
+				<div class="flex items-center gap-2">
+					<button
+						class="btn btn-primary"
+						disabled={session?.status !== 'ready' || !messageInput.trim()}
+						onclick={() => handleSendMessage(messageInput)}
+					>
+						<CircleArrowUp class="h-7 w-7" />
+					</button>
+					
+					{@render statusPips(session, options.currentConsentInfo)}
+				</div>
+			</div>
 		{/if}
 	</div>
 {/snippet}
