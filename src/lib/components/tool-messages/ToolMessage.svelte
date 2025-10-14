@@ -11,10 +11,9 @@
         AlertTriangle,
     } from '@lucide/svelte';
 	import ToolApprovalCard from '../ToolApprovalCard.svelte';
-
-    interface Props {
+	    interface Props {
         message: ToolMessage;
-        onApprove?: (toolCallId: string) => Promise<void>;
+        onApprove?: (toolCallId: string, approvalLevel?: string) => Promise<void>;
         onDeny?: (toolCallId: string) => Promise<void>;
     }
     
@@ -34,12 +33,12 @@
     
     let isProcessing = $state(false);
     
-    async function handleApprove() {
+    async function handleApprove(toolCallId: string, approvalLevel?: string) {
         if (isProcessing || message.approvalStatus === 'approved') return;
         isProcessing = true;
         try {
             if (onApprove) {
-                await onApprove(message.toolCallId);
+                await onApprove(toolCallId, approvalLevel);
             }
         } finally {
             isProcessing = false;
