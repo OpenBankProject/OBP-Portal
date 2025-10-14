@@ -1,20 +1,20 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OAuthProviderFactory');
-import { OAuth2ClientWithConfig } from "./client";
-import { env } from "$env/dynamic/private";
+import { OAuth2ClientWithConfig } from './client';
+import { env } from '$env/dynamic/private';
 
 export interface WellKnownUri {
-    provider: string;
-    url: string;
+	provider: string;
+	url: string;
 }
 
 // Implement this for other OAuth2 providers as needed
 // Then register them in the OAuth2ProviderFactory
 interface OAuth2ProviderStrategy {
-    providerName: string;
-    initialize(config: WellKnownUri): Promise<OAuth2ClientWithConfig>;
-    supports(provider: string): boolean;
-    getProviderName(): string;
+	providerName: string;
+	initialize(config: WellKnownUri): Promise<OAuth2ClientWithConfig>;
+	supports(provider: string): boolean;
+	getProviderName(): string;
 }
 
 class KeyCloakStrategy implements OAuth2ProviderStrategy {
@@ -32,7 +32,8 @@ class KeyCloakStrategy implements OAuth2ProviderStrategy {
 		const client = new OAuth2ClientWithConfig(
 			env.KEYCLOAK_OAUTH_CLIENT_ID,
 			env.KEYCLOAK_OAUTH_CLIENT_SECRET,
-			env.APP_CALLBACK_URL
+			env.APP_CALLBACK_URL,
+			'keycloak'
 		);
 
 		await client.initOIDCConfig(config.url);
@@ -42,7 +43,7 @@ class KeyCloakStrategy implements OAuth2ProviderStrategy {
 }
 
 class OBPOIDCStrategy implements OAuth2ProviderStrategy {
-	providerName = 'obp-oidc'
+	providerName = 'obp-oidc';
 
 	supports(provider: string): boolean {
 		return provider === this.providerName;
@@ -63,7 +64,8 @@ class OBPOIDCStrategy implements OAuth2ProviderStrategy {
 		const client = new OAuth2ClientWithConfig(
 			env.OBP_OAUTH_CLIENT_ID,
 			env.OBP_OAUTH_CLIENT_SECRET,
-			env.APP_CALLBACK_URL
+			env.APP_CALLBACK_URL,
+			'obp-oidc'
 		);
 
 		await client.initOIDCConfig(config.url);
