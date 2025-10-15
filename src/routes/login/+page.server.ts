@@ -1,4 +1,4 @@
-import { oauth2ProviderManager } from '$lib/oauth/providerManager';
+import { oauth2ProviderManager, type ProviderStatus } from '$lib/oauth/providerManager';
 import { redirect } from '@sveltejs/kit';
 import type { ServerLoad } from '@sveltejs/kit';
 
@@ -6,21 +6,26 @@ export const load: ServerLoad = async () => {
 	if (!oauth2ProviderManager.isReady()) {
 		// If providers aren't ready yet, show loading state
 		return {
-			providers: [],
+			allProviders: [],
+			availableProviders: [],
+			unavailableProviders: [],
 			loading: true
 		};
 	}
 
-	const providers = oauth2ProviderManager.getInitializedProviders();
+	const allProviders = oauth2ProviderManager.getAllProviders();
+	const availableProviders = oauth2ProviderManager.getAvailableProviders();
+	const unavailableProviders = oauth2ProviderManager.getUnavailableProviders();
 
-	// If we have exactly 1 provider, redirect directly to it
-	if (providers.length === 1) {
-		throw redirect(302, `/login/${providers[0].provider}`);
-	}
+	// Always show the login page with all providers (available and unavailable)
+	// Users can see what's available and what's not
 
-	// Return providers for user selection (2+ providers case)
+	// Return all providers for user selection
 	return {
-		providers: providers,
-		loading: false
+		allProviders,
+		availableProviders,
+		unavailableProviders,
+		loading: false,
+		lastUpdated: new Date().toISOString()
 	};
 };
