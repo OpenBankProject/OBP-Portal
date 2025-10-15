@@ -176,7 +176,7 @@
 	let authPipOpenState = $state(false);
 
 	// async function formatAuthStatusPip(session: SessionSnapshot, consentInfo?: OBPConsentInfo): {
-	// 	const 
+	// 	const
 	// }
 
 	async function sendMessage(text: string) {
@@ -255,7 +255,7 @@
 	 */
 	async function upgradeSession() {
 		if (!userAuthenticated) {
-			window.location.href = '/login/obp';
+			window.location.href = '/login';
 			return;
 		}
 
@@ -376,7 +376,7 @@
 	{#if options.displayConnectionPips}
 		<div class="flex flex-col items-center">
 			<!-- Connection Pip with Tooltip -->
-			<Tooltip 
+			<Tooltip
 				classes="z-10"
 				positioning={{ placement: 'top' }}
 				contentBase="card bg-primary-200-800 text-xs p-1"
@@ -392,7 +392,7 @@
 				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
 			</Tooltip>
 			<!-- Authentication Pip with Tooltip -->
-			<Tooltip 
+			<Tooltip
 				classes="z-10"
 				open={authPipOpenState}
 				contentBase="card bg-primary-200-800 text-xs p-1"
@@ -440,7 +440,7 @@
 			alt="Opey Avatar"
 			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
 		/>
-		
+
 		<!-- Text area - no bottom border radius when expanded -->
 		<textarea
 			bind:value={messageInput}
@@ -452,7 +452,7 @@
 			oninput={autoResize}
 			rows="1"
 		></textarea>
-		
+
 		<!-- Single-line mode controls -->
 		{#if messageInput.length > 0 && !isMultiline}
 			<button
@@ -468,7 +468,7 @@
 				{@render statusPips(session, options.currentConsentInfo)}
 			</div>
 		{/if}
-		
+
 		<!-- Footer - visually connected to textarea when multiline -->
 		{#if isMultiline}
 			<div class="flex justify-between items-center w-full p-2 pt-0 bg-primary-50 dark:bg-primary-600 rounded-b-lg">
@@ -476,7 +476,7 @@
 					<!-- Placeholder for future buttons (like file upload) -->
 					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
 				</div>
-				
+
 				<div class="flex items-center gap-2">
 					<button
 						class="btn btn-primary"
@@ -485,7 +485,7 @@
 					>
 						<CircleArrowUp class="h-7 w-7" />
 					</button>
-					
+
 					{@render statusPips(session, options.currentConsentInfo)}
 				</div>
 			</div>
