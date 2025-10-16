@@ -58,13 +58,32 @@
             </div>
         </div>
 
-        {#if data.loading}
-            <div class="text-center my-4">
-                <p>Loading authentication providers...</p>
-            </div>
-        {:else if data.availableProviders.length === 0}
+        {#if data.availableProviders.length === 0}
             <div class="text-center my-4">
                 <p class="text-red-500">No authentication providers available. Please contact your administrator.</p>
+
+                <!-- Show unavailable providers even when no available providers -->
+                {#if data.unavailableProviders.length > 0}
+                    <div class="mt-6 pt-4 border-t border-gray-600">
+                        <p class="text-center text-sm text-gray-400 mb-3">Currently unavailable:</p>
+                        {#each data.unavailableProviders as provider}
+                            <div class="w-full p-3 rounded-lg border border-gray-600 bg-gray-800/50 opacity-60">
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center gap-2">
+                                        <span class="text-red-400">●</span>
+                                        <span class="text-gray-300">{formatProviderName(provider.provider)}</span>
+                                    </span>
+                                    <span class="text-xs text-red-400">Unavailable</span>
+                                </div>
+                                {#if provider.error}
+                                    <div class="text-xs text-gray-400 mt-1 ml-5">
+                                        {provider.error}
+                                    </div>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
             </div>
         {:else}
             <!-- Available providers -->
