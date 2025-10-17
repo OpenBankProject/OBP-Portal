@@ -225,7 +225,7 @@
 				{:else}
 					<span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
 					<button type="button" class="btn preset-filled-surface-950-50"
-						><a href="/login/obp">Login</a></button
+						><a href="/login">Login</a></button
 					>
 				{/if}
 			</div>
