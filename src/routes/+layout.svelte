@@ -230,7 +230,7 @@
 				{/if}
 			</div>
 
-			<main class="flex flex-col" style="height: calc(100vh - 80px);">
+			<main class="flex flex-col overflow-auto" style="height: calc(100vh - 80px);">
 				{@render children()}
 			</main>
 		</div>
