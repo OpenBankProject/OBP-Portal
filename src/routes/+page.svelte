@@ -3,10 +3,16 @@
 	import OpeyChat from '$lib/components/OpeyChat.svelte';
 	import type { OpeyChatOptions, SuggestedQuestion } from '$lib/components/OpeyChat.svelte';
     import { CheckCheck, Layers, Rocket, UserLock,  } from '@lucide/svelte';
+	import { env } from '$env/dynamic/public';
 
 	let { data } = $props();
 	let name = data.username || 'Guest';
 	let opeyConsentInfo = data.opeyConsentInfo;
+
+	// Configurable text via environment variables
+	const welcomeTitle = env.PUBLIC_WELCOME_TITLE || 'Welcome!';
+	const helpQuestion = env.PUBLIC_HELP_QUESTION || 'How can I help?';
+	const welcomeDescription = env.PUBLIC_WELCOME_DESCRIPTION || 'Welcome to OBP sandbox! This space provides developers, innovators and start-ups with APIs, documentation and access to localized data.';
 
 	const suggestedQuestions: SuggestedQuestion[] = [
 		{
@@ -47,11 +53,10 @@
 		<OpeyChat {opeyChatOptions}>
 			{#snippet splash()}
 				<div class="flex w-2/3 flex-col items-center justify-center text-center">
-					<h1 class="h3 text-surface-700-300 mb-2">Welcome!</h1>
-					<h1 class="h3 mb-4">How can I help?</h1>
+					<h1 class="h3 text-surface-700-300 mb-2">{welcomeTitle}</h1>
+					<h1 class="h3 mb-4">{helpQuestion}</h1>
 					<p class="text-surface-700-300 mb-7 text-sm">
-						Welcome to OBP sandbox! This space provides developers, innovators and start-ups with
-						APIs, documentation and access to localized data.
+						{welcomeDescription}
 					</p>
 				</div>
 			{/snippet}
