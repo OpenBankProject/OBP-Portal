@@ -9,15 +9,37 @@
         XCircle,
         Diamond,
         AlertTriangle,
+        CheckCircle,
     } from '@lucide/svelte';
 	import ToolApprovalCard from '../ToolApprovalCard.svelte';
 	    interface Props {
         message: ToolMessage;
         onApprove?: (toolCallId: string, approvalLevel?: string) => Promise<void>;
         onDeny?: (toolCallId: string) => Promise<void>;
+        batchApprovalGroup?: ToolMessage[];  // Other tools in the same batch
+        onBatchSubmit?: (decisions: Map<string, { approved: boolean; level: string }>) => Promise<void>;
     }
     
-    let { message, onApprove, onDeny }: Props = $props();
+    let { message, onApprove, onDeny, batchApprovalGroup, onBatchSubmit }: Props = $props();
+    
+    // Check if this is part of a batch approval
+    let isBatchApproval = $derived(!!batchApprovalGroup && batchApprovalGroup.length > 1);
+    
+    // Track batch decisions (only used if this is the first message in batch)
+    let batchDecisions = $state(
+        batchApprovalGroup
+            ? new Map(
+                batchApprovalGroup.map(tm => [
+                    tm.toolCallId,
+                    { approved: false, level: tm.defaultApprovalLevel || 'once' }
+                ])
+            )
+            : new Map()
+    );
+    
+    let isFirstInBatch = $derived(
+        isBatchApproval && batchApprovalGroup?.[0]?.toolCallId === message.toolCallId
+    );
     
     // Helper function for tool display names
     function getToolDisplayName(toolName: string, instanceNumber: number): string {
@@ -33,11 +55,17 @@
     
     let isProcessing = $state(false);
     
+    // Individual approval handlers
     async function handleApprove(toolCallId: string, approvalLevel?: string) {
         if (isProcessing || message.approvalStatus === 'approved') return;
         isProcessing = true;
         try {
-            if (onApprove) {
+            if (isBatchApproval) {
+                // Update batch decision
+                const level = approvalLevel || message.defaultApprovalLevel || 'once';
+                batchDecisions.set(toolCallId, { approved: true, level });
+                batchDecisions = new Map(batchDecisions);
+            } else if (onApprove) {
                 await onApprove(toolCallId, approvalLevel);
             }
         } finally {
@@ -45,17 +73,69 @@
         }
     }
     
-    async function handleDeny() {
+    async function handleDeny(toolCallId: string) {
         if (isProcessing || message.approvalStatus === 'denied') return;
         isProcessing = true;
         try {
-            if (onDeny) {
-                await onDeny(message.toolCallId);
+            if (isBatchApproval) {
+                // Update batch decision
+                batchDecisions.set(toolCallId, { approved: false, level: 'once' });
+                batchDecisions = new Map(batchDecisions);
+            } else if (onDeny) {
+                await onDeny(toolCallId);
             }
         } finally {
             isProcessing = false;
         }
     }
+    
+    // Batch approval bulk actions
+    function approveAll() {
+        batchApprovalGroup?.forEach(tm => {
+            batchDecisions.set(tm.toolCallId, { approved: true, level: tm.defaultApprovalLevel || 'once' });
+        });
+        batchDecisions = new Map(batchDecisions);
+    }
+    
+    function denyAll() {
+        batchApprovalGroup?.forEach(tm => {
+            batchDecisions.set(tm.toolCallId, { approved: false, level: 'once' });
+        });
+        batchDecisions = new Map(batchDecisions);
+    }
+    
+    function approveSafe() {
+        batchApprovalGroup?.forEach(tm => {
+            if (tm.riskLevel === 'low') {
+                batchDecisions.set(tm.toolCallId, { approved: true, level: 'session' });
+            }
+        });
+        batchDecisions = new Map(batchDecisions);
+    }
+    
+    async function handleBatchSubmit() {
+        if (isProcessing || !onBatchSubmit) return;
+        isProcessing = true;
+        try {
+            await onBatchSubmit(batchDecisions);
+        } finally {
+            isProcessing = false;
+        }
+    }
+    
+    // Count batch decisions
+    let approvedCount = $derived(
+        Array.from(batchDecisions.values()).filter(d => d.approved).length
+    );
+    let deniedCount = $derived(
+        batchApprovalGroup ? batchApprovalGroup.length - approvedCount : 0
+    );
+    let allDecisionsMade = $derived(
+        batchApprovalGroup?.every(tm => {
+            const decision = batchDecisions.get(tm.toolCallId);
+            return decision && (decision.approved || !decision.approved);
+        }) ?? false
+    );
     
     // Determine if approval UI should be shown
     let showApprovalInterface = $derived(
@@ -100,6 +180,110 @@
     let nestedAccordionValue = $state<string[]>([]);
 </script>
 
+{#if isBatchApproval && isFirstInBatch}
+    <!-- Batch Approval View -->
+    <div class="card variant-ghost-warning rounded-lg border-2 border-warning-500 p-4 space-y-4">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <AlertTriangle class="text-warning-600" size={24} />
+                <div>
+                    <h3 class="text-lg font-semibold">Multiple Approvals Required</h3>
+                    <p class="text-sm text-surface-600 dark:text-surface-400">
+                        {batchApprovalGroup?.length || 0} operations pending approval
+                    </p>
+                </div>
+            </div>
+            <div class="flex gap-2 text-sm">
+                <span class="rounded-full bg-success-100 px-3 py-1 dark:bg-success-900">
+                    ✓ {approvedCount}
+                </span>
+                <span class="rounded-full bg-error-100 px-3 py-1 dark:bg-error-900">
+                    ✗ {deniedCount}
+                </span>
+            </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="flex gap-2">
+            <button class="btn variant-filled-success btn-sm" onclick={approveAll}>
+                <CheckCircle size={16} />
+                Approve All
+            </button>
+            <button class="btn variant-filled-error btn-sm" onclick={denyAll}>
+                <XCircle size={16} />
+                Deny All
+            </button>
+            <button class="btn variant-filled-primary btn-sm" onclick={approveSafe}>
+                <Check size={16} />
+                Approve Low-Risk
+            </button>
+        </div>
+
+        <!-- Individual Approvals -->
+        <div class="space-y-3">
+            {#each batchApprovalGroup || [] as toolMsg (toolMsg.toolCallId)}
+                {@const decision = batchDecisions.get(toolMsg.toolCallId)}
+                {@const hasDecision = decision && (decision.approved !== undefined)}
+                
+                {#if !hasDecision}
+                    <!-- Pending approval -->
+                    <ToolApprovalCard
+                        toolMessage={toolMsg}
+                        onApprove={handleApprove}
+                        onDeny={handleDeny}
+                    />
+                {:else if decision.approved}
+                    <!-- Approved -->
+                    <div class="card variant-ghost-success rounded-lg border-2 border-success-500 p-3">
+                        <div class="flex items-center gap-3">
+                            <CheckCircle class="text-success-600" size={20} />
+                            <div class="flex-1">
+                                <div class="font-semibold text-sm">{toolMsg.toolName}</div>
+                                <div class="text-xs text-surface-600 dark:text-surface-400">
+                                    Approved ({decision.level})
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {:else}
+                    <!-- Denied -->
+                    <div class="card variant-ghost-error rounded-lg border-2 border-error-500 p-3">
+                        <div class="flex items-center gap-3">
+                            <XCircle class="text-error-600" size={20} />
+                            <div class="flex-1">
+                                <div class="font-semibold text-sm">{toolMsg.toolName}</div>
+                                <div class="text-xs text-surface-600 dark:text-surface-400">
+                                    Denied
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+            {/each}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+            <button
+                class="btn variant-filled-primary"
+                onclick={handleBatchSubmit}
+                disabled={!allDecisionsMade || isProcessing}
+            >
+                {#if isProcessing}
+                    <span class="animate-pulse">Submitting...</span>
+                {:else if !allDecisionsMade}
+                    Review All First
+                {:else}
+                    Submit All Decisions
+                {/if}
+            </button>
+        </div>
+    </div>
+{:else if isBatchApproval}
+    <!-- This is part of a batch but not the first - don't render, it's shown above -->
+{:else}
+    <!-- Single Tool Approval (Original) -->
 <Accordion 
     collapsible 
     classes="max-w-full" 
@@ -190,3 +374,4 @@
         {/snippet}
     </Accordion.Item>
 </Accordion>
+{/if}

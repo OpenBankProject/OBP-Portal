@@ -122,6 +122,10 @@ export class ChatController {
 							}
 						);
 						break;
+					case 'batch_approval_request':
+						logger.debug(`Received batch approval request for ${event.toolCalls.length} tools`);
+						state.addBatchApprovalRequest(event.toolCalls);
+						break;
 				}
 			} catch (error) {
 				logger.error('Error processing stream event:', error, event);
@@ -217,6 +221,68 @@ export class ChatController {
 				error: `Failed to send denial: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});
 		}
+	}
+
+	/**
+	 * Submit batch approval decisions for multiple tool calls at once.
+	 * 
+	 * @param decisions - Map of toolCallId to approval decision and level
+	 */
+	async submitBatchApproval(
+		decisions: Map<string, { approved: boolean; level: string }>
+	): Promise<void> {
+		logger.debug(`Submitting batch approval for ${decisions.size} tools`);
+		
+		// Update state optimistically for all decisions
+		decisions.forEach((decision, toolCallId) => {
+			this.state.updateApprovalRequest(toolCallId, decision.approved);
+			
+			if (decision.approved) {
+				this.state.updateToolMessage(toolCallId, {
+					approvalStatus: 'approved',
+					approvalLevel: decision.level,
+					waitingForApproval: false
+					// isStreaming will be set to true when tool_start event arrives
+				});
+			} else {
+				this.state.updateToolMessage(toolCallId, {
+					approvalStatus: 'denied',
+					waitingForApproval: false,
+					isStreaming: false,
+					status: 'error',
+					toolOutput: 'Tool execution was denied by user'
+				});
+			}
+		});
+
+		try {
+			// Convert Map to Record format expected by backend
+			const batchDecisions: Record<string, { approved: boolean; level: string }> = {};
+			decisions.forEach((decision, toolCallId) => {
+				batchDecisions[toolCallId] = decision;
+			});
+			
+			await this.service.sendBatchApproval(batchDecisions, this.state.getThreadId());
+		} catch (error) {
+			logger.error('Failed to send batch approval:', error);
+			// Revert optimistic updates on error
+			decisions.forEach((decision, toolCallId) => {
+				this.state.updateToolMessage(toolCallId, {
+					approvalStatus: undefined,
+					approvalLevel: undefined,
+					waitingForApproval: true,
+					error: `Failed to send approval: ${error instanceof Error ? error.message : 'Unknown error'}`
+				});
+			});
+			throw error;
+		}
+	}
+
+	/**
+	 * Get all pending approval requests from the state.
+	 */
+	getPendingApprovals(): ToolMessage[] {
+		return this.state.getPendingApprovals();
 	}
 
 	private assignToolInstance(toolName: string): number {

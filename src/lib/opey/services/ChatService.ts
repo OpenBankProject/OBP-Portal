@@ -10,6 +10,7 @@ import type { UserMessage, AssistantMessage, ToolMessage } from '../types'
 export interface ChatService {
     send(msg: UserMessage, threadId?: string): Promise<void>
     sendApproval(toolCallId: string, approved: boolean, threadId: string, approvalLevel?: string): Promise<void>
+    sendBatchApproval(decisions: Record<string, { approved: boolean; level: string }>, threadId: string): Promise<void>
 
     /**
      * Called for streaming events during chat interactions.
@@ -40,6 +41,26 @@ export type StreamEvent =
         similarOperationsCount: number,
         availableApprovalLevels: string[],
         defaultApprovalLevel: string
+      }
+    | {
+        type: 'batch_approval_request',
+        toolCalls: Array<{
+          toolCallId: string,
+          toolName: string,
+          toolInput: Record<string, any>,
+          message: string,
+          riskLevel: string,
+          affectedResources: string[],
+          reversible: boolean,
+          estimatedImpact: string,
+          similarOperationsCount: number,
+          availableApprovalLevels: string[],
+          defaultApprovalLevel: string,
+          operation?: string,
+          endpoint?: string,
+          method?: string
+        }>,
+        options: string[]
       }
     | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }

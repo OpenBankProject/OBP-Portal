@@ -132,6 +132,55 @@ export class ChatState {
 		this.emit();
 	}
 
+	/**
+	 * Add multiple approval requests at once (for batch approvals).
+	 * This creates/updates tool messages for each approval request.
+	 */
+	addBatchApprovalRequest(
+		toolCalls: Array<{
+			toolCallId: string;
+			toolName: string;
+			toolInput: Record<string, any>;
+			message: string;
+			riskLevel: string;
+			affectedResources: string[];
+			reversible: boolean;
+			estimatedImpact: string;
+			similarOperationsCount: number;
+			availableApprovalLevels: string[];
+			defaultApprovalLevel: string;
+		}>
+	): void {
+		logger.debug(`Adding batch approval request for ${toolCalls.length} tools`);
+		
+		toolCalls.forEach(toolCall => {
+			this.addApprovalRequest(
+				toolCall.toolCallId,
+				toolCall.toolName,
+				toolCall.toolInput,
+				toolCall.message,
+				{
+					riskLevel: toolCall.riskLevel,
+					affectedResources: toolCall.affectedResources,
+					reversible: toolCall.reversible,
+					estimatedImpact: toolCall.estimatedImpact,
+					similarOperationsCount: toolCall.similarOperationsCount,
+					availableApprovalLevels: toolCall.availableApprovalLevels,
+					defaultApprovalLevel: toolCall.defaultApprovalLevel
+				}
+			);
+		});
+	}
+
+	/**
+	 * Get all tool messages that are currently waiting for approval.
+	 */
+	getPendingApprovals(): ToolMessage[] {
+		return this.messages.filter(
+			msg => msg.role === 'tool' && (msg as ToolMessage).waitingForApproval
+		) as ToolMessage[];
+	}
+
 	// Update to set approval status and force update
 	updateApprovalRequest(toolCallId: string, approved: boolean): void {
 		// Update the tool message with approval status

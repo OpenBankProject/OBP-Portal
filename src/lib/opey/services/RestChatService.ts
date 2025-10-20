@@ -24,16 +24,16 @@ export class RestChatService implements ChatService {
 	): Promise<void> {
 		logger.info(`Sending approval for toolCallId=${toolCallId}, approved=${approved}, level=${approvalLevel}, threadId=${threadId}`);
 		
-		const payload: Record<string, any> = {
-			tool_call_id: toolCallId,
-			approval: approved ? 'approve' : 'deny',
-			level: approvalLevel || 'once'
+		// New format: use /stream endpoint with tool_call_approval
+		const payload = {
+			message: "", // Empty for approvals
+			thread_id: threadId,
+			tool_call_approval: {
+				approval: approved ? 'approve' : 'deny',
+				level: approvalLevel || 'once',
+				tool_call_id: toolCallId
+			}
 		};
-		
-		// Include approval level if provided
-		if (approvalLevel) {
-			payload.approval_level = approvalLevel;
-		}
 		
 		const init = await this.buildInit({
 			method: 'POST',
@@ -41,7 +41,30 @@ export class RestChatService implements ChatService {
 			body: JSON.stringify(payload)
 		});
 
-		return this.handleStreamingResponse(`${this.baseUrl}/approval/${threadId}`, init);
+		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
+	}
+
+	async sendBatchApproval(
+		decisions: Record<string, { approved: boolean; level: string }>,
+		threadId: string
+	): Promise<void> {
+		logger.info(`Sending batch approval for ${Object.keys(decisions).length} tools, threadId=${threadId}`);
+		
+		const payload = {
+			message: "", // Empty for approvals
+			thread_id: threadId,
+			tool_call_approval: {
+				batch_decisions: decisions
+			}
+		};
+		
+		const init = await this.buildInit({
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+
+		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
 	}
 
 	private async buildInit(init: RequestInit = {}): Promise<RequestInit> {
@@ -215,6 +238,28 @@ export class RestChatService implements ChatService {
 					similarOperationsCount: eventData.similar_operations_count || 0,
 					availableApprovalLevels: eventData.available_approval_levels || ['user'],
 					defaultApprovalLevel: eventData.default_approval_level || 'user'
+				});
+				break;
+			case 'batch_approval_request':
+				this.streamEventCallback?.({
+					type: 'batch_approval_request',
+					toolCalls: eventData.tool_calls.map((tc: any) => ({
+						toolCallId: tc.tool_call_id,
+						toolName: tc.tool_name,
+						toolInput: tc.tool_input,
+						message: tc.message || 'Approval required',
+						riskLevel: tc.risk_level || 'moderate',
+						affectedResources: tc.affected_resources || [],
+						reversible: tc.reversible !== undefined ? tc.reversible : true,
+						estimatedImpact: tc.estimated_impact || '',
+						similarOperationsCount: tc.similar_operations_count || 0,
+						availableApprovalLevels: tc.available_approval_levels || ['once', 'session'],
+						defaultApprovalLevel: tc.default_approval_level || 'once',
+						operation: tc.operation,
+						endpoint: tc.endpoint,
+						method: tc.method
+					})),
+					options: eventData.options || []
 				});
 				break;
 			default:

@@ -86,6 +86,13 @@
 
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
+	
+	// Track pending approvals for batch handling
+	let pendingApprovalTools = $derived.by(() => {
+		return chat.messages.filter(
+			(m) => m.role === 'tool' && (m as ToolMessage).waitingForApproval
+		) as ToolMessage[];
+	});
 
 	// TODO: this is not quite working properly, returns unknown all the time
 	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $derived.by(() => {
@@ -107,10 +114,6 @@
 		logger.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
 		chatState.subscribe((c) => {
-			if (c.messages.length > 0) {
-				const toolMessages = c.messages.filter((m) => m.role === 'tool');
-				toolMessages.forEach((tm, index) => {});
-			}
 			chat = c;
 		});
 
@@ -286,7 +289,13 @@
 		await chatController.denyToolCall(toolCallId);
 	}
 
-	// TEMPORARY: Test function to manually trigger an approval message
+	async function handleBatchApprovalSubmit(
+		decisions: Map<string, { approved: boolean; level: string }>
+	) {
+		await chatController.submitBatchApproval(decisions);
+	}
+
+	// TEMPORARY: Test function to manually trigger a single approval message
 	function addTestApprovalMessage() {
 		chatState.addApprovalRequest(
 			'test-tool-call-123',
@@ -305,9 +314,55 @@
 		);
 	}
 
-	// TEMPORARY: Expose test function globally for debugging
+	// TEMPORARY: Test function to manually trigger batch approval (3 tools)
+	function addTestBatchApprovalMessage() {
+		chatState.addBatchApprovalRequest([
+			{
+				toolCallId: 'batch-test-1',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/banks/gh.29.uk/accounts', method: 'POST' },
+				message: 'Create a new bank account',
+				riskLevel: 'moderate',
+				affectedResources: ['Bank gh.29.uk'],
+				reversible: false,
+				estimatedImpact: 'This will create a new account in the production database',
+				similarOperationsCount: 3,
+				availableApprovalLevels: ['once', 'session'],
+				defaultApprovalLevel: 'once'
+			},
+			{
+				toolCallId: 'batch-test-2',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/accounts/123', method: 'DELETE' },
+				message: 'Delete an existing account',
+				riskLevel: 'dangerous',
+				affectedResources: ['Account 123', 'Associated Transactions'],
+				reversible: false,
+				estimatedImpact: 'This will permanently delete account 123 and all associated data',
+				similarOperationsCount: 0,
+				availableApprovalLevels: ['once'],
+				defaultApprovalLevel: 'once'
+			},
+			{
+				toolCallId: 'batch-test-3',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/accounts', method: 'GET' },
+				message: 'Retrieve account list',
+				riskLevel: 'low',
+				affectedResources: [],
+				reversible: true,
+				estimatedImpact: 'Read-only operation, no data will be modified',
+				similarOperationsCount: 15,
+				availableApprovalLevels: ['once', 'session', 'user'],
+				defaultApprovalLevel: 'session'
+			}
+		]);
+	}
+
+	// TEMPORARY: Expose test functions globally for debugging
 	if (typeof window !== 'undefined') {
 		(window as any).addTestApprovalMessage = addTestApprovalMessage;
+		(window as any).addTestBatchApprovalMessage = addTestBatchApprovalMessage;
 	}
 </script>
 
@@ -319,10 +374,15 @@
 		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
 			<h1 class="h4 p-2">Chat With Opey</h1>
-			<!-- TEMPORARY: Test button for approval dropdown -->
-			<button class="btn variant-filled-warning btn-sm mx-2" onclick={addTestApprovalMessage}>
-				Test Approval
-			</button>
+			<!-- TEMPORARY: Test buttons for approval system -->
+			<div class="flex gap-2 mx-2">
+				<button class="btn variant-filled-warning btn-sm" onclick={addTestApprovalMessage}>
+					Test Single
+				</button>
+				<button class="btn variant-filled-error btn-sm" onclick={addTestBatchApprovalMessage}>
+					Test Batch
+				</button>
+			</div>
 		</header>
 	{/if}
 {/snippet}
@@ -347,6 +407,8 @@
 					userName={options.currentlyActiveUserName}
 					onApprove={handleApprove}
 					onDeny={handleDeny}
+					onBatchSubmit={handleBatchApprovalSubmit}
+					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
 				/>
 			{/each}
 		</div>
