@@ -86,6 +86,13 @@
 
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
+	
+	// Track pending approvals for batch handling
+	let pendingApprovalTools = $derived.by(() => {
+		return chat.messages.filter(
+			(m) => m.role === 'tool' && (m as ToolMessage).waitingForApproval
+		) as ToolMessage[];
+	});
 
 	// TODO: this is not quite working properly, returns unknown all the time
 	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $derived.by(() => {
@@ -107,10 +114,6 @@
 		logger.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
 		chatState.subscribe((c) => {
-			if (c.messages.length > 0) {
-				const toolMessages = c.messages.filter((m) => m.role === 'tool');
-				toolMessages.forEach((tm, index) => {});
-			}
 			chat = c;
 		});
 
@@ -176,7 +179,7 @@
 	let authPipOpenState = $state(false);
 
 	// async function formatAuthStatusPip(session: SessionSnapshot, consentInfo?: OBPConsentInfo): {
-	// 	const 
+	// 	const
 	// }
 
 	async function sendMessage(text: string) {
@@ -255,7 +258,7 @@
 	 */
 	async function upgradeSession() {
 		if (!userAuthenticated) {
-			window.location.href = '/login/obp';
+			window.location.href = '/login';
 			return;
 		}
 
@@ -278,12 +281,88 @@
 		isMultiline = textarea.scrollHeight > singleLineHeight * 1.5;
 	}
 
-	async function handleApprove(toolCallId: string) {
-		await chatController.approveToolCall(toolCallId);
+	async function handleApprove(toolCallId: string, approvalLevel?: string) {
+		await chatController.approveToolCall(toolCallId, approvalLevel);
 	}
 
 	async function handleDeny(toolCallId: string) {
 		await chatController.denyToolCall(toolCallId);
+	}
+
+	async function handleBatchApprovalSubmit(
+		decisions: Map<string, { approved: boolean; level: string }>
+	) {
+		await chatController.submitBatchApproval(decisions);
+	}
+
+	// TEMPORARY: Test function to manually trigger a single approval message
+	function addTestApprovalMessage() {
+		chatState.addApprovalRequest(
+			'test-tool-call-123',
+			'test_api_call',
+			{ endpoint: '/accounts', method: 'POST' },
+			'Test approval request - checking dropdown functionality',
+			{
+				riskLevel: 'medium',
+				affectedResources: ['Account 123', 'Transaction ABC'],
+				reversible: true,
+				estimatedImpact: 'This will modify 2 resources in the test environment',
+				similarOperationsCount: 5,
+				availableApprovalLevels: ['once', 'session', 'user'],
+				defaultApprovalLevel: 'once'
+			}
+		);
+	}
+
+	// TEMPORARY: Test function to manually trigger batch approval (3 tools)
+	function addTestBatchApprovalMessage() {
+		chatState.addBatchApprovalRequest([
+			{
+				toolCallId: 'batch-test-1',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/banks/gh.29.uk/accounts', method: 'POST' },
+				message: 'Create a new bank account',
+				riskLevel: 'moderate',
+				affectedResources: ['Bank gh.29.uk'],
+				reversible: false,
+				estimatedImpact: 'This will create a new account in the production database',
+				similarOperationsCount: 3,
+				availableApprovalLevels: ['once', 'session'],
+				defaultApprovalLevel: 'once'
+			},
+			{
+				toolCallId: 'batch-test-2',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/accounts/123', method: 'DELETE' },
+				message: 'Delete an existing account',
+				riskLevel: 'dangerous',
+				affectedResources: ['Account 123', 'Associated Transactions'],
+				reversible: false,
+				estimatedImpact: 'This will permanently delete account 123 and all associated data',
+				similarOperationsCount: 0,
+				availableApprovalLevels: ['once'],
+				defaultApprovalLevel: 'once'
+			},
+			{
+				toolCallId: 'batch-test-3',
+				toolName: 'obp_requests',
+				toolInput: { endpoint: '/obp/v5.1.0/accounts', method: 'GET' },
+				message: 'Retrieve account list',
+				riskLevel: 'low',
+				affectedResources: [],
+				reversible: true,
+				estimatedImpact: 'Read-only operation, no data will be modified',
+				similarOperationsCount: 15,
+				availableApprovalLevels: ['once', 'session', 'user'],
+				defaultApprovalLevel: 'session'
+			}
+		]);
+	}
+
+	// TEMPORARY: Expose test functions globally for debugging
+	if (typeof window !== 'undefined') {
+		(window as any).addTestApprovalMessage = addTestApprovalMessage;
+		(window as any).addTestBatchApprovalMessage = addTestBatchApprovalMessage;
 	}
 </script>
 
@@ -295,6 +374,15 @@
 		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
 			<h1 class="h4 p-2">Chat With Opey</h1>
+			<!-- TEMPORARY: Test buttons for approval system -->
+			<div class="flex gap-2 mx-2">
+				<button class="btn variant-filled-warning btn-sm" onclick={addTestApprovalMessage}>
+					Test Single
+				</button>
+				<button class="btn variant-filled-error btn-sm" onclick={addTestBatchApprovalMessage}>
+					Test Batch
+				</button>
+			</div>
 		</header>
 	{/if}
 {/snippet}
@@ -319,6 +407,8 @@
 					userName={options.currentlyActiveUserName}
 					onApprove={handleApprove}
 					onDeny={handleDeny}
+					onBatchSubmit={handleBatchApprovalSubmit}
+					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
 				/>
 			{/each}
 		</div>
@@ -348,7 +438,7 @@
 	{#if options.displayConnectionPips}
 		<div class="flex flex-col items-center">
 			<!-- Connection Pip with Tooltip -->
-			<Tooltip 
+			<Tooltip
 				classes="z-10"
 				positioning={{ placement: 'top' }}
 				contentBase="card bg-primary-200-800 text-xs p-1"
@@ -364,7 +454,7 @@
 				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
 			</Tooltip>
 			<!-- Authentication Pip with Tooltip -->
-			<Tooltip 
+			<Tooltip
 				classes="z-10"
 				open={authPipOpenState}
 				contentBase="card bg-primary-200-800 text-xs p-1"
@@ -412,7 +502,7 @@
 			alt="Opey Avatar"
 			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
 		/>
-		
+
 		<!-- Text area - no bottom border radius when expanded -->
 		<textarea
 			bind:value={messageInput}
@@ -424,7 +514,7 @@
 			oninput={autoResize}
 			rows="1"
 		></textarea>
-		
+
 		<!-- Single-line mode controls -->
 		{#if messageInput.length > 0 && !isMultiline}
 			<button
@@ -440,7 +530,7 @@
 				{@render statusPips(session, options.currentConsentInfo)}
 			</div>
 		{/if}
-		
+
 		<!-- Footer - visually connected to textarea when multiline -->
 		{#if isMultiline}
 			<div class="flex justify-between items-center w-full p-2 pt-0 bg-primary-50 dark:bg-primary-600 rounded-b-lg">
@@ -448,7 +538,7 @@
 					<!-- Placeholder for future buttons (like file upload) -->
 					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
 				</div>
-				
+
 				<div class="flex items-center gap-2">
 					<button
 						class="btn btn-primary"
@@ -457,7 +547,7 @@
 					>
 						<CircleArrowUp class="h-7 w-7" />
 					</button>
-					
+
 					{@render statusPips(session, options.currentConsentInfo)}
 				</div>
 			</div>

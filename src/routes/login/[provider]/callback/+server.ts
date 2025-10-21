@@ -1,5 +1,5 @@
 import { createLogger } from '$lib/utils/logger';
-const logger = createLogger('OBPLoginCallback');
+const logger = createLogger('ProviderLoginCallback');
 import { oauth2ProviderFactory } from '$lib/oauth/providerFactory';
 import type { OAuth2Tokens } from 'arctic';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -7,9 +7,14 @@ import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 
 export async function GET(event: RequestEvent): Promise<Response> {
+	const { provider: urlProvider } = event.params;
 	const storedState = event.cookies.get('obp_oauth_state');
 	const code = event.url.searchParams.get('code');
 	const recievedState = event.url.searchParams.get('state');
+
+	if (!urlProvider) {
+		throw error(400, 'Provider not specified');
+	}
 
 	if (storedState === null || code === null || recievedState === null) {
 		throw error(400, 'Please restart the process.');
@@ -22,8 +27,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
 	const [actualState, provider] = storedState.split(':');
 	logger.debug('Received state:', recievedState);
-	if (!provider) {
-		throw error(400, 'Invalid state format');
+	if (!provider || provider !== urlProvider) {
+		throw error(400, 'Invalid state format or provider mismatch');
 	}
 
 	const oauthClient = oauth2ProviderFactory.getClient(provider);
@@ -31,6 +36,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		logger.error(`OAuth client for provider "${provider}" not found.`);
 		throw error(400, 'Invalid OAuth provider');
 	}
+
+	logger.debug(`Processing callback for provider: ${provider}`);
 
 	// Validate the authorization code and exchange it for tokens
 	const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;

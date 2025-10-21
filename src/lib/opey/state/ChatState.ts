@@ -1,7 +1,7 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('ChatState');
 import { v4 as uuidv4 } from 'uuid';
-import type { BaseMessage, ToolMessage, ApprovalRequestMessage } from '../types';
+import type { BaseMessage, ToolMessage } from '../types';
 
 export interface ChatStateSnapshot {
 	threadId: string;
@@ -70,21 +70,42 @@ export class ChatState {
 		) as ToolMessage | undefined;
 	}
 
-	// Modify this to not update based on approval
+	/**
+	 * Add or update a tool message to indicate it's waiting for approval.
+	 * Includes approval metadata from the backend.
+	 */
 	addApprovalRequest(
 		toolCallId: string,
 		toolName: string,
 		toolInput: Record<string, any>,
-		description?: string
+		approvalMessage: string,
+		metadata: {
+			riskLevel: string;
+			affectedResources: string[];
+			reversible: boolean;
+			estimatedImpact: string;
+			similarOperationsCount: number;
+			availableApprovalLevels: string[];
+			defaultApprovalLevel: string;
+		}
 	): void {
 		// Find corresponding tool message and set waitingForApproval=true
 		const toolMessage = this.getToolMessageByCallId(toolCallId);
 
 		if (toolMessage) {
+			// Update existing tool message with approval request
 			toolMessage.waitingForApproval = true;
 			toolMessage.approvalStatus = undefined; // Reset if previously set
+			toolMessage.approvalMessage = approvalMessage;
+			toolMessage.riskLevel = metadata.riskLevel;
+			toolMessage.affectedResources = metadata.affectedResources;
+			toolMessage.reversible = metadata.reversible;
+			toolMessage.estimatedImpact = metadata.estimatedImpact;
+			toolMessage.similarOperationsCount = metadata.similarOperationsCount;
+			toolMessage.availableApprovalLevels = metadata.availableApprovalLevels;
+			toolMessage.defaultApprovalLevel = metadata.defaultApprovalLevel;
 		} else {
-			logger.warn(`No tool message found for approval request: ${toolCallId}`);
+			logger.warn(`No tool message found for approval request: ${toolCallId}, creating new one`);
 			// Create a new tool message if one doesn't exist
 			this.addToolMessage({
 				id: toolCallId,
@@ -96,12 +117,68 @@ export class ChatState {
 				toolInput: toolInput,
 				isStreaming: false,
 				waitingForApproval: true,
-				description
+				approvalMessage,
+				riskLevel: metadata.riskLevel,
+				affectedResources: metadata.affectedResources,
+				reversible: metadata.reversible,
+				estimatedImpact: metadata.estimatedImpact,
+				similarOperationsCount: metadata.similarOperationsCount,
+				availableApprovalLevels: metadata.availableApprovalLevels,
+				defaultApprovalLevel: metadata.defaultApprovalLevel
 			} as ToolMessage);
 		}
 
 		this.messages = [...this.messages]; // Force Svelte reactivity
 		this.emit();
+	}
+
+	/**
+	 * Add multiple approval requests at once (for batch approvals).
+	 * This creates/updates tool messages for each approval request.
+	 */
+	addBatchApprovalRequest(
+		toolCalls: Array<{
+			toolCallId: string;
+			toolName: string;
+			toolInput: Record<string, any>;
+			message: string;
+			riskLevel: string;
+			affectedResources: string[];
+			reversible: boolean;
+			estimatedImpact: string;
+			similarOperationsCount: number;
+			availableApprovalLevels: string[];
+			defaultApprovalLevel: string;
+		}>
+	): void {
+		logger.debug(`Adding batch approval request for ${toolCalls.length} tools`);
+		
+		toolCalls.forEach(toolCall => {
+			this.addApprovalRequest(
+				toolCall.toolCallId,
+				toolCall.toolName,
+				toolCall.toolInput,
+				toolCall.message,
+				{
+					riskLevel: toolCall.riskLevel,
+					affectedResources: toolCall.affectedResources,
+					reversible: toolCall.reversible,
+					estimatedImpact: toolCall.estimatedImpact,
+					similarOperationsCount: toolCall.similarOperationsCount,
+					availableApprovalLevels: toolCall.availableApprovalLevels,
+					defaultApprovalLevel: toolCall.defaultApprovalLevel
+				}
+			);
+		});
+	}
+
+	/**
+	 * Get all tool messages that are currently waiting for approval.
+	 */
+	getPendingApprovals(): ToolMessage[] {
+		return this.messages.filter(
+			msg => msg.role === 'tool' && (msg as ToolMessage).waitingForApproval
+		) as ToolMessage[];
 	}
 
 	// Update to set approval status and force update
@@ -179,45 +256,22 @@ export class ChatState {
 		}
 	}
 
+	/**
+	 * Update a tool message by its toolCallId.
+	 * Note: This searches by toolCallId, not by message.id
+	 */
 	updateToolMessage(toolCallId: string, updates: Partial<ToolMessage>): void {
-		console.error(`CHATSTATE_DEBUG: Looking for tool message with ID: ${toolCallId}`);
-		console.error(`CHATSTATE_DEBUG: Total messages in state: ${this.messages.length}`);
-
-		// Debug all tool messages in the state
-		const toolMessages = this.messages.filter((msg) => msg.role === 'tool');
-		console.error(`CHATSTATE_DEBUG: Found ${toolMessages.length} tool messages`);
-		toolMessages.forEach((msg, index) => {
-			console.error(
-				`CHATSTATE_DEBUG: Tool message ${index}: id="${msg.id}", toolCallId="${(msg as ToolMessage).toolCallId}"`
-			);
-		});
-
-		const toolMessage = this.messages.find(
-			(msg) => msg.role === 'tool' && msg.id === toolCallId
-		) as ToolMessage | undefined;
+		logger.debug(`Updating tool message with toolCallId: ${toolCallId}`);
+		
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+		
 		if (toolMessage) {
-			console.error(`CHATSTATE_DEBUG: Found matching tool message, updating with:`, updates);
-			Object.assign(toolMessage, updates); // Update the tool message with the provided fields
+			logger.debug(`Found tool message, applying updates:`, updates);
+			Object.assign(toolMessage, updates);
 			this.messages = [...this.messages]; // Force Svelte reactivity
-			this.emit(); // Notify subscribers about the change
-			console.error(`CHATSTATE_DEBUG: Tool message updated and state emitted`);
+			this.emit();
 		} else {
-			console.error(`CHATSTATE_DEBUG: NO MATCH - Tool message with ID ${toolCallId} not found`);
-			// Try to find by toolCallId instead of id
-			const toolMessageByCallId = this.messages.find(
-				(msg) => msg.role === 'tool' && (msg as ToolMessage).toolCallId === toolCallId
-			) as ToolMessage | undefined;
-			if (toolMessageByCallId) {
-				console.error(
-					`CHATSTATE_DEBUG: Found tool message by toolCallId instead of id, updating...`
-				);
-				Object.assign(toolMessageByCallId, updates);
-				this.messages = [...this.messages]; // Force Svelte reactivity
-				this.emit();
-				console.error(`CHATSTATE_DEBUG: Tool message updated via toolCallId match`);
-			} else {
-				console.error(`CHATSTATE_DEBUG: No tool message found by either id or toolCallId`);
-			}
+			logger.warn(`Tool message with toolCallId ${toolCallId} not found for update`);
 		}
 	}
 

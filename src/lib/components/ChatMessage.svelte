@@ -8,12 +8,14 @@
     interface Props {
         message: BaseMessage;
         previousMessageRole?: string;
-        onApprove?: (toolCallId: string) => Promise<void>;
+        onApprove?: (toolCallId: string, approvalLevel?: string) => Promise<void>;
         onDeny?: (toolCallId: string) => Promise<void>;
+        onBatchSubmit?: (decisions: Map<string, { approved: boolean; level: string }>) => Promise<void>;
+        batchApprovalGroup?: ToolMessageType[];
         userName?: string;
     }
     
-    let { message, previousMessageRole, onApprove, onDeny, userName = 'Guest' }: Props = $props();
+    let { message, previousMessageRole, onApprove, onDeny, onBatchSubmit, batchApprovalGroup, userName = 'Guest' }: Props = $props();
     
     // Helper to determine the display role (tool messages are treated as assistant for avatar purposes)
     let displayRole = $derived(
@@ -73,6 +75,8 @@
                 message={message as ToolMessageType} 
                 {onApprove} 
                 {onDeny}
+                {onBatchSubmit}
+                {batchApprovalGroup}
             />
         {/if}
             

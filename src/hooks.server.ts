@@ -56,16 +56,16 @@ const redisClient = redisService.getClient();
 function initHealthChecks() {
 	healthCheckRegistry.register({
 		serviceName: 'OBP API',
-		url: `${PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`,
+		url: `${PUBLIC_OBP_BASE_URL}/obp/v5.1.0/root`
 	});
 
 	healthCheckRegistry.register({
 		serviceName: 'Opey II',
-		url: `${env.OPEY_BASE_URL}/status`,
+		url: `${env.OPEY_BASE_URL}/status`
 	});
 
 	const redisHealthCheck = new RedisHealthCheckService();
-	healthCheckRegistry.register(redisHealthCheck)
+	healthCheckRegistry.register(redisHealthCheck);
 
 	const oauthHealthChecks = oauth2ProviderManager.getHealthCheckEntries();
 	for (const check of oauthHealthChecks) {
@@ -79,7 +79,6 @@ await oauth2ProviderManager.start();
 
 initHealthChecks();
 
-
 async function initWebUIProps() {
 	try {
 		const webuiProps = await obp_requests.get('/obp/v5.1.0/webui-props');
@@ -91,58 +90,58 @@ async function initWebUIProps() {
 	}
 }
 
-
 function needsAuthorization(routeId: string): boolean {
 	// protected routes are put in the /(protected)/ route group
 	return routeId.startsWith('/(protected)/');
 }
 
 const checkSessionValidity: Handle = async ({ event, resolve }) => {
-    const session = event.locals.session;
-    if (session.data.user) {
-        // Here you can add additional checks if needed
-        // For example, check if the session has expired based on your own logic
-        // or if certain required data is present in the session
-        const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
-        if (!sessionOAuth) {
-            logger.warn('No valid OAuth data found in session. Destroying session.');
-            await session.destroy();
+	const session = event.locals.session;
+	if (session.data.user) {
+		// Here you can add additional checks if needed
+		// For example, check if the session has expired based on your own logic
+		// or if certain required data is present in the session
+		const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
+		if (!sessionOAuth) {
+			logger.warn('No valid OAuth data found in session. Destroying session.');
+			await session.destroy();
 
-            // Redirect to trigger a fresh load instead of just resolving
-            throw redirect(302, event.url.pathname);
-        }
+			// Redirect to trigger a fresh load instead of just resolving
+			throw redirect(302, event.url.pathname);
+		}
 
-        const sessionExpired = await sessionOAuth.client.checkAccessTokenExpiration(sessionOAuth.accessToken)
-        // Check if the access token is expired,
-        // if it is, attempt to refresh it
-        if (sessionExpired) {
-            // will return true if the token is expired
-            try {
-                await SessionOAuthHelper.refreshAccessToken(session);
-                return await resolve(event);
-            } catch (error) {
-                logger.info(
-                    'Token refresh failed - redirecting user to login (normal OAuth behavior):',
-                    error
-                );
-                // If the refresh fails, redirect to login
-                // Destroy the session
-                logger.info('Destroying expired session.');
-                await session.destroy();
-                // Redirect to trigger a fresh load and clear client-side cache
-                throw redirect(302, event.url.pathname);
-            }
-        }
+		const sessionExpired = await sessionOAuth.client.checkAccessTokenExpiration(
+			sessionOAuth.accessToken
+		);
+		// Check if the access token is expired,
+		// if it is, attempt to refresh it
+		if (sessionExpired) {
+			// will return true if the token is expired
+			try {
+				await SessionOAuthHelper.refreshAccessToken(session);
+				return await resolve(event);
+			} catch (error) {
+				logger.info(
+					'Token refresh failed - redirecting user to login (normal OAuth behavior):',
+					error
+				);
+				// If the refresh fails, redirect to login
+				// Destroy the session
+				logger.info('Destroying expired session.');
+				await session.destroy();
+				// Redirect to trigger a fresh load and clear client-side cache
+				throw redirect(302, event.url.pathname);
+			}
+		}
 
-        // If we reach here, the session is valid (either not expired or successfully refreshed)
-        logger.debug('Session is valid for user:', session.data.user?.username);
-        return await resolve(event);
+		// If we reach here, the session is valid (either not expired or successfully refreshed)
+		logger.debug('Session is valid for user:', session.data.user?.username);
+		return await resolve(event);
+	}
 
-    }
-    
-    // Always return a response, even when there's no session
-    return await resolve(event);
-}
+	// Always return a response, even when there's no session
+	return await resolve(event);
+};
 
 // Middleware to check user authorization
 const checkAuthorization: Handle = async ({ event, resolve }) => {
@@ -152,10 +151,9 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 	if (!!routeId && needsAuthorization(routeId)) {
 		logger.debug('Checking authorization for user route:', event.url.pathname);
 		if (!oauth2ProviderManager.isReady()) {
-			logger.warn('OAuth2 providers not ready:', oauth2ProviderManager.getStatus().error);
+			logger.warn('OAuth2 providers not ready');
 			throw error(503, 'Service Unavailable. Please try again later.');
 		}
-		
 
 		if (!session || !session.data.user) {
 			// Redirect to login page if not authenticated
@@ -177,7 +175,7 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
-	sveltekitSessionHandle({ 
+	sveltekitSessionHandle({
 		secret: 'secret',
 		store: new RedisStore({ client: redisClient })
 	}),
@@ -193,16 +191,16 @@ declare module 'svelte-kit-sessions' {
 			user_id: string;
 			email: string;
 			username: string;
-			entitlements: { 
+			entitlements: {
 				list: Array<{
 					entitlement_id: string;
 					role_name: string;
 					bank_id: string;
-				}>
-			}
+				}>;
+			};
 			views: {
 				list: object[];
-			}
+			};
 		};
 		oauth?: {
 			access_token: string;
