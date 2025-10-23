@@ -28,6 +28,8 @@ export class HealthCheckState {
             this.snapshot.conecutiveFailures += 1;
         } else if (snapshot.status === 'healthy') {
             this.snapshot.conecutiveFailures = 0;
+            // Clear error when service becomes healthy
+            delete this.snapshot.error;
         }
         this.emit();
     }
