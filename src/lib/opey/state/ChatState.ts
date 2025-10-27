@@ -281,6 +281,29 @@ export class ChatState {
 		fn({ threadId: this.threadId, messages: this.messages }); // Send current state immediately
 	}
 
+	/**
+	 * Mark all currently streaming messages as complete.
+	 * Used when cancelling/stopping a stream to prevent new messages from being appended.
+	 */
+	stopAllStreaming(): void {
+		logger.debug('Stopping all streaming messages');
+		let updated = false;
+		
+		this.messages.forEach(message => {
+			if (message.isStreaming) {
+				message.isStreaming = false;
+				message.cancelled = true;
+				updated = true;
+				logger.debug(`Marked message ${message.id} as cancelled`);
+			}
+		});
+
+		if (updated) {
+			this.messages = [...this.messages]; // Force Svelte reactivity
+			this.emit();
+		}
+	}
+
 	clear(): void {
 		this.messages = [];
 		this.sessionStartTime = new Date();

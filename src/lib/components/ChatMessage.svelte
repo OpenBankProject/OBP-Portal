@@ -69,6 +69,11 @@
             <hr class="hr" />
             <div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
                 {@html renderMarkdown(message.message)}
+                {#if message.cancelled}
+                    <div class="mt-2 text-sm italic opacity-70">
+                        <span class="text-warning-500">⚠ Generation stopped by user</span>
+                    </div>
+                {/if}
             </div>
         {:else if message.role === 'tool'}
             <ToolMessage 

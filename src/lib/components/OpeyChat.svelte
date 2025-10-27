@@ -34,6 +34,7 @@
 	}
 	import {
 		CircleArrowUp,
+		StopCircle,
 		type Icon as IconType
 	} from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
@@ -108,6 +109,11 @@
 
 	let splashScreenDisplay = $derived.by(() => {
 		return splash && chat.messages.length === 0;
+	});
+
+	// Check if any message is currently streaming
+	let isCurrentlyStreaming = $derived.by(() => {
+		return chat.messages.some(msg => msg.isStreaming);
 	});
 
 	onMount(async () => {
@@ -198,6 +204,11 @@
 			e.preventDefault(); // Prevent newline
 			handleSendMessage(messageInput);
 		}
+	}
+
+	async function handleStopStreaming() {
+		logger.debug('User requested to stop streaming');
+		await chatController.stop();
 	}
 
 	async function initializeOpeySession() {
@@ -517,18 +528,38 @@
 
 		<!-- Single-line mode controls -->
 		{#if messageInput.length > 0 && !isMultiline}
-			<button
-				class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
-				disabled={session?.status !== 'ready' || !messageInput.trim()}
-				onclick={() => handleSendMessage(messageInput)}
-			>
-				<CircleArrowUp class="h-7 w-7" />
-			</button>
+			{#if isCurrentlyStreaming}
+				<button
+					class="btn preset-filled-error-500 absolute top-1/2 right-1 -translate-y-1/2"
+					onclick={handleStopStreaming}
+					title="Stop generation"
+				>
+					<StopCircle class="h-7 w-7" />
+				</button>
+			{:else}
+				<button
+					class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
+					disabled={session?.status !== 'ready' || !messageInput.trim()}
+					onclick={() => handleSendMessage(messageInput)}
+				>
+					<CircleArrowUp class="h-7 w-7" />
+				</button>
+			{/if}
 		{:else if messageInput.length === 0}
-			<!-- When empty, show pips inline -->
-			<div class="absolute right-3 top-1/2 -translate-y-1/2">
-				{@render statusPips(session, options.currentConsentInfo)}
-			</div>
+			{#if isCurrentlyStreaming}
+				<button
+					class="btn preset-filled-error-500 absolute right-3 top-1/2 -translate-y-1/2"
+					onclick={handleStopStreaming}
+					title="Stop generation"
+				>
+					<StopCircle class="h-7 w-7" />
+				</button>
+			{:else}
+				<!-- When empty, show pips inline -->
+				<div class="absolute right-3 top-1/2 -translate-y-1/2">
+					{@render statusPips(session, options.currentConsentInfo)}
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Footer - visually connected to textarea when multiline -->
@@ -540,13 +571,23 @@
 				</div>
 
 				<div class="flex items-center gap-2">
-					<button
-						class="btn btn-primary"
-						disabled={session?.status !== 'ready' || !messageInput.trim()}
-						onclick={() => handleSendMessage(messageInput)}
-					>
-						<CircleArrowUp class="h-7 w-7" />
-					</button>
+					{#if isCurrentlyStreaming}
+						<button
+							class="btn preset-filled-error-500"
+							onclick={handleStopStreaming}
+							title="Stop generation"
+						>
+							<StopCircle class="h-7 w-7" />
+						</button>
+					{:else}
+						<button
+							class="btn btn-primary"
+							disabled={session?.status !== 'ready' || !messageInput.trim()}
+							onclick={() => handleSendMessage(messageInput)}
+						>
+							<CircleArrowUp class="h-7 w-7" />
+						</button>
+					{/if}
 
 					{@render statusPips(session, options.currentConsentInfo)}
 				</div>

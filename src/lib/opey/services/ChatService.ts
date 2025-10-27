@@ -18,7 +18,7 @@ export interface ChatService {
      */
     onStreamEvent(fn: (event: StreamEvent) => void): void
     onError(fn: (err: Error) => void): void
-    cancel(): void
+    cancel(threadId?: string): Promise<void>
 }
 
 export type StreamEvent = 

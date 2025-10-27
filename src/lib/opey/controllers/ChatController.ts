@@ -285,6 +285,19 @@ export class ChatController {
 		return this.state.getPendingApprovals();
 	}
 
+	/**
+	 * Stop the current streaming response.
+	 */
+	async stop(): Promise<void> {
+		logger.debug('Stopping chat stream');
+		
+		// First mark all streaming messages as complete to prevent appending
+		this.state.stopAllStreaming();
+		
+		// Then call the service to stop the backend stream
+		await this.service.cancel(this.state.getThreadId());
+	}
+
 	private assignToolInstance(toolName: string): number {
 		if (!this.toolInstanceCounts[toolName]) {
 			this.toolInstanceCounts[toolName] = 0;
@@ -293,7 +306,7 @@ export class ChatController {
 		return this.toolInstanceCounts[toolName];
 	}
 
-	cancel() {
-		this.service.cancel();
+	async cancel(): Promise<void> {
+		await this.service.cancel(this.state.getThreadId());
 	}
 }

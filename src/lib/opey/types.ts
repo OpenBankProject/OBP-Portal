@@ -8,6 +8,7 @@ export interface BaseMessage {
 	timestamp: Date; // ISO string
 	isStreaming?: boolean;
 	error?: string;
+	cancelled?: boolean; // True if the message generation was cancelled by user
 }
 
 export interface UserMessage extends BaseMessage {

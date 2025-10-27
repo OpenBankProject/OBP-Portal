@@ -7,6 +7,7 @@ import type { UserMessage } from '../types';
 export class RestChatService implements ChatService {
 	private errorCallback?: (err: Error) => void;
 	private streamEventCallback?: (event: StreamEvent) => void;
+	private abortController?: AbortController;
 
 	constructor(
 		private baseUrl: string,
@@ -80,55 +81,68 @@ export class RestChatService implements ChatService {
 			stream_tokens: true
 		};
 
+		// Create new AbortController for this request
+		this.abortController = new AbortController();
+
 		const init = await this.buildInit({
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(streamInput)
+			body: JSON.stringify(streamInput),
+			signal: this.abortController.signal
 		});
 		
 		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init, threadId);
 	}
 
 	private async handleStreamingResponse(url: string, init: RequestInit, threadId?: string): Promise<void> {
-		const res = await fetch(url, init);
+		try {
+			const res = await fetch(url, init);
 
-		// Handle thread ID syncing
-		if (threadId) {
-			const responseThreadId = res.headers.get('X-Thread-ID');
-			if (responseThreadId && responseThreadId !== threadId) {
-				this.streamEventCallback?.({
-					type: 'thread_sync',
-					threadId: responseThreadId
-				})
-			}
-		}
-
-		if (!res.ok) {
-			let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-
-			try {
-				const errorData = await res.json();
-				if (res.status === 422 && errorData.detail?.[0]) {
-					errorMessage = `Validation error: ${errorData.detail[0].msg} (${errorData.detail[0].field})`;
-				} else {
-					errorMessage = errorData.error || errorData.message || errorData || errorMessage;
+			// Handle thread ID syncing
+			if (threadId) {
+				const responseThreadId = res.headers.get('X-Thread-ID');
+				if (responseThreadId && responseThreadId !== threadId) {
+					this.streamEventCallback?.({
+						type: 'thread_sync',
+						threadId: responseThreadId
+					})
 				}
-			} catch {
-				// Use HTTP status fallback
 			}
 
-			console.error(`Service error: ${errorMessage}`);
-			this.errorCallback?.(new Error(errorMessage));
-			return;
-		}
+			if (!res.ok) {
+				let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
 
-		const reader = res.body?.getReader();
-		if (!reader) {
-			this.errorCallback?.(new Error('No response body'));
-			return;
-		}
+				try {
+					const errorData = await res.json();
+					if (res.status === 422 && errorData.detail?.[0]) {
+						errorMessage = `Validation error: ${errorData.detail[0].msg} (${errorData.detail[0].field})`;
+					} else {
+						errorMessage = errorData.error || errorData.message || errorData || errorMessage;
+					}
+				} catch {
+					// Use HTTP status fallback
+				}
 
-		await this.processStream(reader);
+				console.error(`Service error: ${errorMessage}`);
+				this.errorCallback?.(new Error(errorMessage));
+				return;
+			}
+
+			const reader = res.body?.getReader();
+			if (!reader) {
+				this.errorCallback?.(new Error('No response body'));
+				return;
+			}
+
+			await this.processStream(reader);
+		} catch (error: any) {
+			// Don't treat abort as an error
+			if (error.name === 'AbortError') {
+				logger.info('Stream aborted by user');
+				return;
+			}
+			this.errorCallback?.(error);
+		}
 	}
 
 	private async processStream(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<void> {
@@ -278,7 +292,32 @@ export class RestChatService implements ChatService {
 		this.errorCallback = fn;
 		// Register the callback to handle errors
 	}
-	cancel() {
-		/* abort controller */
+
+	async cancel(threadId?: string): Promise<void> {
+		// First, abort the current fetch request
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
+
+		// Then call the backend stop endpoint if we have a thread ID
+		if (threadId) {
+			try {
+				const init = await this.buildInit({
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' }
+				});
+
+				const response = await fetch(`${this.baseUrl}/stream/${threadId}/stop`, init);
+				
+				if (!response.ok) {
+					logger.warn(`Failed to stop stream on backend: ${response.status} ${response.statusText}`);
+				} else {
+					logger.info(`Successfully stopped stream for thread ${threadId}`);
+				}
+			} catch (error) {
+				logger.error('Error calling stop endpoint:', error);
+			}
+		}
 	}
 }
