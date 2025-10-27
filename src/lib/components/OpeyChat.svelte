@@ -116,6 +116,50 @@
 		return chat.messages.some(msg => msg.isStreaming);
 	});
 
+	// Auto-scroll management
+	let messagesContainer: HTMLElement | null = $state(null);
+	let userHasScrolledUp = $state(false);
+	let isAutoScrollEnabled = $state(true);
+
+	// Function to scroll to bottom
+	function scrollToBottom() {
+		if (messagesContainer && isAutoScrollEnabled) {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}
+	}
+
+	// Detect if user has scrolled up manually
+	function handleScroll(event: Event) {
+		if (!messagesContainer) return;
+		
+		const element = event.target as HTMLElement;
+		const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
+		
+		// If user scrolls to bottom, re-enable auto-scroll
+		if (isAtBottom) {
+			userHasScrolledUp = false;
+			isAutoScrollEnabled = true;
+		} else {
+			// User has scrolled up
+			userHasScrolledUp = true;
+			isAutoScrollEnabled = false;
+		}
+	}
+
+	// Watch for message changes and auto-scroll
+	$effect(() => {
+		// Trigger on messages change
+		chat.messages;
+		
+		// Only auto-scroll if enabled and streaming is happening
+		if (isAutoScrollEnabled && (isCurrentlyStreaming || chat.messages.some(m => m.isLoading))) {
+			// Use requestAnimationFrame to ensure DOM has updated
+			requestAnimationFrame(() => {
+				scrollToBottom();
+			});
+		}
+	});
+
 	onMount(async () => {
 		logger.debug('OpeyChat component mounted with options:', options);
 		sessionState.subscribe((s) => (session = s));
@@ -195,6 +239,11 @@
 
 	function handleSendMessage(text: string) {
 		if (!text.trim()) return;
+		
+		// Re-enable auto-scroll when user sends a message
+		isAutoScrollEnabled = true;
+		userHasScrolledUp = false;
+		
 		sendMessage(text);
 		messageInput = '';
 	}
@@ -409,7 +458,11 @@
 {/snippet}
 
 {#snippet body()}
-	<article class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}">
+	<article 
+		bind:this={messagesContainer}
+		onscroll={handleScroll}
+		class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}"
+	>
 		<div class="space-y-4">
 			{#each chat.messages as message, index (message.id)}
 				<ChatMessage
