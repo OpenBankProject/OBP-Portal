@@ -23,6 +23,8 @@ export class ChatController {
 						break;
 					case 'assistant_start':
 						logger.debug(`assistant_start: Creating new assistant message with ID: ${event.messageId}`);
+						// Remove any loading messages before adding the actual assistant message
+						state.removeLoadingMessages();
 						state.addMessage({
 							id: event.messageId,
 							role: 'assistant',
@@ -154,6 +156,17 @@ export class ChatController {
 			timestamp: new Date()
 		};
 		this.state.addMessage(msg);
+		
+		// Add a loading message to show user that assistant is thinking
+		const loadingMessageId = uuidv4();
+		this.state.addMessage({
+			id: loadingMessageId,
+			role: 'assistant',
+			message: '',
+			timestamp: new Date(),
+			isLoading: true
+		});
+		
 		return this.service.send(msg, this.state.getThreadId());
 	}
 

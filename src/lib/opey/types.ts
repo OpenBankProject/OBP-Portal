@@ -7,6 +7,7 @@ export interface BaseMessage {
 	message: string;
 	timestamp: Date; // ISO string
 	isStreaming?: boolean;
+	isLoading?: boolean; // True when waiting for initial response (before streaming starts)
 	error?: string;
 	cancelled?: boolean; // True if the message generation was cancelled by user
 }

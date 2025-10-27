@@ -66,15 +66,45 @@
                 {message.message}
             </div>
         {:else if message.role === 'assistant'}
-            <hr class="hr" />
-            <div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
-                {@html renderMarkdown(message.message)}
-                {#if message.cancelled}
-                    <div class="mt-2 text-sm italic opacity-70">
-                        <span class="text-warning-500">⚠ Generation stopped by user</span>
-                    </div>
-                {/if}
-            </div>
+            {#if message.isLoading}
+                <!-- Loading spinner while waiting for response -->
+                <div class="flex items-center gap-3 p-2">
+                    <svg 
+                        class="animate-spin text-primary-500" 
+                        width="20" 
+                        height="20" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <circle 
+                            cx="12" 
+                            cy="12" 
+                            r="10" 
+                            stroke="currentColor" 
+                            stroke-width="4" 
+                            stroke-opacity="0.25"
+                        />
+                        <path 
+                            d="M12 2C6.47715 2 2 6.47715 2 12" 
+                            stroke="currentColor" 
+                            stroke-width="4" 
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                    <span class="text-sm italic opacity-70">Thinking...</span>
+                </div>
+            {:else}
+                <hr class="hr" />
+                <div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
+                    {@html renderMarkdown(message.message)}
+                    {#if message.cancelled}
+                        <div class="mt-2 text-sm italic opacity-70">
+                            <span class="text-warning-500">⚠ Generation stopped by user</span>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
         {:else if message.role === 'tool'}
             <ToolMessage 
                 message={message as ToolMessageType} 

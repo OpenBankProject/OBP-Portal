@@ -45,7 +45,7 @@
 <div class="flex h-full w-full items-center justify-center p-4">
 	<div class="h-full max-h-[80vh] w-full max-w-4xl rounded-2xl">
 		<OpeyChat {opeyChatOptions}>
-			{#snippet splash()}
+			<!-- {#snippet splash()}
 				<div class="flex w-2/3 flex-col items-center justify-center text-center">
 					<h1 class="h3 text-surface-700-300 mb-2">Welcome!</h1>
 					<h1 class="h3 mb-4">How can I help?</h1>
@@ -54,7 +54,7 @@
 						APIs, documentation and access to localized data.
 					</p>
 				</div>
-			{/snippet}
+			{/snippet} -->
 		</OpeyChat>
 	</div>
 </div>

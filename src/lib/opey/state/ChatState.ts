@@ -213,6 +213,12 @@ export class ChatState {
 		this.emit();
 	}
 
+	/** Remove any loading messages (typically when actual assistant message arrives) */
+	removeLoadingMessages(): void {
+		this.messages = this.messages.filter((msg) => !msg.isLoading);
+		this.emit();
+	}
+
 	appendToMessage(messageId: string, text: string): void {
 		const message = this.messages.find((msg) => msg.id === messageId);
 		if (message) {
