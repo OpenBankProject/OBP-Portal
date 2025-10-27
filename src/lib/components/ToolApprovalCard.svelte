@@ -51,19 +51,13 @@
 	);
 </script>
 
-<div class="variant-ghost-warning card rounded-lg border-2 border-warning-500 p-4">
+<div class="variant-ghost-warning card rounded-lg border-2 border-surface-500 p-4">
 	<!-- Header -->
 	<div class="mb-3 flex items-center justify-between">
 		<div class="flex items-center gap-2">
 			<Shield class="text-warning-600 dark:text-warning-400" size={24} />
 			<h3 class="text-lg font-semibold">Approval Required</h3>
 		</div>
-
-		{#if toolMessage.riskLevel}
-			<span class="rounded-full border px-3 py-1 text-xs font-semibold uppercase {riskColor}">
-				{toolMessage.riskLevel} Risk
-			</span>
-		{/if}
 	</div>
 
 	<!-- Tool Information -->

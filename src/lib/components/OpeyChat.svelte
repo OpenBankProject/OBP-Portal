@@ -548,7 +548,7 @@
 		{:else if messageInput.length === 0}
 			{#if isCurrentlyStreaming}
 				<button
-					class="btn preset-filled-error-500 absolute right-3 top-1/2 -translate-y-1/2"
+					class="btn btn-primary absolute right-3 top-1/2 -translate-y-1/2"
 					onclick={handleStopStreaming}
 					title="Stop generation"
 				>
@@ -573,7 +573,7 @@
 				<div class="flex items-center gap-2">
 					{#if isCurrentlyStreaming}
 						<button
-							class="btn preset-filled-error-500"
+							class="btn btn-primary"
 							onclick={handleStopStreaming}
 							title="Stop generation"
 						>

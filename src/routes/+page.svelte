@@ -32,7 +32,7 @@
 	];
 
 	let opeyChatOptions: Partial<OpeyChatOptions> = {
-		displayHeader: false,
+		displayHeader: true,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
 		currentConsentInfo: opeyConsentInfo ? opeyConsentInfo : undefined,
