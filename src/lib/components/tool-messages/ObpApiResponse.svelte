@@ -1,5 +1,7 @@
 <script lang="ts">
     import type { ToolMessage } from '$lib/opey/types';
+    import { toast } from '$lib/utils/toastService';
+    
     let { message }: { message: ToolMessage } = $props();
     
     let parsedOutput = $derived.by(() => {
@@ -19,74 +21,56 @@
         (parsedOutput?.status && parsedOutput.status >= 400)
     );
 
-    // Extract key information dynamically
-    let keyInfo = $derived.by(() => {
-        if (!parsedOutput || typeof parsedOutput !== 'object') return [];
-        
-        const info = [];
-        const keys = Object.keys(parsedOutput);
-        
-        // Show first few non-nested properties as quick summary
-        for (const key of keys.slice(0, 5)) {
-            const value = parsedOutput[key];
-            if (value !== null && value !== undefined && typeof value !== 'object') {
-                info.push({ key, value: String(value) });
-            } else if (Array.isArray(value)) {
-                info.push({ key, value: `${value.length} items` });
-            } else if (typeof value === 'object' && value !== null) {
-                info.push({ key, value: `Object (${Object.keys(value).length} properties)` });
-            }
-        }
-        
-        return info;
-    });
-
-    let hasMoreData = $derived(
-        parsedOutput && typeof parsedOutput === 'object' && Object.keys(parsedOutput).length > 5
+    let outputContent = $derived(
+        parsedOutput
+            ? JSON.stringify(parsedOutput, null, 2)
+            : typeof message.toolOutput === "string"
+                ? message.toolOutput
+                : "No output available."
     );
+
+    async function copyToClipboard() {
+        try {
+            await navigator.clipboard.writeText(outputContent);
+            toast.success('Output copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            toast.error('Failed to copy to clipboard.');
+        }
+    }
 </script>
 
-{#if isError}
-    <div class="alert preset-filled-error-500">
-        <div class="font-bold">❌ API Request Failed</div>
-        <div class="text-sm mt-1">
-            <strong>Status:</strong> {parsedOutput?.code || parsedOutput?.status || 'Unknown'}<br/>
-            <strong>Message:</strong> {parsedOutput?.message || parsedOutput?.error || 'Unknown error'}
-            {#if parsedOutput?.error_message || parsedOutput?.detail}
-                <br/><strong>Detail:</strong> {parsedOutput.error_message || parsedOutput.detail}
+<div class="alert preset-tonal-info" class:border-error-500={isError} class:border-2={isError}>
+    <div class="text-sm mt-2">
+        <strong>Tool:</strong> {message.toolName}
+    </div>
+    {#if isError}
+        <div class="text-sm mt-2 text-error-500">
+            <strong>Error:</strong> {parsedOutput?.message || parsedOutput?.error || 'Request failed'}
+            {#if parsedOutput?.code || parsedOutput?.status}
+                <span class="ml-2">(Status: {parsedOutput.code || parsedOutput.status})</span>
             {/if}
         </div>
-        <details class="mt-2">
-            <summary class="cursor-pointer text-xs">View Full Error Response</summary>
-            <pre class="text-xs mt-2 bg-surface-100-800 p-2 rounded overflow-x-auto">{JSON.stringify(parsedOutput, null, 2)}</pre>
-        </details>
-    </div>
-{:else if parsedOutput}
-    <div class="alert preset-filled-success-500">
-        
-        {#if keyInfo.length > 0}
-            <div class="text-sm mt-2">
-                {#each keyInfo as { key, value }}
-                    <div><strong>{key}:</strong> {value}</div>
-                {/each}
-                {#if hasMoreData}
-                    <div class="text-xs text-surface-500 mt-1">...and more (see full response below)</div>
-                {/if}
-            </div>
-        {/if}
-        
-        <details class="mt-2">
-            <summary class="cursor-pointer text-xs">View Full Response</summary>
-            <pre class="text-xs mt-2 bg-surface-100-800 p-2 rounded overflow-x-auto">{JSON.stringify(parsedOutput, null, 2)}</pre>
-        </details>
-    </div>
-{:else}
-    <!-- Fallback for non-JSON output -->
-    <div class="alert preset-filled-tertiary-500">
-        <div class="font-bold">📄 Tool Response</div>
-        <details class="mt-2">
-            <summary class="cursor-pointer text-xs">View Raw Output</summary>
-            <pre class="text-xs mt-2 bg-surface-100-800 p-2 rounded overflow-x-auto">{message.toolOutput}</pre>
-        </details>
-    </div>
-{/if}
+    {/if}
+    <details class="mt-2">
+        <summary class="cursor-pointer text-xs flex justify-between items-center">
+            <span>View Output</span>
+            <button
+                type="button"
+                class="btn btn-sm preset-tonal-primary"
+                onclick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    copyToClipboard();
+                }}
+                title="Copy output"
+                aria-label="Copy output"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </summary>
+        <pre class="text-xs mt-2 preset-filled-primary-500 p-2 rounded max-h-96 overflow-auto font-mono whitespace-pre">{outputContent}</pre>
+    </details>
+</div>
