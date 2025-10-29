@@ -1,39 +1,38 @@
 import { type SessionData } from 'svelte-kit-sessions';
 import { createLogger } from '$lib/utils/logger';
 import { obp_requests } from '$lib/obp/requests';
+import { fail } from '@sveltejs/kit';
 
 const logger = createLogger('user/entitlements/+page.server');
 
 export async function load({ locals }) {
     const session = locals.session;
-    const userData: SessionData['user'] = session?.data?.user;
-    
-    // Extract only the serializable data you need from parent
     const accessToken = session?.data?.oauth?.access_token;
 
-    function getEntitlementsList(userData: SessionData['user']) {
-        if (!userData || !userData.entitlements) {
+    async function getUserEntitlements() {
+        try {
+            const response = await obp_requests.get('/obp/v5.1.0/my/entitlements', accessToken);
+            return response.list || [];
+        } catch (e) {
+            logger.error('Error fetching user entitlements:', e);
             return [];
         }
-        return userData.entitlements.list;
     }
 
-    async function getAllAvalilableEntitlements(): Promise<Array<{role: string, requires_bank_id: boolean}>> {
+    async function getAllAvalilableEntitlements(): Promise<Array<{ role: string, requires_bank_id: boolean }>> {
         try {
             const allEntitlements = await obp_requests.get('/obp/v5.1.0/roles', accessToken);
-            logger.error('Fetched all possible entitlements:', allEntitlements);
             return allEntitlements.roles;
         } catch (e) {
-            logger.error('Error fetching all possible entitlements:', e);
+            logger.error('Error fetching all available entitlements:', e);
             return [];
         }
     }
 
-    async function getAllBanks(): Promise<Array<{bank_id: string, name: string}>> {
+    async function getAllBanks(): Promise<Array<{ bank_id: string, name: string }>> {
         let banks = [];
         try {
             const banksResponse = await obp_requests.get('/obp/v5.1.0/banks');
-            logger.error('Fetched banks:', banksResponse);
             for (const bank of banksResponse.banks) {
                 banks.push({
                     bank_id: bank.id,
@@ -49,7 +48,7 @@ export async function load({ locals }) {
 
     const allBanks = await getAllBanks();
     const allAvailableEntitlements = await getAllAvalilableEntitlements();
-    const userEntitlements = getEntitlementsList(userData);
+    const userEntitlements = await getUserEntitlements();
 
     return {
         allAvailableEntitlements,
@@ -61,54 +60,55 @@ export async function load({ locals }) {
 import { type Actions, redirect } from "@sveltejs/kit";
 import type { OBPAddEntitlementBody } from "$lib/obp/types";
 
+// Action to handle entitlement creation form submission
 export const actions = {
     create: async ({ request, locals, cookies }) => {
         const formData = await request.formData()
-        
         logger.debug("Form Data:", Object.fromEntries(formData.entries()));
 
-        // 
         const formEntries = Object.fromEntries(formData.entries());
+        const entitlement = formEntries.entitlement;
+        const bank_id = formEntries.bank_id;
+        if (!entitlement) {
+            return fail(400, { entitlement: entitlement, missing: true});
+        }
+
         const requestBody: OBPAddEntitlementBody = {
+            ...(formEntries.bank_id && { bank_id: String(formEntries.bank_id) }),
             role_name: formEntries.entitlement as string,
         };
 
-        // Get the access token from the session
-        
-
         const token = locals.session.data.oauth?.access_token;
-        if (!token) {
+        const currentUserId = locals.session.data.user?.user_id
+        if (!token || !currentUserId) {
             return {
-                error: "No access token found in session."
+                error: "No access token or user_id not found in session."
             };
         }
-        // Make request to OBP to register the consumer
+        // Make request to OBP to add the entitlement
         try {
-            const response = await obp_requests.post(`/obp/v5.1.0/my/consumers`, requestBody, token);
+            const response = await obp_requests.post(`/obp/v5.1.0/users/${currentUserId}/entitlements`, requestBody, token);
+            logger.info("Entitlement added successfully:", response);
 
-            
-            logger.info("Consumer created successfully:", response);
+            // Fetch updated entitlements from the API to refresh the session
+            try {
+                const updatedEntitlements = await obp_requests.get('/obp/v5.1.0/my/entitlements', token);
+                // Update the session with the new entitlements
+                if (updatedEntitlements && locals.session.data.user) {
+                    locals.session.data.user.entitlements = updatedEntitlements;
+                    await locals.session.save();
+                }
+            } catch (refreshError) {
+                logger.error("Error refreshing entitlements:", refreshError);
+                // Don't fail the request, the entitlement was added successfully
+            }
 
-            // Store the response data in a secure cookie for the success page
-            // Flash Message, will be deleted when the user visits the success page
-            cookies.set('consumer_data', JSON.stringify(response), {
-                path: '/',
-                maxAge: 60, // 1 minute - short lived
-                httpOnly: true,
-                secure: true,
-                sameSite: 'strict'
-            });
-            
+            // Return success to trigger a page reload
+            return { success: true, message: 'Entitlement added successfully' };
+
         } catch (error) {
-            logger.error("Error registering consumer:", error);
-            return {
-                error: "Failed to create consumer"
-            };
+            logger.error("Error adding entitlement:", error);
+            return fail(500, {entitlement: entitlement, error: 'Failed to add entitlement.', ...(bank_id ? { bank_id: bank_id } : {})});
         }
-
-
-
-        return redirect(303, `/consumers/register/success`);
-
     }
 } satisfies Actions

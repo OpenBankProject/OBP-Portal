@@ -1,25 +1,40 @@
 <script lang="ts">
-	import { type SessionData } from 'svelte-kit-sessions';
-	import { obp_requests } from '$lib/obp/requests.js';
-
-	const { data } = $props();
+	const { data, form } = $props();
 	const userEntitlements = data.userEntitlements;
 	const allEntitlements = data.allAvailableEntitlements;
 	const allBanks = data.allBanks;
 
-	const canCreateEntitlements = $derived.by(() => {
-		return userEntitlements.some((entitlement) =>
+	const canCreateEntitlements = userEntitlements.some((entitlement) =>
 			['CanCreateEntitlementAtAnyBank', 'CanCreateEntitlementAtOneBank'].includes(
 				entitlement.role_name
 			)
 		);
-	});
 
-	let selectedEntitlement = $state({ role: '', requires_bank_id: false });
-	let selectedBank = $state({ bank_id: '', name: '' });
+	let selectedEntitlementRole = $state('');
+	let selectedBankId = $state('');
 
-	console.log('User Entitlements:', userEntitlements);
-	console.log('All Entitlements:', allEntitlements);
+	// Derived state to get the full entitlement object
+	let selectedEntitlement = $derived(
+		allEntitlements.find((ent) => ent.role === selectedEntitlementRole) || { role: '', requires_bank_id: false }
+	);
+
+	// Pre-select entitlement if form data exists (on validation errors)
+	if (form?.entitlement && !form?.success) {
+		selectedEntitlementRole = String(form.entitlement);
+	}
+
+	if (form?.bank_id && !form?.success) {
+		selectedBankId = String(form.bank_id);
+	}
+
+	// Reset form on success
+	if (form?.success) {
+		selectedEntitlementRole = '';
+		selectedBankId = '';
+	}
+
+	// console.debug('User Entitlements:', userEntitlements);
+	// console.debug('All Entitlements:', allEntitlements);
 	console.log('Can Create Entitlements:', canCreateEntitlements);
 </script>
 
@@ -51,29 +66,39 @@
 
 {#if canCreateEntitlements}
 	<h2 class="mt-8 mb-4 text-xl font-semibold">Add New Entitlement</h2>
+
+	{#if form?.success}
+		<div class="alert variant-filled-success mb-4">
+			<p>{form.message}</p>
+		</div>
+	{/if}
+
 	<form method="POST" action="?/create" class="mx-auto w-full max-w-md space-y-4">
 		<label class="label">
 			<span class="label-text">Select Entitlement</span>
-			<select class="select" bind:value={selectedEntitlement}>
+			<select class="select" name="entitlement" bind:value={selectedEntitlementRole}>
 				<option value="" disabled>Select an entitlement</option>
-				{#each allEntitlements as ent: {ent}}
-					<option value={ent}>{ent.role}</option>
+				{#each allEntitlements as ent}
+					<option value={ent.role}>{ent.role}</option>
 				{/each}
 			</select>
 		</label>
 
+		{#if form?.missing}<p class="text-error-500 text-xs">Please select an entitlement to add.</p>{/if}
+		{#if form?.error}<p class="text-error-500 text-xs">{form.error}</p>{/if}
+
 		{#if selectedEntitlement.requires_bank_id}
 			<label class="label">
 				<span class="label-text">Select Bank</span>
-				<select class="select" bind:value={selectedBank}>
+				<select class="select" name="bank_id" bind:value={selectedBankId}>
 					<option value="" disabled>Select a bank</option>
 					{#each allBanks as bank}
-						<option value={bank}>{bank.name} ({bank.bank_id})</option>
+						<option value={bank.bank_id}>{bank.name} ({bank.bank_id})</option>
 					{/each}
 				</select>
 			</label>
 		{/if}
-        <button class="btn preset-outlined-tertiary-500">Add Entitlement</button>
+        <button class="btn preset-outlined-tertiary-500" type="submit">Add Entitlement</button>
 	</form>
 {:else if !canCreateEntitlements}
 	<h2 class="mt-8 mb-4 text-xl font-semibold">Request Entitlement</h2>
