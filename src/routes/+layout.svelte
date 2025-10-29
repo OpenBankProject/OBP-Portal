@@ -122,7 +122,7 @@
 	class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden"
 >
 	<div class="h-full">
-		<Navigation.Rail
+		<Navigation
 			value={currentTab}
 			onValueChange={(newTab) => (currentTab = newTab)}
 			expanded={true}
@@ -207,7 +207,7 @@
 					<span> Open Bank Project © TESOBE 2011-2025 </span>
 				</div>
 			{/snippet}
-		</Navigation.Rail>
+		</Navigation>
 	</div>
 	<div
 		class="bg-conic-250 dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 h-full from-30% via-40% to-50%"

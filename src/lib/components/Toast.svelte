@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Toaster } from '@skeletonlabs/skeleton-svelte';
+    import { Toast } from '@skeletonlabs/skeleton-svelte';
     import { toaster } from '$lib/utils/toastService';
 
     // Props to customize appearance if needed
@@ -14,7 +14,7 @@
     export let stateError = 'preset-filled-error-500';
 </script>
 
-<Toaster 
+<Toast.Group 
     {toaster} 
     {width}
     {padding}
