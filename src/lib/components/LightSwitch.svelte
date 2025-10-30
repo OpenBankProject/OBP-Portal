@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Switch, Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { Portal, Switch, Tooltip } from '@skeletonlabs/skeleton-svelte';
 	import { onMount } from 'svelte';
 
 	// Icons
@@ -21,8 +21,8 @@
 		document.documentElement.setAttribute('data-mode', mode);
 	});
 
-	const onCheckedChange = (event: { checked: boolean }) => {
-		mode = event.checked ? 'dark' : 'light';
+	const onCheckedChange = (details: { checked: boolean }) => {
+		mode = details.checked ? 'dark' : 'light';
 		document.documentElement.setAttribute('data-mode', mode);
 		localStorage.setItem('mode', mode);
 	};
@@ -35,14 +35,30 @@
 	</script>
 </svelte:head>
 
-<Tooltip contentBase="card preset-filled-surface-50-950 p-2 text-xs" openDelay={100}>
-	{#snippet trigger()}
+<Tooltip openDelay={100}>
+	<Tooltip.Trigger>
 		<Switch {checked} {onCheckedChange}>
-			{#snippet inactiveChild()}<IconMoon size="14" />{/snippet}
-			{#snippet activeChild()}<IconSun size="14" />{/snippet}
+			<Switch.Control>
+				<Switch.Thumb>
+					<Switch.Context>
+						{#snippet children(switch_: any)}
+							{#if switch_().checked}
+								<IconSun size={14} />
+							{:else}
+								<IconMoon size={14} />
+							{/if}
+						{/snippet}
+					</Switch.Context>
+				</Switch.Thumb>
+			</Switch.Control>
+			<Switch.HiddenInput />
 		</Switch>
-	{/snippet}
-	{#snippet content()}
-		{toolTipString}
-	{/snippet}
+	</Tooltip.Trigger>
+	<Portal>
+		<Tooltip.Positioner>
+			<Tooltip.Content class="card preset-filled-surface-50-950 p-2 text-xs">
+				{toolTipString}
+			</Tooltip.Content>
+		</Tooltip.Positioner>
+	</Portal>
 </Tooltip>

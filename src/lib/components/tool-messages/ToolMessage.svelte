@@ -286,27 +286,30 @@
     <!-- Single Tool Approval (Original) -->
 <Accordion 
     collapsible 
-    classes="max-w-full" 
+    class="max-w-full" 
     value={mainAccordionValue} 
-    onValueChange={(e) => (mainAccordionValue = e.value)}
+    onValueChange={(details: any) => (mainAccordionValue = details.value)}
 >
     <Accordion.Item value={message.id}>
-        {#snippet lead()}<Hammer />{/snippet}
-        {#snippet control()}
-            <div class="flex justify-between">
-                <span class:text-error-700={message.status === 'error'}>
-                    {getToolDisplayName(
-                        message.toolName,
-                        message.instanceNumber || 1
-                    )}
-                    {#if message.status === 'error'}
-                        - Failed
-                    {/if}
-                </span>
-                <statusIcon class="{statusClass}"></statusIcon>
-            </div>
-        {/snippet}
-        {#snippet panel()}
+        <h3>
+            <Accordion.ItemTrigger class="flex items-center justify-between gap-2 w-full">
+                <div class="flex items-center gap-2">
+                    <Hammer />
+                    <span class:text-error-700={message.status === 'error'}>
+                        {getToolDisplayName(
+                            message.toolName,
+                            message.instanceNumber || 1
+                        )}
+                        {#if message.status === 'error'}
+                            - Failed
+                        {/if}
+                    </span>
+                </div>
+                {@const StatusIcon = statusIcon}
+                <StatusIcon class={statusClass} />
+            </Accordion.ItemTrigger>
+        </h3>
+        <Accordion.ItemContent>
             <!-- Tool Status -->
             <div class="mb-2 flex justify-between">
                 <span class="text-sm font-medium">Status: {statusDisplay}</span>
@@ -325,40 +328,48 @@
             <Accordion 
                 collapsible 
                 value={nestedAccordionValue}
-                onValueChange={(e) => (nestedAccordionValue = e.value)}
+                onValueChange={(details: any) => (nestedAccordionValue = details.value)}
             >
                 <Accordion.Item value="input">
-                    {#snippet lead()}<Hammer />{/snippet}
-                    {#snippet control()}Tool Input{/snippet}
-                    {#snippet panel()}
+                    <h4>
+                        <Accordion.ItemTrigger class="flex items-center gap-2">
+                            <Hammer />
+                            <span>Tool Input</span>
+                        </Accordion.ItemTrigger>
+                    </h4>
+                    <Accordion.ItemContent>
                         <div class="preset-filled-primary-500 max-w-full rounded-2xl p-2 text-white">
                             <pre class="overflow-x-auto text-xs">{JSON.stringify(message.toolInput, null, 2)}</pre>
                         </div>
-                    {/snippet}
+                    </Accordion.ItemContent>
                 </Accordion.Item>
                 
                 <Accordion.Item value="output" disabled={!!message.isStreaming && !message.toolOutput}>
-                    {#snippet lead()}<Hammer />{/snippet}
-                    {#snippet control()}
-                        <div class="flex justify-between">
-                            <span class:text-error-700={message.status === 'error'}>
-                                Tool Output
+                    <h4>
+                        <Accordion.ItemTrigger class="flex items-center justify-between gap-2 w-full">
+                            <div class="flex items-center gap-2">
+                                <Hammer />
+                                <span class:text-error-700={message.status === 'error'}>
+                                    Tool Output
+                                    {#if message.status === 'error'}
+                                        - Error
+                                    {/if}
+                                </span>
+                            </div>
+                            <div>
                                 {#if message.status === 'error'}
-                                    - Error
+                                    <XCircle class="stroke-error-500" />
+                                {:else if message.toolOutput}
+                                    <Check class="stroke-success-500" />
+                                {:else if message.isStreaming}
+                                    <LoaderCircle class="stroke-warning-500 animate-spin" />
+                                {:else}
+                                    <Diamond class="stroke-warning-500" />
                                 {/if}
-                            </span>
-                            {#if message.status === 'error'}
-                                <XCircle class="stroke-error-500" />
-                            {:else if message.toolOutput}
-                                <Check class="stroke-success-500" />
-                            {:else if message.isStreaming}
-                                <LoaderCircle class="stroke-warning-500 animate-spin" />
-                            {:else}
-                                <Diamond class="stroke-warning-500" />
-                            {/if}
-                        </div>
-                    {/snippet}
-                    {#snippet panel()}
+                            </div>
+                        </Accordion.ItemTrigger>
+                    </h4>
+                    <Accordion.ItemContent>
                         <div class="max-w-full rounded-2xl p-2">
                             {#if message.status === 'error'}
                                 <ToolError message={message} />
@@ -368,10 +379,10 @@
                                 <DefaultToolResponse message={message} />
                             {/if}
                         </div>
-                    {/snippet}
+                    </Accordion.ItemContent>
                 </Accordion.Item>
             </Accordion>
-        {/snippet}
+        </Accordion.ItemContent>
     </Accordion.Item>
 </Accordion>
 {/if}

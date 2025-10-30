@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Accordion, Avatar } from '@skeletonlabs/skeleton-svelte';
+    import { Avatar } from '@skeletonlabs/skeleton-svelte';
     import { renderMarkdown } from '$lib/markdown/helper-funcs';
     import type { BaseMessage, ToolMessage as ToolMessageType } from '$lib/opey/types';
     import { ToolMessage } from './tool-messages';
@@ -44,16 +44,14 @@
         <div class="mb-2 flex items-center gap-2">
             {#if message.role === 'user'}
                 <p class="text-s font-bold">{userName}</p>
-                <Avatar
-                    name={userName}
-                    classes="w-7 h-7 border p-1 bg-secondary-50 border-primary-500"
-                />
+                <Avatar class="w-7 h-7 border p-1 bg-secondary-50 border-primary-500">
+                    <Avatar.Fallback>{userName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+                </Avatar>
             {:else}
-                <Avatar
-                    src="/opey-icon-white.png"
-                    name="opey"
-                    classes="w-7 h-7 border p-1 bg-secondary-500 border-primary-500"
-                />
+                <Avatar class="w-7 h-7 border p-1 bg-secondary-500 border-primary-500">
+                    <Avatar.Image src="/opey-icon-white.png" alt="opey" />
+                    <Avatar.Fallback>OP</Avatar.Fallback>
+                </Avatar>
                 <p class="text-s font-bold">Opey</p>
             {/if}
         </div>

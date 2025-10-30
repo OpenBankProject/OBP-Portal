@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import OpeyChat from '$lib/components/OpeyChat.svelte';
 	import type { OpeyChatOptions, SuggestedQuestion } from '$lib/components/OpeyChat.svelte';
     import { CheckCheck, Layers, Rocket, UserLock,  } from '@lucide/svelte';

@@ -126,21 +126,21 @@
 						<!-- Complex values use accordion -->
 						<Accordion
 							value={expandedItems}
-							onValueChange={(e) => (expandedItems = e.value)}
+							onValueChange={(details: any) => (expandedItems = details.value)}
 							multiple
 							collapsible
 						>
-							<Accordion.Item value={key} classes="border-0">
-								{#snippet control()}
-									<div class="flex w-full items-center justify-between">
+							<Accordion.Item value={key} class="border-0">
+								<h4>
+									<Accordion.ItemTrigger class="flex w-full items-center justify-between">
 										<strong>{snakeCaseToTitleCase(key)}</strong>
 										<span class="text-tertiary-400 text-sm">
 											{getComplexValueSummary(value)}
 										</span>
-									</div>
-								{/snippet}
+									</Accordion.ItemTrigger>
+								</h4>
 
-								{#snippet panel()}
+								<Accordion.ItemContent>
 									{#if Array.isArray(value)}
 										<!-- Array rendering -->
 										<div class="space-y-2">
@@ -257,7 +257,7 @@
 											{/each}
 										</div>
 									{/if}
-								{/snippet}
+								</Accordion.ItemContent>
 							</Accordion.Item>
 						</Accordion>
 						<hr class="hr !my-1 opacity-30" />

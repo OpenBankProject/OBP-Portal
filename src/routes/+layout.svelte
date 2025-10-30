@@ -100,7 +100,7 @@
 
 	//{ href: '/support', label: 'Support' },
 	//{ href: '/sitemap', label: 'Sitemap' }
-	let currentTab = $state('home');
+	
 	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
 	const defaultLogoUrl = '/logo2x-1.png';
 	const defaultDarkLogoUrl = '/obp_logo.png';
@@ -122,40 +122,41 @@
 	class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden"
 >
 	<div class="h-full">
-		<Navigation
-			value={currentTab}
-			onValueChange={(newTab) => (currentTab = newTab)}
-			expanded={true}
-			background="preset-filled-primary-50-950"
-			tilesJustify="justify-start"
-			tilesClasses="pt-5"
-			footerClasses="p-4"
-			tilesGap="gap-2"
-			headerClasses="p-4"
-		>
-			{#snippet header()}
+		<Navigation layout="sidebar" class="preset-filled-primary-50-950 grid grid-rows-[auto_1fr_auto] gap-4 h-full">
+			<Navigation.Header class="p-4">
 				<a href="/" class="flex w-full items-center">
 					<img class="block w-full" src={logoUrl} alt="Logo" />
 				</a>
-			{/snippet}
-			{#snippet tiles()}
-				{#each menuItems as item}
-					<Navigation.Tile
-						id={item.label.toLowerCase().replace(/\s+/g, '-')}
-						labelExpanded={item.label}
-						href={item.href}
-						title={item.label}
-						active="preset-filled-primary-50-950 border border-solid-secondary-500"
-						><item.iconComponent /></Navigation.Tile
-					>
-				{/each}
+			</Navigation.Header>
+			
+			<Navigation.Content class="">
+				<!-- Main Menu Group -->
+				<Navigation.Group>
+					<Navigation.Menu class="flex flex-col gap-2 px-2">
+						{#each menuItems as item}
+							{@const Icon = item.iconComponent}
+							<a 
+								href={item.href} 
+								class="btn hover:preset-tonal justify-start px-2 w-full gap-3"
+								class:preset-filled-primary-50-950={page.url.pathname === item.href}
+								class:border={page.url.pathname === item.href}
+								class:border-solid-secondary-500={page.url.pathname === item.href}
+								title={item.label}
+								aria-label={item.label}
+							>
+								<Icon class="size-5" />
+								<span>{item.label}</span>
+							</a>
+						{/each}
+					</Navigation.Menu>
+				</Navigation.Group>
 
 				{#if isAuthenticated}
-					<!-- My Account Accordion -->
-					<div class="w-full">
+					<!-- My Account Group -->
+					<Navigation.Group>
 						<button
 							type="button"
-							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
+							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors mx-2"
 							class:bg-primary-100-800={isMyAccountActive}
 							onclick={toggleMyAccount}
 						>
@@ -171,25 +172,29 @@
 						</button>
 
 						{#if isMyAccountExpanded}
-							<div class="ml-4 mt-1 space-y-1">
+							<Navigation.Menu class="flex flex-col gap-1 px-2 ml-4 mt-1">
 								{#each myAccountItems as subItem}
-									<Navigation.Tile
-										id={subItem.label.toLowerCase().replace(/\s+/g, '-')}
-										labelExpanded={subItem.label}
+									{@const Icon = subItem.iconComponent}
+									<a 
 										href={subItem.href}
+										class="btn hover:preset-tonal justify-start px-2 w-full gap-3 text-sm pl-6"
+										class:preset-filled-secondary-50-950={page.url.pathname === subItem.href}
+										class:border-l-2={page.url.pathname === subItem.href}
+										class:border-primary-500={page.url.pathname === subItem.href}
 										title={subItem.label}
-										active="preset-filled-secondary-50-950 border-l-2 border-primary-500"
-										classes="pl-6 text-sm"
+										aria-label={subItem.label}
 									>
-										<subItem.iconComponent class="h-4 w-4" />
-									</Navigation.Tile>
+										<Icon class="size-4" />
+										<span>{subItem.label}</span>
+									</a>
 								{/each}
-							</div>
+							</Navigation.Menu>
 						{/if}
-					</div>
+					</Navigation.Group>
 				{/if}
-			{/snippet}
-			{#snippet footer()}
+			</Navigation.Content>
+
+			<Navigation.Footer class="p-4">
 				<div class="text-surface-800-200 flex flex-wrap items-center gap-3 text-xs">
 					<LightSwitch bind:mode={displayMode} />
 					{#each footerLinks as link, index}
@@ -206,7 +211,7 @@
 					{/each}
 					<span> Open Bank Project © TESOBE 2011-2025 </span>
 				</div>
-			{/snippet}
+			</Navigation.Footer>
 		</Navigation>
 	</div>
 	<div

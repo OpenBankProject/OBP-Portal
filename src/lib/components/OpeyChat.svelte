@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { ShieldUserIcon } from '@lucide/svelte';
-	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { Tooltip, Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { createLogger } from '$lib/utils/logger';
 
 	const logger = createLogger('OpeyChat');
@@ -20,23 +20,7 @@
 	// Import other components
 	import { ToolError, ObpApiResponse, DefaultToolResponse } from './tool-messages';
 	import ChatMessage from './ChatMessage.svelte';
-
-	// Function to get display name with instance number
-	function getToolDisplayName(toolName: string, instanceNumber: number): string {
-		switch (toolName) {
-			case 'retrieve_endpoints':
-				return `Endpoint Retrieval - Finding API endpoints (${instanceNumber})`;
-			case 'retrieve_glossary':
-				return `Glossary Retrieval - Looking up terminology (${instanceNumber})`;
-			default:
-				return `Using tool: ${toolName} (${instanceNumber})`;
-		}
-	}
-	import {
-		CircleArrowUp,
-		StopCircle,
-		type Icon as IconType
-	} from '@lucide/svelte';
+	import { CircleArrowUp, StopCircle, type Icon as IconType } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
 	// Interface for chat options
@@ -87,7 +71,7 @@
 
 	let session: SessionSnapshot = $state({ isAuthenticated: userAuthenticated, status: 'ready' });
 	let chat: ChatStateSnapshot = $state({ threadId: '', messages: [] });
-	
+
 	// Track pending approvals for batch handling
 	let pendingApprovalTools = $derived.by(() => {
 		return chat.messages.filter(
@@ -113,7 +97,7 @@
 
 	// Check if any message is currently streaming
 	let isCurrentlyStreaming = $derived.by(() => {
-		return chat.messages.some(msg => msg.isStreaming);
+		return chat.messages.some((msg) => msg.isStreaming);
 	});
 
 	// Auto-scroll management
@@ -131,10 +115,11 @@
 	// Detect if user has scrolled up manually
 	function handleScroll(event: Event) {
 		if (!messagesContainer) return;
-		
+
 		const element = event.target as HTMLElement;
-		const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
-		
+		const isAtBottom =
+			Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
+
 		// If user scrolls to bottom, re-enable auto-scroll
 		if (isAtBottom) {
 			userHasScrolledUp = false;
@@ -146,13 +131,58 @@
 		}
 	}
 
+	async function getMermaidDiagram() {
+		try {
+			const response = await fetch(`${options.baseUrl}/mermaid_diagram`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				throw new Error(`Failed to fetch diagram: ${response.statusText}`);
+			}
+
+			const blob = await response.blob();
+			return URL.createObjectURL(blob); // Returns a blob URL you can use in <img src={...}>
+		} catch (error) {
+			logger.error('Failed to get Mermaid diagram:', error);
+			throw error;
+		}
+	}
+
+	let diagramUrl = $state<string | null>(null);
+	let isLoadingDiagram = $state(false);
+	let diagramError = $state<string | null>(null);
+
+	async function loadDiagram() {
+		if (diagramUrl || isLoadingDiagram) return; // Already loaded or loading
+
+		isLoadingDiagram = true;
+		diagramError = null;
+		try {
+			diagramUrl = await getMermaidDiagram();
+		} catch (error) {
+			logger.error('Failed to load diagram:', error);
+			diagramError = error instanceof Error ? error.message : 'Failed to load diagram';
+		} finally {
+			isLoadingDiagram = false;
+		}
+	}
+
+	// Clean up blob URL when component is destroyed
+	onDestroy(() => {
+		if (diagramUrl) {
+			URL.revokeObjectURL(diagramUrl);
+		}
+	});
+
 	// Watch for message changes and auto-scroll
 	$effect(() => {
 		// Trigger on messages change
 		chat.messages;
-		
+
 		// Only auto-scroll if enabled and streaming is happening
-		if (isAutoScrollEnabled && (isCurrentlyStreaming || chat.messages.some(m => m.isLoading))) {
+		if (isAutoScrollEnabled && (isCurrentlyStreaming || chat.messages.some((m) => m.isLoading))) {
 			// Use requestAnimationFrame to ensure DOM has updated
 			requestAnimationFrame(() => {
 				scrollToBottom();
@@ -239,11 +269,11 @@
 
 	function handleSendMessage(text: string) {
 		if (!text.trim()) return;
-		
+
 		// Re-enable auto-scroll when user sends a message
 		isAutoScrollEnabled = true;
 		userHasScrolledUp = false;
-		
+
 		sendMessage(text);
 		messageInput = '';
 	}
@@ -429,17 +459,17 @@
 {#snippet header()}
 	{#if options.displayHeader}
 		<header
-			class="align-center preset-filled-secondary-300-700 flex flex-shrink-0 justify-between {options.bodyClasses ||
+			class="align-center flex flex-shrink-0 justify-between preset-filled-secondary-300-700 {options.bodyClasses ||
 				''}"
 		>
 			<img src="/opey-logo-inv.png" alt="Opey Logo" class="mx-2 my-auto h-10 w-auto" />
-			<h1 class="h4 p-2">Chat With Opey</h1>
+			<h1 class="p-2 h4">Chat With Opey</h1>
 			<!-- TEMPORARY: Test buttons for approval system -->
-			<div class="flex gap-2 mx-2">
-				<button class="btn variant-filled-warning btn-sm" onclick={addTestApprovalMessage}>
+			<div class="mx-2 flex gap-2">
+				<button class="variant-filled-warning btn btn-sm" onclick={addTestApprovalMessage}>
 					Test Single
 				</button>
-				<button class="btn variant-filled-error btn-sm" onclick={addTestBatchApprovalMessage}>
+				<button class="variant-filled-error btn btn-sm" onclick={addTestBatchApprovalMessage}>
 					Test Batch
 				</button>
 			</div>
@@ -458,7 +488,7 @@
 {/snippet}
 
 {#snippet body()}
-	<article 
+	<article
 		bind:this={messagesContainer}
 		onscroll={handleScroll}
 		class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}"
@@ -484,7 +514,7 @@
 		<div class="flex flex-wrap justify-center gap-2 p-4">
 			{#each options.suggestedQuestions as question}
 				<button
-					class="btn bg-primary-50-950 border-primary-500 text-s flex items-center rounded-lg border border-solid px-3"
+					class="text-s btn flex items-center rounded-lg border border-solid border-primary-500 bg-primary-50-950 px-3"
 					onclick={() => handleSendMessage(question.questionString)}
 					disabled={session?.status !== 'ready'}
 				>
@@ -523,7 +553,9 @@
 				open={authPipOpenState}
 				contentBase="card bg-primary-200-800 text-xs p-1"
 				arrowBackground="var(--color-primary-200-800)"
-				onclick={() => { authPipOpenState = !authPipOpenState; }}
+				onclick={() => {
+					authPipOpenState = !authPipOpenState;
+				}}
 				arrow
 			>
 				<!-- Added z-10 for higher stacking -->
@@ -541,7 +573,10 @@
 						<h1 class="font-bold text-success-500">Authenticated</h1>
 						{#if consentInfo}
 							<br />
-							Consent ID: <a href="/user#opey-consent" aria-label="view opey consent">{consentInfo.consent_id}</a>
+							Consent ID:
+							<a href="/user#opey-consent" aria-label="view opey consent"
+								>{consentInfo.consent_id}</a
+							>
 						{/if}
 					{:else}
 						Not Authenticated
@@ -559,20 +594,64 @@
 
 {#snippet inputField()}
 	<!-- Single unified container for input and controls -->
-	<div class="relative w-full bg-primary-50 dark:bg-primary-600 rounded-lg">
-		<!-- Avatar positioned outside the unified container -->
-		<img
-			src="/opey_avatar.png"
-			alt="Opey Avatar"
-			class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)]"
-		/>
+	<div class="relative w-full rounded-lg bg-primary-50 dark:bg-primary-600">
+		<!-- Avatar positioned outside the unified container - clickable easter egg! -->
+		<Dialog onOpenChange={(details) => { if (details.open) loadDiagram(); }}>
+			<Dialog.Trigger
+				class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110 cursor-pointer"
+				title="Click me for a surprise!"
+				aria-label="View Opey system diagram"
+			>
+				<img
+					src="/opey_avatar.png"
+					alt="Opey Avatar"
+					class="w-full h-full rounded-full"
+				/>
+			</Dialog.Trigger>
+			<Portal>
+				<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" />
+				<Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+					<Dialog.Content class="card bg-surface-100-900 w-full max-w-4xl p-6 space-y-4 shadow-xl">
+						<header class="flex justify-between items-center">
+							<Dialog.Title class="text-2xl font-bold">🎉 Opey System Architecture</Dialog.Title>
+							<Dialog.CloseTrigger class="btn-icon preset-tonal">✕</Dialog.CloseTrigger>
+						</header>
+						<Dialog.Description class="text-sm opacity-75">
+							Here's a behind-the-scenes look at how Opey works!
+						</Dialog.Description>
+						
+						<div class="min-h-64 flex items-center justify-center">
+							{#if isLoadingDiagram}
+								<div class="flex flex-col items-center gap-4">
+									<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+									<p class="text-sm opacity-75">Loading diagram...</p>
+								</div>
+							{:else if diagramError}
+								<div class="text-center space-y-2">
+									<p class="text-error-500">😔 Failed to load diagram</p>
+									<p class="text-sm opacity-75">{diagramError}</p>
+								</div>
+							{:else if diagramUrl}
+								<img 
+									src={diagramUrl} 
+									alt="Opey System Architecture Diagram" 
+									class="w-full h-auto rounded-container"
+								/>
+							{/if}
+						</div>
+					</Dialog.Content>
+				</Dialog.Positioner>
+			</Portal>
+		</Dialog>
 
 		<!-- Text area - no bottom border radius when expanded -->
 		<textarea
 			bind:value={messageInput}
-			placeholder={(chat.messages.length > 0) ? "Ask me about the Open Bank Project API" : "Ask me anything..."}
-			class="input w-full p-5 pr-7 resize-none overflow-hidden bg-transparent min-h-15 border-none outline-none focus:outline-none
-				{isMultiline ? 'rounded-t-lg mb-0' : 'rounded-lg'}"
+			placeholder={chat.messages.length > 0
+				? 'Ask me about the Open Bank Project API'
+				: 'Ask me anything...'}
+			class="input min-h-15 w-full resize-none overflow-hidden border-none bg-transparent p-5 pr-7 outline-none focus:outline-none
+				{isMultiline ? 'mb-0 rounded-t-lg' : 'rounded-lg'}"
 			disabled={session?.status !== 'ready'}
 			onkeydown={handleKeyPress}
 			oninput={autoResize}
@@ -583,7 +662,7 @@
 		{#if messageInput.length > 0 && !isMultiline}
 			{#if isCurrentlyStreaming}
 				<button
-					class="btn preset-filled-error-500 absolute top-1/2 right-1 -translate-y-1/2"
+					class="absolute top-1/2 right-1 btn -translate-y-1/2 preset-filled-error-500"
 					onclick={handleStopStreaming}
 					title="Stop generation"
 				>
@@ -591,7 +670,7 @@
 				</button>
 			{:else}
 				<button
-					class="btn btn-primary absolute top-1/2 right-1 -translate-y-1/2"
+					class="btn-primary absolute top-1/2 right-1 btn -translate-y-1/2"
 					disabled={session?.status !== 'ready' || !messageInput.trim()}
 					onclick={() => handleSendMessage(messageInput)}
 				>
@@ -601,7 +680,7 @@
 		{:else if messageInput.length === 0}
 			{#if isCurrentlyStreaming}
 				<button
-					class="btn btn-primary absolute right-3 top-1/2 -translate-y-1/2"
+					class="btn-primary absolute top-1/2 right-3 btn -translate-y-1/2"
 					onclick={handleStopStreaming}
 					title="Stop generation"
 				>
@@ -609,7 +688,7 @@
 				</button>
 			{:else}
 				<!-- When empty, show pips inline -->
-				<div class="absolute right-3 top-1/2 -translate-y-1/2">
+				<div class="absolute top-1/2 right-3 -translate-y-1/2">
 					{@render statusPips(session, options.currentConsentInfo)}
 				</div>
 			{/if}
@@ -617,7 +696,9 @@
 
 		<!-- Footer - visually connected to textarea when multiline -->
 		{#if isMultiline}
-			<div class="flex justify-between items-center w-full p-2 pt-0 bg-primary-50 dark:bg-primary-600 rounded-b-lg">
+			<div
+				class="flex w-full items-center justify-between rounded-b-lg bg-primary-50 p-2 pt-0 dark:bg-primary-600"
+			>
 				<div>
 					<!-- Placeholder for future buttons (like file upload) -->
 					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
@@ -625,16 +706,12 @@
 
 				<div class="flex items-center gap-2">
 					{#if isCurrentlyStreaming}
-						<button
-							class="btn btn-primary"
-							onclick={handleStopStreaming}
-							title="Stop generation"
-						>
+						<button class="btn-primary btn" onclick={handleStopStreaming} title="Stop generation">
 							<StopCircle class="h-7 w-7" />
 						</button>
 					{:else}
 						<button
-							class="btn btn-primary"
+							class="btn-primary btn"
 							disabled={session?.status !== 'ready' || !messageInput.trim()}
 							onclick={() => handleSendMessage(messageInput)}
 						>
