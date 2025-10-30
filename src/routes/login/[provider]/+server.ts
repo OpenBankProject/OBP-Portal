@@ -26,7 +26,7 @@ export function GET(event: RequestEvent) {
     // Encode provider in the state - format "state:provider"
     const encodedState = `${state}:${provider}`;
 
-    const scopes = ['openid'];
+    const scopes = ['openid', 'email', 'profile'];
 
     logger.debug(`OAuth client found for provider: ${provider}`);
     logger.debug(`OIDC Config present: ${!!oauthClient.OIDCConfig}`);

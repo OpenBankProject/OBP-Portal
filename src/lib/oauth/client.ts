@@ -84,12 +84,9 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 		code: string,
 		codeVerifier: string | null
 	): Promise<any> {
-		// Use legacy flow for OBP-OIDC, new flow for KeyCloak
-		if (this.providerType === 'obp-oidc') {
-			return this.validateAuthorizationCodeLegacy(tokenEndpoint, code, codeVerifier);
-		} else {
-			return this.validateAuthorizationCodeModern(tokenEndpoint, code, codeVerifier);
-		}
+		// Use a unified modern flow for all providers with built-in fallback
+		// This ensures consistent behavior across providers (Keycloak and OBP-OIDC)
+		return this.validateAuthorizationCodeModern(tokenEndpoint, code, codeVerifier);
 	}
 
 	private async validateAuthorizationCodeLegacy(

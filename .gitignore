@@ -33,3 +33,4 @@ swark-output/
 /.idea
 .specstory
 .cursorindexingignore
+.npm-cache
