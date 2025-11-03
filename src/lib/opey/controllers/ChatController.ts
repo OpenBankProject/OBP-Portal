@@ -95,9 +95,15 @@ export class ChatController {
 						break;
 					case 'error':
 						if (event.messageId) {
-							state.updateMessage(event.messageId, { error: event.error });
+							// Check if this is a tool message - if so, skip updating since tool errors
+							// are already handled by the tool_complete event with status: 'error'
+							const message = state.getMessage(event.messageId);
+							if (message && message.role !== 'tool') {
+								state.updateMessage(event.messageId, { error: event.error });
+							}
 						} else {
-							// System error - add new error message
+							// System error - add new error message only if it's not a tool error
+							// Tool errors are already displayed via the tool message component
 							state.addMessage({
 								id: uuidv4(),
 								role: 'error',

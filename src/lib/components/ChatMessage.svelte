@@ -17,6 +17,18 @@
     
     let { message, previousMessageRole, onApprove, onDeny, onBatchSubmit, batchApprovalGroup, userName = 'Guest' }: Props = $props();
     
+    // Format error messages - can be extended to handle specific error types
+    function getErrorMessage(error?: string): string {
+        if (!error) return 'Something went wrong. Please try again.';
+        
+        // Future: Add specific error type handling here
+        // if (error.includes('Overloaded')) return 'The service is currently busy. Please try again in a moment.';
+        // if (error.includes('timeout')) return 'Request timed out. Please try again.';
+        // if (error.includes('authentication')) return 'Authentication failed. Please log in again.';
+        
+        return 'Something went wrong. Please try again.';
+    }
+    
     // Helper to determine the display role (tool messages are treated as assistant for avatar purposes)
     let displayRole = $derived(
         message.role === 'tool' ? 'assistant' : message.role
@@ -27,8 +39,9 @@
     );
     
     // Should we show the avatar? - Show avatar for first message or when display role changes
+    // Don't show avatar for error messages
     let showAvatar = $derived(
-        !previousDisplayRole || displayRole !== previousDisplayRole
+        message.role !== 'error' && (!previousDisplayRole || displayRole !== previousDisplayRole)
     );
     
     // Compute alignment class
@@ -96,6 +109,13 @@
                 <hr class="hr" />
                 <div class="prose dark:prose-invert max-w-full rounded-2xl p-2 text-left">
                     {@html renderMarkdown(message.message)}
+                    {#if message.error}
+                        <div class="mt-2">
+                            <p class="text-sm text-error-500 dark:text-error-400">
+                                {getErrorMessage(message.error)}
+                            </p>
+                        </div>
+                    {/if}
                     {#if message.cancelled}
                         <div class="mt-2 text-sm italic opacity-70">
                             <span class="text-warning-500">⚠ Generation stopped by user</span>
@@ -111,6 +131,12 @@
                 {onBatchSubmit}
                 {batchApprovalGroup}
             />
+        {:else if message.role === 'error'}
+            <div class="max-w-full p-2">
+                <p class="text-sm text-error-500 dark:text-error-400">
+                    {getErrorMessage(message.error || message.message)}
+                </p>
+            </div>
         {/if}
             
     </div>

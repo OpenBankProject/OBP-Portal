@@ -63,6 +63,11 @@ export class ChatState {
 		this.emit();
 	}
 
+	// Helper to find a message by its ID
+	getMessage(messageId: string): BaseMessage | undefined {
+		return this.messages.find((msg) => msg.id === messageId);
+	}
+
 	// Helper to find a tool message by its toolCallId
 	getToolMessageByCallId(toolCallId: string): ToolMessage | undefined {
 		return this.messages.find(

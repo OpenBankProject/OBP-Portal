@@ -234,8 +234,8 @@ export class RestChatService implements ChatService {
 			case 'error':
 				this.streamEventCallback?.({
 					type: 'error',
-					messageId: eventData.message_id,
-					error: eventData.error
+					messageId: eventData.for_message_id,
+					error: eventData.error_message || eventData.error
 				});
 				break;
 			case 'approval_request':
