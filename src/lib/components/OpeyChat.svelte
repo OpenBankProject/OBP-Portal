@@ -385,6 +385,14 @@
 		await chatController.submitBatchApproval(decisions);
 	}
 
+	async function handleRegenerate(messageId: string) {
+		logger.debug(`Regenerating from message: ${messageId}`);
+		// Re-enable auto-scroll when regenerating
+		isAutoScrollEnabled = true;
+		userHasScrolledUp = false;
+		await chatController.regenerate(messageId);
+	}
+
 	// TEMPORARY: Test function to manually trigger a single approval message
 	function addTestApprovalMessage() {
 		chatState.addApprovalRequest(
@@ -502,6 +510,7 @@
 					onApprove={handleApprove}
 					onDeny={handleDeny}
 					onBatchSubmit={handleBatchApprovalSubmit}
+					onRegenerate={handleRegenerate}
 					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
 				/>
 			{/each}

@@ -3,6 +3,7 @@
     import { renderMarkdown } from '$lib/markdown/helper-funcs';
     import type { BaseMessage, ToolMessage as ToolMessageType } from '$lib/opey/types';
     import { ToolMessage } from './tool-messages';
+    import { RotateCw } from '@lucide/svelte';
 
     // Props
     interface Props {
@@ -13,9 +14,13 @@
         onBatchSubmit?: (decisions: Map<string, { approved: boolean; level: string }>) => Promise<void>;
         batchApprovalGroup?: ToolMessageType[];
         userName?: string;
+        onRegenerate?: (messageId: string) => Promise<void>;
     }
     
-    let { message, previousMessageRole, onApprove, onDeny, onBatchSubmit, batchApprovalGroup, userName = 'Guest' }: Props = $props();
+    let { message, previousMessageRole, onApprove, onDeny, onBatchSubmit, batchApprovalGroup, userName = 'Guest', onRegenerate }: Props = $props();
+    
+    // Track hover state for showing regenerate button
+    let isHovered = $state(false);
     
     // Format error messages - can be extended to handle specific error types
     function getErrorMessage(error?: string): string {
@@ -71,10 +76,28 @@
     {/if}
     
     <!-- Message content -->
-    <div class="{message.role === 'user'? 'max-w-3/5' : 'max-w-full'} mt-3">
+    <div 
+        class="{message.role === 'user'? 'max-w-3/5' : 'max-w-full'} mt-3 relative group"
+        role="region"
+        aria-label="Chat message"
+        onmouseenter={() => { if (message.role === 'user') isHovered = true; }}
+        onmouseleave={() => { if (message.role === 'user') isHovered = false; }}
+    >
         {#if message.role === 'user'}
-            <div class="preset-filled-tertiary-500 max-w-full rounded-2xl p-2 text-white">
+            <div class="preset-filled-tertiary-500 max-w-full rounded-2xl p-2 text-white relative">
                 {message.message}
+                
+                <!-- Regenerate button - only show on hover for user messages -->
+                {#if isHovered && onRegenerate}
+                    <button
+                        onclick={() => onRegenerate?.(message.id)}
+                        class="absolute -bottom-2 right-2 p-1.5 bg-surface-200 dark:bg-surface-700 rounded-full shadow-md hover:bg-surface-300 dark:hover:bg-surface-600 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Regenerate response"
+                        aria-label="Regenerate response"
+                    >
+                        <RotateCw class="w-4 h-4 text-surface-700 dark:text-surface-200" />
+                    </button>
+                {/if}
             </div>
         {:else if message.role === 'assistant'}
             {#if message.isLoading}

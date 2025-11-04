@@ -41,6 +41,39 @@ export class ChatState {
 		}
 	}
 
+	/**
+	 * Sync a user message with backend-assigned ID.
+	 * Updates temporary ID to backend ID when confirmation is received.
+	 */
+	syncUserMessage(backendId: string, content: string): void {
+		// Find message by content and pending status (since temp ID won't match)
+		const index = this.messages.findIndex(
+			msg => msg.role === 'user' && 
+				   msg.message === content && 
+				   msg.isPending === true
+		);
+		
+		if (index !== -1) {
+			// Update with backend ID and mark as confirmed
+			logger.debug(`Syncing user message: ${this.messages[index].id} -> ${backendId}`);
+			this.messages[index].id = backendId;
+			this.messages[index].isPending = false;
+			this.messages = [...this.messages]; // Trigger reactivity
+			this.emit();
+		} else {
+			// Backend sent confirmation but we don't have the message yet
+			// This shouldn't normally happen with optimistic updates, but handle it gracefully
+			logger.warn(`Received user_message_confirmed but message not found. Adding with backend ID: ${backendId}`);
+			this.addMessage({
+				id: backendId,
+				role: 'user',
+				message: content,
+				timestamp: new Date(),
+				isPending: false
+			});
+		}
+	}
+
 	addMessage(message: BaseMessage): void {
 		// Check for duplicate IDs
 		if (this.messages.some((existing) => existing.id === message.id)) {
@@ -313,6 +346,24 @@ export class ChatState {
 			this.messages = [...this.messages]; // Force Svelte reactivity
 			this.emit();
 		}
+	}
+
+	/**
+	 * Remove all messages after a specific message ID (inclusive of the next message).
+	 * Used when regenerating a response from a specific point.
+	 */
+	removeMessagesAfter(messageId: string): void {
+		const index = this.messages.findIndex((msg) => msg.id === messageId);
+		if (index === -1) {
+			logger.warn(`Message with ID ${messageId} not found for removeMessagesAfter`);
+			return;
+		}
+		
+		// Remove all messages after the specified message (but keep the message itself)
+		const removedCount = this.messages.length - index - 1;
+		this.messages = this.messages.slice(0, index + 1);
+		logger.debug(`Removed ${removedCount} messages after ${messageId}`);
+		this.emit();
 	}
 
 	clear(): void {
