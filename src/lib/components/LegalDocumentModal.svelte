@@ -45,9 +45,10 @@
 			hasScrolledToBottom = true;
 		}
 	}
+	// Note: Always allow accepting, Needed this for short documents where scrolling is not active
 
 	function handleAccept() {
-		if (hasScrolledToBottom) {
+		if (true) {
 			onAccept();
 			open = false;
 			hasScrolledToBottom = false;
@@ -145,7 +146,7 @@
 					</Dialog.Close>
 					<button
 						onclick={handleAccept}
-						disabled={!hasScrolledToBottom}
+						disabled={false}
 						class="rounded-md border border-transparent bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						I Accept
