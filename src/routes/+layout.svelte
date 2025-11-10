@@ -183,6 +183,8 @@
 										class:border-primary-500={page.url.pathname === subItem.href}
 										title={subItem.label}
 										aria-label={subItem.label}
+										target={subItem.external ? '_blank' : undefined}
+										rel={subItem.external ? 'noopener noreferrer' : undefined}
 									>
 										<Icon class="size-4" />
 										<span>{subItem.label}</span>
