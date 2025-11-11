@@ -64,7 +64,8 @@
 					{
 						href: data.externalLinks.API_EXPLORER_URL,
 						label: 'API Explorer',
-						iconComponent: Compass
+						iconComponent: Compass,
+						external: true
 					}
 				]
 			: []), // unpacks a conditional list so we can add menu items where we want
@@ -73,6 +74,16 @@
 			href: '/consumers/register',
 			iconComponent: KeyRound
 		},
+		...(data.externalLinks.SUBSCRIPTIONS_URL
+			? [
+					{
+						href: data.externalLinks.SUBSCRIPTIONS_URL,
+						label: 'Subscriptions',
+						iconComponent: CreditCard,
+						external: true
+					}
+				]
+			: []),
 		// ...(data.SUBSCRIPTIONS_URL
 		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 		// 	: []),
@@ -84,7 +95,8 @@
 					{
 						href: data.externalLinks.API_MANAGER_URL,
 						label: 'API Manager',
-						iconComponent: SquareTerminal
+						iconComponent: SquareTerminal,
+						external: true
 					}
 				]
 			: [])
@@ -100,7 +112,7 @@
 
 	//{ href: '/support', label: 'Support' },
 	//{ href: '/sitemap', label: 'Sitemap' }
-	
+
 	// Default logo URL, can be overridden by PUBLIC_LOGO_URL in .env
 	const defaultLogoUrl = '/logo2x-1.png';
 	const defaultDarkLogoUrl = '/obp_logo.png';
@@ -119,30 +131,35 @@
 </script>
 
 <div
-	class="divide-surface-100-900 grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid overflow-hidden"
+	class="grid h-screen w-full grid-cols-[auto_1fr] divide-x divide-solid divide-surface-100-900 overflow-hidden"
 >
 	<div class="h-full">
-		<Navigation layout="sidebar" class="preset-filled-primary-50-950 grid grid-rows-[auto_1fr_auto] gap-4 h-full">
+		<Navigation
+			layout="sidebar"
+			class="grid h-full grid-rows-[auto_1fr_auto] gap-4 preset-filled-primary-50-950"
+		>
 			<Navigation.Header class="p-4">
 				<a href="/" class="flex w-full items-center">
 					<img class="block w-full" src={logoUrl} alt="Logo" />
 				</a>
 			</Navigation.Header>
-			
+
 			<Navigation.Content class="">
 				<!-- Main Menu Group -->
 				<Navigation.Group>
 					<Navigation.Menu class="flex flex-col gap-2 px-2">
 						{#each menuItems as item}
 							{@const Icon = item.iconComponent}
-							<a 
-								href={item.href} 
-								class="btn hover:preset-tonal justify-start px-2 w-full gap-3"
+							<a
+								href={item.href}
+								class="btn w-full justify-start gap-3 px-2 hover:preset-tonal"
 								class:preset-filled-primary-50-950={page.url.pathname === item.href}
 								class:border={page.url.pathname === item.href}
 								class:border-solid-secondary-500={page.url.pathname === item.href}
 								title={item.label}
 								aria-label={item.label}
+								target={item.external ? '_blank' : undefined}
+								rel={item.external ? 'noopener noreferrer' : undefined}
 							>
 								<Icon class="size-5" />
 								<span>{item.label}</span>
@@ -156,7 +173,7 @@
 					<Navigation.Group>
 						<button
 							type="button"
-							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors mx-2"
+							class="hover:bg-surface-100-800 mx-2 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
 							class:bg-primary-100-800={isMyAccountActive}
 							onclick={toggleMyAccount}
 						>
@@ -172,12 +189,12 @@
 						</button>
 
 						{#if isMyAccountExpanded}
-							<Navigation.Menu class="flex flex-col gap-1 px-2 ml-4 mt-1">
+							<Navigation.Menu class="mt-1 ml-4 flex flex-col gap-1 px-2">
 								{#each myAccountItems as subItem}
 									{@const Icon = subItem.iconComponent}
-									<a 
+									<a
 										href={subItem.href}
-										class="btn hover:preset-tonal justify-start px-2 w-full gap-3 text-sm pl-6"
+										class="btn w-full justify-start gap-3 px-2 pl-6 text-sm hover:preset-tonal"
 										class:preset-filled-secondary-50-950={page.url.pathname === subItem.href}
 										class:border-l-2={page.url.pathname === subItem.href}
 										class:border-primary-500={page.url.pathname === subItem.href}
@@ -197,10 +214,10 @@
 			</Navigation.Content>
 
 			<Navigation.Footer class="p-4">
-				<div class="text-surface-800-200 flex flex-wrap items-center gap-3 text-xs">
+				<div class="flex flex-wrap items-center gap-3 text-xs text-surface-800-200">
 					<LightSwitch bind:mode={displayMode} />
 					{#each footerLinks as link, index}
-						<a href={link.href} class="hover:text-tertiary-400 flex items-center gap-2">
+						<a href={link.href} class="flex items-center gap-2 hover:text-tertiary-400">
 							{#if link.label === 'GitHub'}
 								<img
 									class="h-4"
@@ -217,20 +234,20 @@
 		</Navigation>
 	</div>
 	<div
-		class="bg-conic-250 dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950 h-full from-30% via-40% to-50%"
+		class="h-full bg-conic-250 from-30% via-40% to-50% dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950"
 	>
 		<div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 80px);">
 			<div
-				class="flex items-center justify-end bg-opacity-0 p-4"
+				class="bg-opacity-0 flex items-center justify-end p-4"
 				style="height: 80px; flex-shrink: 0;"
 			>
 				{#if isAuthenticated}
-					<span class="hover:text-tertiary-400 mx-4"><a href="/user">{data.username}</a></span>
+					<span class="mx-4 hover:text-tertiary-400"><a href="/user">{data.username}</a></span>
 					<button type="button" class="btn preset-outlined-primary-500"
 						><a href="/logout">Logout</a></button
 					>
 				{:else}
-					<span class="hover:text-tertiary-400 mx-4"><a href="/register">Register</a> </span>
+					<span class="mx-4 hover:text-tertiary-400"><a href="/register">Register</a> </span>
 					<button type="button" class="btn preset-filled-surface-950-50"
 						><a href="/login">Login</a></button
 					>

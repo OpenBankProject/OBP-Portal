@@ -8,6 +8,7 @@ import type { OBPConsentInfo } from '$lib/obp/types';
 // storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
 			
 import { env } from "$env/dynamic/private";
+import { env as publicEnv } from '$env/dynamic/public';
 
 export interface RootLayoutData {
     userId?: string;
@@ -25,7 +26,7 @@ export async function load(event: RequestEvent) {
 	let externalLinks = {
 		API_EXPLORER_URL: env.API_EXPLORER_URL,
 		API_MANAGER_URL: env.API_MANAGER_URL,
-		SUBSCRIPTIONS_URL: env.SUBSCRIPTIONS_URL
+		SUBSCRIPTIONS_URL: publicEnv.PUBLIC_SUBSCRIPTIONS_URL
 	};
 
 	// Filter out undefined/null values and warn about missing ones
