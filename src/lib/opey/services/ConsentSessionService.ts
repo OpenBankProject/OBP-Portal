@@ -16,7 +16,7 @@ export class ConsentSessionService implements SessionService {
         if (consentJwt) {
             const userIdentifier = extractUsernameFromJWT(consentJwt);
             logger.info(`createSession says: Creating session with consent JWT and sending to Opey - Primary user: ${userIdentifier}`);
-            headers['Consent-JWT'] = consentJwt
+            headers['Consent-Id'] = consentJwt
         } else {
             logger.info("createSession says: Creating anonymous session - no consent JWT");
             // No Consent-JWT header means anonymous session

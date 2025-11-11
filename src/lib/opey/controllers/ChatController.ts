@@ -17,6 +17,10 @@ export class ChatController {
 			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
+					case 'user_message_confirmed':
+						logger.debug(`User message confirmed with backend ID: ${event.messageId}`);
+						state.syncUserMessage(event.messageId, event.content);
+						break;
 					case 'thread_sync':
 						logger.debug(`Syncing thread_id with backend: ${event.threadId}`);
 						state.syncThreadId(event.threadId);
@@ -155,11 +159,14 @@ export class ChatController {
 	}
 
 	send(text: string): Promise<void> {
+		// Use temporary ID that will be replaced by backend-assigned ID
+		const tempId = `temp-${uuidv4()}`;
 		const msg: UserMessage = {
-			id: uuidv4(),
+			id: tempId,
 			role: 'user',
 			message: text,
-			timestamp: new Date()
+			timestamp: new Date(),
+			isPending: true // Mark as pending until backend confirms
 		};
 		this.state.addMessage(msg);
 		
@@ -173,6 +180,8 @@ export class ChatController {
 			isLoading: true
 		});
 		
+		// Backend will emit user_message_confirmed event with the real ID
+		// The event handler will update this message with the backend ID
 		return this.service.send(msg, this.state.getThreadId());
 	}
 
@@ -315,6 +324,38 @@ export class ChatController {
 		
 		// Then call the service to stop the backend stream
 		await this.service.cancel(this.state.getThreadId());
+	}
+
+	/**
+	 * Regenerate the assistant's response starting from a specific user message.
+	 * Removes all messages after the specified message and requests a new response.
+	 * 
+	 * @param messageId - The ID of the user message to regenerate from
+	 */
+	async regenerate(messageId: string): Promise<void> {
+		logger.debug(`Regenerating response from message: ${messageId}`);
+		
+		// Remove all messages after this one
+		this.state.removeMessagesAfter(messageId);
+		
+		// Add a loading message to show user that assistant is thinking
+		const loadingMessageId = uuidv4();
+		this.state.addMessage({
+			id: loadingMessageId,
+			role: 'assistant',
+			message: '',
+			timestamp: new Date(),
+			isLoading: true
+		});
+		
+		try {
+			await this.service.regenerate(messageId, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to regenerate from ${messageId}:`, error);
+			// Remove the loading message on error
+			this.state.removeLoadingMessages();
+			throw error;
+		}
 	}
 
 	private assignToolInstance(toolName: string): number {

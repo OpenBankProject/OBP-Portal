@@ -12,6 +12,8 @@ copy .env.example to .env and fill out as needed
 
 Make sure you set the `ORIGIN` variable to the domain that you are deploying to i.e. https://obp-portal.openbankproject.com or something like that
 
+For a complete list of environment variables and their usage, see [Environment Variables Documentation](./docs/environment-variables.md).
+
 ## Developing
 
 Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:

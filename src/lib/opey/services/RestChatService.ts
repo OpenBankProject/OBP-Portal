@@ -68,6 +68,24 @@ export class RestChatService implements ChatService {
 		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
 	}
 
+	async regenerate(messageId: string, threadId: string): Promise<void> {
+		logger.info(`Regenerating response from messageId=${messageId}, threadId=${threadId}`);
+		
+		// Create new AbortController for this request
+		this.abortController = new AbortController();
+
+		const init = await this.buildInit({
+			method: 'POST',
+			signal: this.abortController.signal
+		});
+
+		return this.handleStreamingResponse(
+			`${this.baseUrl}/stream/${threadId}/regenerate?message_id=${messageId}`, 
+			init,
+			threadId
+		);
+	}
+
 	private async buildInit(init: RequestInit = {}): Promise<RequestInit> {
 		const headers = { ...(init.headers || {}), ...(await this.auth.getHeaders()) };
 		return { ...init, headers, credentials: 'include' };
@@ -187,6 +205,14 @@ export class RestChatService implements ChatService {
 	private handleStreamEvent(eventData: any): void {
 		logger.debug('Received stream event data:', eventData);
 		switch (eventData.type) {
+			case 'user_message_confirmed':
+				this.streamEventCallback?.({
+					type: 'user_message_confirmed',
+					messageId: eventData.message_id,
+					content: eventData.content,
+					timestamp: eventData.timestamp
+				});
+				break;
 			case 'assistant_start':
 				this.streamEventCallback?.({
 					type: 'assistant_start',

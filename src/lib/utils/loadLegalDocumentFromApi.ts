@@ -16,7 +16,7 @@ interface WebUIProp {
 export async function getLegalMarkdownFromWebUIProps(name: string): Promise<string> {
     let json: any;
     try {
-        json = await obp_requests.get('/obp/v5.1.0/webui-props');
+        json = await obp_requests.get('/obp/v5.1.0/webui-props?active=true');
     } catch (err) {
         logger.error(`Failed to fetch legal markdown for "${name}":`, err);
         throw new Error(`Failed to fetch legal markdown content`);

@@ -31,7 +31,7 @@
 			logger.info(`Loaded remote content for: ${documentName}`);
 		} catch (error) {
 			logger.error(`Failed to fetch remote legal content:`, error);
-			content = '<p>Failed to load document.</p>';
+			content = `<p>Failed to load document: ${documentName}</p>`;
 		} finally {
 			isLoading = false;
 		}
@@ -45,9 +45,10 @@
 			hasScrolledToBottom = true;
 		}
 	}
+	// Note: Always allow accepting, Needed this for short documents where scrolling is not active
 
 	function handleAccept() {
-		if (hasScrolledToBottom) {
+		if (true) {
 			onAccept();
 			open = false;
 			hasScrolledToBottom = false;
@@ -65,7 +66,7 @@
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
 	<Dialog.Trigger
 		type="button"
-		class="text-primary-500 focus:ring-primary-500 rounded hover:underline focus:ring-2 focus:ring-offset-2 focus:outline-none"
+		class="rounded text-primary-500 hover:underline focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none"
 	>
 		{triggerText}
 	</Dialog.Trigger>
@@ -83,18 +84,28 @@
 				<Dialog.Close
 					class="ring-offset-background focus:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 				>
-					<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none"
-							 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<svg
+						class="h-4 w-4"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+					>
 						<path d="M18 6L6 18M6 6l12 12" />
 					</svg>
 					<span class="sr-only">Close</span>
 				</Dialog.Close>
 			</div>
 
-			<div bind:this={scrollViewport} onscroll={handleScroll} class="flex-1 overflow-y-auto p-6 prose prose-sm max-w-none">
+			<div
+				bind:this={scrollViewport}
+				onscroll={handleScroll}
+				class="prose prose-sm max-w-none flex-1 overflow-y-auto p-6"
+			>
 				{#if isLoading}
 					<div class="flex items-center justify-center py-8">
-						<div class="border-primary-500 h-8 w-8 animate-spin rounded-full border-b-2"></div>
+						<div class="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-500"></div>
 						<span class="ml-2">Loading document...</span>
 					</div>
 				{:else}
@@ -129,14 +140,14 @@
 
 				<div class="flex space-x-3">
 					<Dialog.Close
-						class="focus:ring-primary-500 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+						class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none"
 					>
 						Cancel
 					</Dialog.Close>
 					<button
 						onclick={handleAccept}
-						disabled={!hasScrolledToBottom}
-						class="bg-primary-500 hover:bg-primary-600 focus:ring-primary-500 rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+						disabled={false}
+						class="rounded-md border border-transparent bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						I Accept
 					</button>
