@@ -73,9 +73,9 @@
 			href: '/consumers/register',
 			iconComponent: KeyRound
 		},
-		// ...(data.SUBSCRIPTIONS_URL
-		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
-		// 	: []),
+		...(data.externalLinks.SUBSCRIPTIONS_URL
+			? [{ href: data.externalLinks.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
+			: []),
 		//{ label: 'Onboarding', href: '/intro', iconComponent: UserPlus },
 		//{ label: 'Consent Simulator', href: '/hola', iconComponent: ShieldUser },
 		//{ label: 'FAQs', href: '/faq', iconComponent: MessageCircleQuestion },
