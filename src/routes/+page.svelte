@@ -11,7 +11,7 @@
 	// Configurable text via environment variables
 	const welcomeTitle = env.PUBLIC_WELCOME_TITLE || 'Welcome!';
 	const helpQuestion = env.PUBLIC_HELP_QUESTION || 'How can I help?';
-	const welcomeDescription = env.PUBLIC_WELCOME_DESCRIPTION || 'Welcome to OBP sandbox! This space provides developers, innovators and start-ups with APIs, documentation and access to localized data.';
+	const welcomeDescription = env.PUBLIC_WELCOME_DESCRIPTION || 'Welcome to the Open Bank Project sandbox — where developers, Fintechs, and banks can build and test innovative open banking ++ solutions.';
 
 	const suggestedQuestions: SuggestedQuestion[] = [
 		{
