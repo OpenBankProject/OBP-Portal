@@ -228,7 +228,7 @@
 							{link.label}
 						</a>
 					{/each}
-					<span> Open Bank Project © TESOBE 2011-2025 </span>
+					<span> © TESOBE 2011-2025 </span>
 				</div>
 			</Navigation.Footer>
 		</Navigation>
