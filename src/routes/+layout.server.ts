@@ -9,6 +9,7 @@ import type { OBPConsentInfo } from '$lib/obp/types';
 			
 import { env } from "$env/dynamic/private";
 import { env as publicEnv } from '$env/dynamic/public';
+import { LESS } from '$env/static/private';
 
 export interface RootLayoutData {
     userId?: string;
@@ -26,7 +27,8 @@ export async function load(event: RequestEvent) {
 	let externalLinks = {
 		API_EXPLORER_URL: env.API_EXPLORER_URL,
 		API_MANAGER_URL: env.API_MANAGER_URL,
-		SUBSCRIPTIONS_URL: publicEnv.PUBLIC_SUBSCRIPTIONS_URL
+		SUBSCRIPTIONS_URL: publicEnv.PUBLIC_SUBSCRIPTIONS_URL,
+		LEGACY_PORTAL_URL: publicEnv.PUBLIC_LEGACY_PORTAL_URL
 	};
 
 	// Filter out undefined/null values and warn about missing ones

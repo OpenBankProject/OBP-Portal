@@ -211,6 +211,19 @@
 						{/if}
 					</Navigation.Group>
 				{/if}
+
+				{#if data.externalLinks.LEGACY_PORTAL_URL}
+					<!-- Legacy Portal Link -->
+					<Navigation.Group>
+						<a
+							href={data.externalLinks.LEGACY_PORTAL_URL}
+							class="w-full py-1 text-sm text-tertiary-700-300 justify-start gap-3 px-2 hover:preset-tonal border-t border-b border-surface-200-800 my-2"
+							aria-label="Switch to Legacy Portal"
+						>
+							<span>Switch to Legacy Portal</span>
+						</a>
+					</Navigation.Group>
+				{/if}
 			</Navigation.Content>
 
 			<Navigation.Footer class="p-4">
