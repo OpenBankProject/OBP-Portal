@@ -46,7 +46,7 @@
 		// if (error.includes('timeout')) return 'Request timed out. Please try again.';
 		// if (error.includes('authentication')) return 'Authentication failed. Please log in again.';
 
-		return 'Something went wrong. Please try again.';
+		return error
 	}
 
 	// Helper to determine the display role (tool messages are treated as assistant for avatar purposes)
