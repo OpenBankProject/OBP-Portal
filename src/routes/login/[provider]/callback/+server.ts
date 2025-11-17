@@ -8,33 +8,120 @@ import { env } from '$env/dynamic/public';
 
 export async function GET(event: RequestEvent): Promise<Response> {
 	const { provider: urlProvider } = event.params;
+
+	// Check for OAuth error responses first (e.g., invalid credentials)
+	const oauthError = event.url.searchParams.get('error');
+	const errorDescription = event.url.searchParams.get('error_description');
+	
+	if (oauthError) {
+		logger.warn(`OAuth error received: ${oauthError}`, errorDescription);
+		
+		// Clean up the state cookie
+		event.cookies.delete('obp_oauth_state', {
+			path: '/'
+		});
+		
+		// Provide user-friendly error messages
+		let userMessage = 'Authentication failed. Please try again.';
+		
+		if (oauthError === 'invalid_grant') {
+			if (errorDescription?.toLowerCase().includes('password')) {
+				userMessage = 'Invalid username or password. Please check your credentials and try again.';
+			} else if (errorDescription?.toLowerCase().includes('token')) {
+				userMessage = 'Session expired. Please try logging in again.';
+			} else {
+				userMessage = errorDescription || 'Invalid credentials. Please try again.';
+			}
+		} else if (oauthError === 'access_denied') {
+			userMessage = 'Access was denied. Please contact your administrator if you believe this is an error.';
+		} else if (errorDescription) {
+			userMessage = errorDescription.replace(/\+/g, ' ');
+		}
+		
+		// Redirect back to login page with error message
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent(userMessage)}`
+			}
+		});
+	}
+
 	const storedState = event.cookies.get('obp_oauth_state');
 	const code = event.url.searchParams.get('code');
 	const recievedState = event.url.searchParams.get('state');
 
 	if (!urlProvider) {
-		throw error(400, 'Provider not specified');
+		logger.error('Provider not specified in URL');
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Invalid request. Please try again.')}`
+			}
+		});
 	}
 
-	if (storedState === null || code === null || recievedState === null) {
-		throw error(400, 'Please restart the process.');
+	if (storedState === null) {
+		logger.error('No stored state cookie found');
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Session expired. Please try logging in again.')}`
+			}
+		});
 	}
+	
+	if (code === null) {
+		logger.error('No authorization code received');
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('No authorization code received. Please try again.')}`
+			}
+		});
+	}
+	
+	if (recievedState === null) {
+		logger.error('No state parameter received');
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Invalid request. Please try again.')}`
+			}
+		});
+	}
+	
 	if (storedState !== recievedState) {
-		logger.warn('State mismatch:', storedState, recievedState);
-		// State does not match, likely a CSRF attack or user error
-		throw error(400, 'Please restart the process.');
+		logger.warn('State mismatch:', { stored: storedState, received: recievedState });
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Security validation failed. Please try logging in again.')}`
+			}
+		});
 	}
 
 	const [actualState, provider] = storedState.split(':');
 	logger.debug('Received state:', recievedState);
 	if (!provider || provider !== urlProvider) {
-		throw error(400, 'Invalid state format or provider mismatch');
+		logger.error('Provider mismatch or not found in state:', { stored: provider, url: urlProvider });
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Invalid authentication state. Please try again.')}`
+			}
+		});
 	}
 
 	const oauthClient = oauth2ProviderFactory.getClient(provider);
 	if (!oauthClient) {
 		logger.error(`OAuth client for provider "${provider}" not found.`);
-		throw error(400, 'Invalid OAuth provider');
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Authentication provider not available. Please contact your administrator.')}`
+			}
+		});
 	}
 
 	logger.debug(`Processing callback for provider: ${provider}`);
@@ -42,16 +129,41 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	// Validate the authorization code and exchange it for tokens
 	const token_endpoint = oauthClient.OIDCConfig?.token_endpoint;
 	if (!token_endpoint) {
-		logger.error('Token endpoint not found in OIDC configuration.');
-		throw error(500, 'OAuth configuration error');
+		logger.error('Token endpoint not found in OIDC configuration for provider:', provider);
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Authentication service misconfigured. Please contact your administrator.')}`
+			}
+		});
 	}
 
 	let tokens: OAuth2Tokens;
 	try {
 		tokens = await oauthClient.validateAuthorizationCode(token_endpoint, code, null);
-	} catch (e) {
+	} catch (e: any) {
 		logger.error('Error validating authorization code:', e);
-		throw error(400, 'Log in failed, please restart the process.');
+		
+		// Check if this is a token exchange error with more details
+		const errorMessage = e?.message || 'Unknown error';
+		logger.error('Token exchange error details:', errorMessage);
+		
+		// Clean up the state cookie
+		event.cookies.delete('obp_oauth_state', {
+			path: '/'
+		});
+		
+		let userMessage = 'Authentication failed. Please try again.';
+		if (errorMessage.toLowerCase().includes('invalid') || errorMessage.toLowerCase().includes('expired')) {
+			userMessage = 'Your login session expired. Please try again.';
+		}
+		
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent(userMessage)}`
+			}
+		});
 	}
 
 	// Get rid of the state cookie
@@ -75,7 +187,18 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		logger.error(
 			`OBP current user request failed - Status: ${currentUserResponse.status}, Response: ${errorText}`
 		);
-		throw error(500, 'Failed to fetch current user');
+		
+		// Clean up the state cookie
+		event.cookies.delete('obp_oauth_state', {
+			path: '/'
+		});
+		
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Failed to retrieve user information. Please try again or contact your administrator.')}`
+			}
+		});
 	}
 	const user = await currentUserResponse.json();
 	logger.info(
@@ -103,7 +226,18 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			}
 		});
 	} else {
-		logger.error('Invalid user data received from OBP - missing user_id or email');
-		throw error(400, 'Authentication failed - invalid user data');
+		logger.error('Invalid user data received from OBP - missing user_id or email:', user);
+		
+		// Clean up the state cookie
+		event.cookies.delete('obp_oauth_state', {
+			path: '/'
+		});
+		
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: `/login?error=${encodeURIComponent('Invalid user data received. Please contact your administrator.')}`
+			}
+		});
 	}
 }

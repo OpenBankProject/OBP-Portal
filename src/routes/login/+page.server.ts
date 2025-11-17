@@ -2,7 +2,8 @@ import { oauth2ProviderManager, type ProviderStatus } from '$lib/oauth/providerM
 import { redirect } from '@sveltejs/kit';
 import type { ServerLoad } from '@sveltejs/kit';
 
-export const load: ServerLoad = async () => {
+export const load: ServerLoad = async ({ url }) => {
+	const errorMessage = url.searchParams.get('error');
 	const allProviders = oauth2ProviderManager.getAllProviders();
 	const availableProviders = oauth2ProviderManager.getAvailableProviders();
 	const unavailableProviders = oauth2ProviderManager.getUnavailableProviders();
@@ -18,6 +19,7 @@ export const load: ServerLoad = async () => {
 		availableProviders,
 		unavailableProviders,
 		loading: false,
-		lastUpdated: new Date().toISOString()
+		lastUpdated: new Date().toISOString(),
+		errorMessage
 	};
 };

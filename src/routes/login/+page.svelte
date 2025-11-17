@@ -1,9 +1,14 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { onMount, onDestroy } from 'svelte';
-    import { invalidateAll } from '$app/navigation';
+    import { invalidateAll, goto } from '$app/navigation';
 
     let { data }: { data: PageData } = $props();
+
+    // Clear error message after displaying it
+    function clearError() {
+        goto('/login', { replaceState: true });
+    }
 
     let refreshInterval: NodeJS.Timeout | undefined;
 
@@ -18,22 +23,7 @@
         }
     }
 
-    function formatLastUpdated(): string {
-        if (!data.lastUpdated) return '';
-        const lastUpdate = new Date(data.lastUpdated);
-        const now = new Date();
-        const diffMs = now.getTime() - lastUpdate.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
 
-        if (diffMinutes > 0) {
-            return `Updated ${diffMinutes}m ago`;
-        } else if (diffSeconds > 5) {
-            return `Updated ${diffSeconds}s ago`;
-        } else {
-            return 'Just updated';
-        }
-    }
 
     onMount(() => {
         // Auto-refresh every 60 seconds to show provider status changes
@@ -53,10 +43,27 @@
     <div class="rounded-xl mx-auto w-auto sm:w-sm md:w-lg h-xl bg-white/10 p-4 max-w-xl backdrop-blur-xs align-middle divide-primary-50-950 divide-y">
         <div class="flex justify-between items-center">
             <h1 class="h2">Login</h1>
-            <div class="text-xs text-gray-400">
-                {formatLastUpdated()}
-            </div>
         </div>
+
+        {#if data.errorMessage}
+            <div class="mt-4 p-4 rounded-lg bg-red-500/20 border border-red-500/50 flex items-start justify-between">
+                <div class="flex items-start gap-3">
+                    <span class="text-red-400 text-xl">⚠</span>
+                    <div>
+                        <p class="text-red-300 font-semibold">Authentication Failed</p>
+                        <p class="text-red-200 text-sm mt-1">{data.errorMessage}</p>
+                    </div>
+                </div>
+                <button 
+                    type="button" 
+                    onclick={clearError}
+                    class="text-red-300 hover:text-red-100 ml-2"
+                    aria-label="Close error message"
+                >
+                    ✕
+                </button>
+            </div>
+        {/if}
 
         {#if data.availableProviders.length === 0}
             <div class="text-center my-4">
@@ -90,8 +97,8 @@
             <div class="space-y-3 mt-4">
                 <p class="text-center text-sm text-gray-300">Choose your authentication provider:</p>
                 {#each data.availableProviders as provider}
-                    <button type="button" class="btn preset-filled-primary-500 mx-auto block w-full">
-                        <a href="/login/{provider.provider}" class="block w-full flex items-center justify-between">
+                    <button type="button" class="btn preset-filled-primary-500 mx-auto w-full">
+                        <a href="/login/{provider.provider}" class="w-full flex items-center justify-between">
                             <span class="flex items-center gap-2">
                                 <span class="text-green-400">●</span>
                                 {formatProviderName(provider.provider)}

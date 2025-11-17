@@ -213,6 +213,63 @@ describe('Login Server Routes', () => {
 			expect(response.headers.get('Location')).toBe('/');
 		});
 
+		it('should handle OAuth error response with invalid_grant', async () => {
+			const mockState = 'state-123:obp-oidc';
+			const event = createMockRequestEvent({
+				url: new URL('http://localhost:3000/login/obp/callback?error=invalid_grant&error_description=Invalid+username+or+password&state=' + mockState),
+				cookies: {
+					get: vi.fn().mockReturnValue(mockState),
+					set: vi.fn(),
+					delete: vi.fn()
+				}
+			});
+
+			const response = await CallbackGET(event);
+
+			expect(event.cookies.delete).toHaveBeenCalledWith('obp_oauth_state', { path: '/' });
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toContain('/login?error=');
+			expect(decodeURIComponent(response.headers.get('Location') || '')).toContain('Invalid username or password');
+		});
+
+		it('should handle OAuth error response with access_denied', async () => {
+			const mockState = 'state-123:obp-oidc';
+			const event = createMockRequestEvent({
+				url: new URL('http://localhost:3000/login/obp/callback?error=access_denied&error_description=User+denied+access&state=' + mockState),
+				cookies: {
+					get: vi.fn().mockReturnValue(mockState),
+					set: vi.fn(),
+					delete: vi.fn()
+				}
+			});
+
+			const response = await CallbackGET(event);
+
+			expect(event.cookies.delete).toHaveBeenCalledWith('obp_oauth_state', { path: '/' });
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toContain('/login?error=');
+			expect(decodeURIComponent(response.headers.get('Location') || '')).toContain('Access was denied');
+		});
+
+		it('should handle OAuth error response with custom error_description', async () => {
+			const mockState = 'state-123:obp-oidc';
+			const event = createMockRequestEvent({
+				url: new URL('http://localhost:3000/login/obp/callback?error=server_error&error_description=Something+went+wrong&state=' + mockState),
+				cookies: {
+					get: vi.fn().mockReturnValue(mockState),
+					set: vi.fn(),
+					delete: vi.fn()
+				}
+			});
+
+			const response = await CallbackGET(event);
+
+			expect(event.cookies.delete).toHaveBeenCalledWith('obp_oauth_state', { path: '/' });
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toContain('/login?error=');
+			expect(decodeURIComponent(response.headers.get('Location') || '')).toContain('Something went wrong');
+		});
+
 		it('should return 400 when required parameters are missing', async () => {
 			const event = createMockRequestEvent({
 				url: new URL('http://localhost:3000/login/obp/callback'), // No code or state
