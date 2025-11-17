@@ -1,7 +1,7 @@
 <script lang="ts">
 	import OpeyChat from '$lib/components/OpeyChat.svelte';
 	import type { OpeyChatOptions, SuggestedQuestion } from '$lib/components/OpeyChat.svelte';
-    import { CheckCheck, Layers, Rocket, UserLock,  } from '@lucide/svelte';
+    import { CheckCheck, Layers, Rocket, UserLock } from '@lucide/svelte';
 	import { env } from '$env/dynamic/public';
 
 	let { data } = $props();

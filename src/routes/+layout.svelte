@@ -229,6 +229,16 @@
 						</a>
 					{/each}
 					<span> © TESOBE 2011-2025 </span>
+					{#if data.externalLinks.LEGACY_PORTAL_URL}
+						<!-- Legacy Portal Link -->
+						<a
+							href={data.externalLinks.LEGACY_PORTAL_URL}
+							class="w-full justify-start text-xs text-tertiary-700-300 hover:underline"
+							aria-label="Switch to Legacy Portal"
+						>
+							<span>Switch to Legacy Portal</span>
+						</a>
+					{/if}
 				</div>
 			</Navigation.Footer>
 		</Navigation>

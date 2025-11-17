@@ -144,6 +144,19 @@ export class ChatController {
 			}
 		});
 
+		service.onError(err => {
+			
+			this.state.removeLoadingMessages();
+
+			state.addMessage({
+				id: uuidv4(),
+				role: 'error',
+				message: '',
+				timestamp: new Date(),
+				error: err.message
+			});
+		})
+
 		// // EXISTING: Fallback for non-streaming services
 		// service.onToolMessage(msg => state.addMessage(msg));
 		// // service.onError(err =>
@@ -169,7 +182,7 @@ export class ChatController {
 			isPending: true // Mark as pending until backend confirms
 		};
 		this.state.addMessage(msg);
-		
+
 		// Add a loading message to show user that assistant is thinking
 		const loadingMessageId = uuidv4();
 		this.state.addMessage({
@@ -179,7 +192,7 @@ export class ChatController {
 			timestamp: new Date(),
 			isLoading: true
 		});
-		
+
 		// Backend will emit user_message_confirmed event with the real ID
 		// The event handler will update this message with the backend ID
 		return this.service.send(msg, this.state.getThreadId());
@@ -194,11 +207,11 @@ export class ChatController {
 	 */
 	async approveToolCall(toolCallId: string, approvalLevel?: string): Promise<void> {
 		logger.debug(`Approving tool call: ${toolCallId} with level: ${approvalLevel || 'default'}`);
-		
+
 		// Get the tool message to access its default approval level
 		const toolMessage = this.state.getToolMessageByCallId(toolCallId);
 		const levelToUse = approvalLevel || toolMessage?.defaultApprovalLevel || 'user';
-		
+
 		// Update state optimistically
 		this.state.updateApprovalRequest(toolCallId, true);
 		this.state.updateToolMessage(toolCallId, {
@@ -229,7 +242,7 @@ export class ChatController {
 	 */
 	async denyToolCall(toolCallId: string): Promise<void> {
 		logger.debug(`Denying tool call: ${toolCallId}`);
-		
+
 		// Update state
 		this.state.updateApprovalRequest(toolCallId, false);
 		this.state.updateToolMessage(toolCallId, {
@@ -260,11 +273,11 @@ export class ChatController {
 		decisions: Map<string, { approved: boolean; level: string }>
 	): Promise<void> {
 		logger.debug(`Submitting batch approval for ${decisions.size} tools`);
-		
+
 		// Update state optimistically for all decisions
 		decisions.forEach((decision, toolCallId) => {
 			this.state.updateApprovalRequest(toolCallId, decision.approved);
-			
+
 			if (decision.approved) {
 				this.state.updateToolMessage(toolCallId, {
 					approvalStatus: 'approved',
@@ -289,7 +302,7 @@ export class ChatController {
 			decisions.forEach((decision, toolCallId) => {
 				batchDecisions[toolCallId] = decision;
 			});
-			
+
 			await this.service.sendBatchApproval(batchDecisions, this.state.getThreadId());
 		} catch (error) {
 			logger.error('Failed to send batch approval:', error);
@@ -318,10 +331,10 @@ export class ChatController {
 	 */
 	async stop(): Promise<void> {
 		logger.debug('Stopping chat stream');
-		
+
 		// First mark all streaming messages as complete to prevent appending
 		this.state.stopAllStreaming();
-		
+
 		// Then call the service to stop the backend stream
 		await this.service.cancel(this.state.getThreadId());
 	}
@@ -334,10 +347,10 @@ export class ChatController {
 	 */
 	async regenerate(messageId: string): Promise<void> {
 		logger.debug(`Regenerating response from message: ${messageId}`);
-		
+
 		// Remove all messages after this one
 		this.state.removeMessagesAfter(messageId);
-		
+
 		// Add a loading message to show user that assistant is thinking
 		const loadingMessageId = uuidv4();
 		this.state.addMessage({
@@ -347,7 +360,7 @@ export class ChatController {
 			timestamp: new Date(),
 			isLoading: true
 		});
-		
+
 		try {
 			await this.service.regenerate(messageId, this.state.getThreadId());
 		} catch (error) {
