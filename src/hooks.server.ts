@@ -173,6 +173,25 @@ const checkAuthorization: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+const transformHTML: Handle = async ({ event, resolve }) => {
+	const analyticsScript = env.ENABLE_ANALYTICS === "true" && env.GTAG_ID
+		? `<script async src="https://www.googletagmanager.com/gtag/js?id=${env.GTAG_ID}"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() { dataLayer.push(arguments); }
+		gtag('js', new Date());
+		gtag('config', '${env.GTAG_ID}');
+	</script>`
+		: '';
+
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => {
+			return html.replace('%ANALYTICS_SCRIPT%', analyticsScript);
+		}
+	});
+	return response;
+}
+
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
 	sveltekitSessionHandle({
@@ -180,7 +199,8 @@ export const handle: Handle = sequence(
 		store: new RedisStore({ client: redisClient })
 	}),
 	checkSessionValidity,
-	checkAuthorization
+	checkAuthorization,
+	transformHTML
 	// add other handles here if needed
 );
 
