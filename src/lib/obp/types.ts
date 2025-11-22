@@ -37,6 +37,27 @@ export interface OBPConsentInfo {
     api_version: string;
 }
 
+export interface OBPConsumer {
+    consumer_id: string;
+    key: string;
+    secret: string;
+    app_name: string;
+    app_type: 'public' | 'confidential';
+    description: string;
+    developer_email: string;
+    redirect_url: string;
+    created_by_user_id: string;
+    created_by_user: {
+        user_id: string;
+        email: string;
+        provider_id: string;
+        provider: string;
+        username: string;
+    };
+    enabled: boolean;
+    created: string;
+}
+
 export interface OBPConsumerRequestBody {
     app_type: 'public' | 'confidential',
     app_name: string,
