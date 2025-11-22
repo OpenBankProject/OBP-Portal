@@ -39,8 +39,8 @@ export interface OBPConsentInfo {
 
 export interface OBPConsumer {
     consumer_id: string;
-    key: string;
-    secret: string;
+    key?: string;
+    secret?: string;
     app_name: string;
     app_type: 'public' | 'confidential';
     description: string;
