@@ -61,9 +61,6 @@
 						<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
 							{consumer.app_name}
 						</h2>
-						<p class="mt-1 text-xs text-gray-500 dark:text-gray-500">
-							ID: {consumer.consumer_id}
-						</p>
 						<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 							Created: {formatDate(consumer.created)}
 						</p>
