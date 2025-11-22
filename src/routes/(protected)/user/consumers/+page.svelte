@@ -61,6 +61,9 @@
 						<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
 							{consumer.app_name}
 						</h2>
+						<p class="mt-1 text-xs text-gray-500 dark:text-gray-500">
+							ID: {consumer.consumer_id}
+						</p>
 						<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 							Created: {formatDate(consumer.created)}
 						</p>
@@ -140,17 +143,23 @@
 				</div>
 
 				<!-- Additional Details -->
-				<div class="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-					<div>
-						<span class="font-medium text-gray-600 dark:text-gray-400">Developer Email:</span>
-						<span class="ml-2 text-gray-900 dark:text-gray-100">{consumer.developer_email}</span>
-					</div>
-					{#if consumer.redirect_url}
-						<div>
-							<span class="font-medium text-gray-600 dark:text-gray-400">Redirect URL:</span>
-							<span class="ml-2 text-gray-900 dark:text-gray-100">{consumer.redirect_url}</span>
+				<div class="mt-4 space-y-2 text-sm">
+					{#if consumer.company}
+						<div class="grid grid-cols-1 sm:grid-cols-3 gap-1">
+							<span class="font-medium text-gray-600 dark:text-gray-400">Company:</span>
+							<span class="sm:col-span-2 text-gray-900 dark:text-gray-100">{consumer.company}</span>
 						</div>
 					{/if}
+					<div class="grid grid-cols-1 sm:grid-cols-3 gap-1">
+						<span class="font-medium text-gray-600 dark:text-gray-400">Developer Email:</span>
+						<span class="sm:col-span-2 text-gray-900 dark:text-gray-100">{consumer.developer_email}</span>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-3 gap-1">
+						<span class="font-medium text-gray-600 dark:text-gray-400">Redirect URL:</span>
+						<span class="sm:col-span-2 text-gray-900 dark:text-gray-100 break-all">
+							{consumer.redirect_url || 'Not specified'}
+						</span>
+					</div>
 				</div>
 			</div>
 		{/each}

@@ -46,6 +46,7 @@ export interface OBPConsumer {
     description: string;
     developer_email: string;
     redirect_url: string;
+    company: string;
     created_by_user_id: string;
     created_by_user: {
         user_id: string;
