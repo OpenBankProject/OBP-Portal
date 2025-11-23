@@ -95,9 +95,9 @@
 		return splash && chat.messages.length === 0;
 	});
 
-	// Check if any message is currently streaming
+	// Check if any message is currently streaming or loading (waiting for response)
 	let isCurrentlyStreaming = $derived.by(() => {
-		return chat.messages.some((msg) => msg.isStreaming);
+		return chat.messages.some((msg) => msg.isStreaming || msg.isLoading);
 	});
 
 	// Auto-scroll management
