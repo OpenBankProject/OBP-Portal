@@ -269,6 +269,9 @@
 
 	function handleSendMessage(text: string) {
 		if (!text.trim()) return;
+		
+		// Prevent sending while streaming - user must explicitly stop first
+		if (isCurrentlyStreaming) return;
 
 		// Re-enable auto-scroll when user sends a message
 		isAutoScrollEnabled = true;
@@ -281,7 +284,10 @@
 	function handleKeyPress(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault(); // Prevent newline
-			handleSendMessage(messageInput);
+			// Don't send if currently streaming
+			if (!isCurrentlyStreaming) {
+				handleSendMessage(messageInput);
+			}
 		}
 	}
 
@@ -356,19 +362,14 @@
 		await initializeOpeySession();
 	}
 
-	// Track if the input is multiline (due to either wrapping or newlines)
-	let isMultiline = $state(false);
 	let messageInput = $state('');
 
 	function autoResize(event: Event) {
 		const textarea = event.target as HTMLTextAreaElement;
-		textarea.style.height = 'auto'; // Reset height
-		textarea.style.height = `${textarea.scrollHeight}px`; // Set to scrollHeight
-
-		// Check if content exceeds a single line (approximately)
-		// We compare scrollHeight to a typical single-line height
-		const singleLineHeight = 50; // Adjust based on your font size and padding
-		isMultiline = textarea.scrollHeight > singleLineHeight * 1.5;
+		// Reset height to auto to get the correct scrollHeight
+		textarea.style.height = 'auto';
+		// Set height to scrollHeight, but respect max-height
+		textarea.style.height = `${textarea.scrollHeight}px`;
 	}
 
 	async function handleApprove(toolCallId: string, approvalLevel?: string) {
@@ -602,26 +603,26 @@
 {/snippet}
 
 {#snippet inputField()}
-	<!-- Single unified container for input and controls -->
-	<div class="relative w-full rounded-lg bg-primary-50 dark:bg-primary-600">
-		<!-- Avatar positioned outside the unified container - clickable easter egg! -->
+	<!-- Container with avatar and input box -->
+	<div class="relative flex items-center gap-3">
+		<!-- Avatar positioned to the left of input - clickable easter egg! -->
 		<Dialog onOpenChange={(details) => { if (details.open) loadDiagram(); }}>
 			<Dialog.Trigger
-				class="absolute top-1/10 left-0 size-12 -translate-x-17 rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110 cursor-pointer"
+				class="size-12 flex-shrink-0 cursor-pointer rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110"
 				title="Click me for a surprise!"
 				aria-label="View Opey system diagram"
 			>
 				<img
 					src="/opey_avatar.png"
 					alt="Opey Avatar"
-					class="w-full h-full rounded-full"
+					class="h-full w-full rounded-full"
 				/>
 			</Dialog.Trigger>
 			<Portal>
 				<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" />
-				<Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
-					<Dialog.Content class="card bg-surface-100-900 w-full max-w-4xl p-6 space-y-4 shadow-xl">
-						<header class="flex justify-between items-center">
+				<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center p-4">
+					<Dialog.Content class="card bg-surface-100-900 w-full max-w-4xl space-y-4 p-6 shadow-xl">
+						<header class="flex items-center justify-between">
 							<Dialog.Title class="text-2xl font-bold">🎉 Opey System Architecture</Dialog.Title>
 							<Dialog.CloseTrigger class="btn-icon preset-tonal">✕</Dialog.CloseTrigger>
 						</header>
@@ -629,14 +630,14 @@
 							Here's a behind-the-scenes look at how Opey works!
 						</Dialog.Description>
 						
-						<div class="min-h-64 flex items-center justify-center">
+						<div class="flex min-h-64 items-center justify-center">
 							{#if isLoadingDiagram}
 								<div class="flex flex-col items-center gap-4">
-									<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+									<div class="h-12 w-12 animate-spin rounded-full border-b-2 border-primary-500"></div>
 									<p class="text-sm opacity-75">Loading diagram...</p>
 								</div>
 							{:else if diagramError}
-								<div class="text-center space-y-2">
+								<div class="space-y-2 text-center">
 									<p class="text-error-500">😔 Failed to load diagram</p>
 									<p class="text-sm opacity-75">{diagramError}</p>
 								</div>
@@ -644,7 +645,7 @@
 								<img 
 									src={diagramUrl} 
 									alt="Opey System Architecture Diagram" 
-									class="w-full h-auto rounded-container"
+									class="h-auto w-full rounded-container"
 								/>
 							{/if}
 						</div>
@@ -653,85 +654,48 @@
 			</Portal>
 		</Dialog>
 
-		<!-- Text area - no bottom border radius when expanded -->
+		<!-- Unified input container with textarea and controls -->
+		<div class="relative w-full flex-1 rounded-lg bg-primary-50 p-4 dark:bg-primary-600">
+		<!-- Text area with auto-resize -->
 		<textarea
 			bind:value={messageInput}
 			placeholder={chat.messages.length > 0
 				? 'Ask me about the Open Bank Project API'
 				: 'Ask me anything...'}
-			class="input min-h-15 w-full resize-none overflow-hidden border-none bg-transparent p-5 pr-7 outline-none focus:outline-none
-				{isMultiline ? 'mb-0 rounded-t-lg' : 'rounded-lg'}"
+			class="w-full resize-none border-none bg-transparent p-0.5 outline-none shadow-none focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none max-h-40 overflow-y-auto"
+			style="min-height: 2.5rem;"
 			disabled={session?.status !== 'ready'}
 			onkeydown={handleKeyPress}
 			oninput={autoResize}
 			rows="1"
 		></textarea>
 
-		<!-- Single-line mode controls -->
-		{#if messageInput.length > 0 && !isMultiline}
-			{#if isCurrentlyStreaming}
-				<button
-					class="absolute top-1/2 right-1 btn -translate-y-1/2 preset-filled-error-500"
-					onclick={handleStopStreaming}
-					title="Stop generation"
-				>
-					<StopCircle class="h-7 w-7" />
-				</button>
-			{:else}
-				<button
-					class="btn-primary absolute top-1/2 right-1 btn -translate-y-1/2"
-					disabled={session?.status !== 'ready' || !messageInput.trim()}
-					onclick={() => handleSendMessage(messageInput)}
-				>
-					<CircleArrowUp class="h-7 w-7" />
-				</button>
-			{/if}
-		{:else if messageInput.length === 0}
-			{#if isCurrentlyStreaming}
-				<button
-					class="btn-primary absolute top-1/2 right-3 btn -translate-y-1/2"
-					onclick={handleStopStreaming}
-					title="Stop generation"
-				>
-					<StopCircle class="h-7 w-7" />
-				</button>
-			{:else}
-				<!-- When empty, show pips inline -->
-				<div class="absolute top-1/2 right-3 -translate-y-1/2">
-					{@render statusPips(session, options.currentConsentInfo)}
-				</div>
-			{/if}
-		{/if}
-
-		<!-- Footer - visually connected to textarea when multiline -->
-		{#if isMultiline}
-			<div
-				class="flex w-full items-center justify-between rounded-b-lg bg-primary-50 p-2 pt-0 dark:bg-primary-600"
-			>
-				<div>
-					<!-- Placeholder for future buttons (like file upload) -->
-					<!-- <button class="btn variant-ghost-primary">Add File +</button> -->
-				</div>
-
-				<div class="flex items-center gap-2">
-					{#if isCurrentlyStreaming}
-						<button class="btn-primary btn" onclick={handleStopStreaming} title="Stop generation">
-							<StopCircle class="h-7 w-7" />
-						</button>
-					{:else}
-						<button
-							class="btn-primary btn"
-							disabled={session?.status !== 'ready' || !messageInput.trim()}
-							onclick={() => handleSendMessage(messageInput)}
-						>
-							<CircleArrowUp class="h-7 w-7" />
-						</button>
-					{/if}
-
-					{@render statusPips(session, options.currentConsentInfo)}
-				</div>
+		<!-- Controls row - always visible at the bottom of the container -->
+		<div class="flex w-full items-center justify-between pt-1">
+			<div>
+				<!-- Placeholder for future buttons (like file upload) -->
+				<!-- <button class="btn variant-ghost-primary btn-sm">Add File +</button> -->
 			</div>
-		{/if}
+
+			<div class="flex justify-end items-end">
+				{#if isCurrentlyStreaming}
+					<button class="btn btn-sm" onclick={handleStopStreaming} title="Stop generation">
+						<StopCircle class="h-6 w-6" />
+					</button>
+				{:else}
+					<button
+						class="btn btn-primary btn-sm self-end !p-0"
+						disabled={session?.status !== 'ready' || !messageInput.trim()}
+						onclick={() => handleSendMessage(messageInput)}
+					>
+						<CircleArrowUp class="h-6 w-6" />
+					</button>
+				{/if}
+
+				{@render statusPips(session, options.currentConsentInfo)}
+			</div>
+		</div>
+		</div>
 	</div>
 {/snippet}
 
