@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { myAccountItems } from '$lib/config/navigation';
 	import Toast from '$lib/components/Toast.svelte';
+	import WelcomeBubble from '$lib/components/WelcomeBubble.svelte';
 
 	// Lucide Icons
 	import {
@@ -273,3 +274,6 @@
 
 <!-- Global Toast Component -->
 <Toast />
+
+<!-- Welcome Bubble Component (appears once on first visit) -->
+<WelcomeBubble />
