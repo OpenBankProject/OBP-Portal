@@ -7,6 +7,7 @@
 	let { data } = $props();
 	let name = data.username || 'Guest';
 	let opeyConsentInfo = data.opeyConsentInfo;
+	let isAuthenticated = !!data.email;
 
 	// Configurable text via environment variables
 	const welcomeTitle = env.PUBLIC_WELCOME_TITLE || 'Welcome!';
@@ -49,7 +50,7 @@
 
 <div class="flex h-full w-full items-center justify-center p-4">
 	<div class="h-full max-h-[80vh] w-full max-w-4xl rounded-2xl">
-		<OpeyChat {opeyChatOptions}>
+		<OpeyChat {opeyChatOptions} userAuthenticated={isAuthenticated}>
 			{#snippet splash()}
 				<div class="flex w-2/3 flex-col items-center justify-center text-center">
 					<h1 class="h3 text-surface-700-300 mb-2">{welcomeTitle}</h1>

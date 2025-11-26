@@ -659,9 +659,11 @@
 		<!-- Text area with auto-resize -->
 		<textarea
 			bind:value={messageInput}
-			placeholder={chat.messages.length > 0
-				? 'Ask me about the Open Bank Project API'
-				: 'Ask me anything...'}
+			placeholder={!userAuthenticated
+				? 'Please log in to ask me anything...'
+				: chat.messages.length > 0
+					? 'Ask me about the Open Bank Project API'
+					: 'Ask me anything...'}
 			class="w-full resize-none border-none bg-transparent p-0.5 outline-none shadow-none focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none max-h-40 overflow-y-auto"
 			style="min-height: 2.5rem;"
 			disabled={session?.status !== 'ready'}
