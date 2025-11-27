@@ -43,7 +43,8 @@
 		suggestedQuestions: suggestedQuestions,
 		currentConsentInfo: opeyConsentInfo ? opeyConsentInfo : undefined,
 		bodyClasses: 'bg-opacity-0',
-		footerClasses: 'bg-opacity-0'
+		footerClasses: 'bg-opacity-0',
+		displayConnectionPips: true,
 	};
 	
 </script>

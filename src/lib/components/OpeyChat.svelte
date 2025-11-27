@@ -79,17 +79,28 @@
 		) as ToolMessage[];
 	});
 
-	// TODO: this is not quite working properly, returns unknown all the time
-	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $derived.by(() => {
-		const snapshots = $state.snapshot(healthCheckRegistry.getStore());
-		const opeySnapshot = snapshots['Opey II' as keyof typeof snapshots];
+	// Track Opey connection status from health check API
+	let connectionStatus: 'healthy' | 'unhealthy' | 'degraded' | 'unknown' = $state('unknown');
+	let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-		if (!opeySnapshot) return 'unknown';
-		if ('status' in opeySnapshot && opeySnapshot.status === 'degraded') return 'degraded';
-		return opeySnapshot && 'status' in opeySnapshot && opeySnapshot.status === 'healthy'
-			? 'healthy'
-			: 'unhealthy';
-	});
+	async function fetchHealthStatus() {
+		try {
+			const response = await fetch('/api/status');
+			if (response.ok) {
+				const data = await response.json();
+				const opeySnapshot = data.services['Opey II'];
+				
+				if (opeySnapshot) {
+					connectionStatus = opeySnapshot.status;
+				} else {
+					connectionStatus = 'unknown';
+				}
+			}
+		} catch (error) {
+			logger.error('Failed to fetch health status:', error);
+			connectionStatus = 'unknown';
+		}
+	}
 
 	let splashScreenDisplay = $derived.by(() => {
 		return splash && chat.messages.length === 0;
@@ -169,10 +180,13 @@
 		}
 	}
 
-	// Clean up blob URL when component is destroyed
+	// Clean up blob URL and health check interval when component is destroyed
 	onDestroy(() => {
 		if (diagramUrl) {
 			URL.revokeObjectURL(diagramUrl);
+		}
+		if (healthCheckInterval) {
+			clearInterval(healthCheckInterval);
 		}
 	});
 
@@ -210,6 +224,14 @@
 		// e.g. await initializeOpeySessionWithRetry(5, 2000);
 		// would try 5 times with a base delay of 2 seconds
 		await initializeOpeySessionWithRetry();
+
+		// Start polling for health status if connection pips are enabled
+		if (options.displayConnectionPips) {
+			// Fetch immediately
+			await fetchHealthStatus();
+			// Then poll every 30 seconds
+			healthCheckInterval = setInterval(fetchHealthStatus, 30000);
+		}
 	});
 
 	// Derived colors for pips
@@ -540,84 +562,72 @@
 
 {#snippet statusPips(session: SessionSnapshot, consentInfo?: OBPConsentInfo)}
 	{#if options.displayConnectionPips}
-		<div class="flex flex-col items-center">
+		<div class="flex flex-row items-center gap-1.5">
 			<!-- Connection Pip with Tooltip -->
-			<Tooltip
-				classes="z-10"
-				positioning={{ placement: 'top' }}
-				contentBase="card bg-primary-200-800 text-xs p-1"
-				arrowBackground="var(--color-primary-200-800)"
-				arrow
-			>
-				<!-- Added z-10 for higher stacking -->
-				{#snippet trigger()}
-					<div class="badge-icon {connectionPipColor} h-3 w-3">
-						<ShieldUserIcon size={12} />
-					</div>
-				{/snippet}
-				{#snippet content()}Opey Connection Status: {connectionStatusString}{/snippet}
+			<Tooltip>
+				<Tooltip.Trigger>
+					<div class="h-2 w-2 rounded-full {connectionPipColor} cursor-pointer transition-all hover:scale-125"></div>
+				</Tooltip.Trigger>
+				<Portal>
+					<Tooltip.Positioner class="z-10">
+						<Tooltip.Content class="card bg-primary-200-800 text-xs p-2">
+							Opey Connection Status: {connectionStatusString}
+							<Tooltip.Arrow class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-primary-200-800)]">
+								<Tooltip.ArrowTip />
+							</Tooltip.Arrow>
+						</Tooltip.Content>
+					</Tooltip.Positioner>
+				</Portal>
 			</Tooltip>
-			<!-- Authentication Pip with Tooltip -->
-			<Tooltip
-				classes="z-10"
-				open={authPipOpenState}
-				contentBase="card bg-primary-200-800 text-xs p-1"
-				arrowBackground="var(--color-primary-200-800)"
-				onclick={() => {
-					authPipOpenState = !authPipOpenState;
-				}}
-				arrow
-			>
-				<!-- Added z-10 for higher stacking -->
-				{#snippet trigger()}
-					<div class="badge-icon {authPipColor} h-3 w-3">
-						<ShieldUserIcon size={12} />
-					</div>
-				{/snippet}
-				{#snippet content()}
-					{#if session.status === 'loading'}
-						Authenticating...
-					{:else if session.status === 'error'}
-						Error during authentication: {session.error}
-					{:else if session.isAuthenticated}
-						<h1 class="font-bold text-success-500">Authenticated</h1>
-						{#if consentInfo}
-							<br />
-							Consent ID:
-							<a href="/user#opey-consent" aria-label="view opey consent"
-								>{consentInfo.consent_id}</a
-							>
-						{/if}
-					{:else}
-						Not Authenticated
-					{/if}
-				{/snippet}
+			
+			<!-- Authentication/Consent Pip with Tooltip -->
+			<Tooltip>
+				<Tooltip.Trigger>
+					<a 
+						href="/user#opey-consent" 
+						class="h-2 w-2 rounded-full {authPipColor} cursor-pointer transition-all hover:scale-125 block"
+						aria-label="View Opey consent"
+					></a>
+				</Tooltip.Trigger>
+				<Portal>
+					<Tooltip.Positioner class="z-10">
+						<Tooltip.Content class="card bg-primary-200-800 text-xs p-2">
+							{#if session.status === 'loading'}
+								Authenticating...
+							{:else if session.status === 'error'}
+								Error: {session.error}
+							{:else if session.isAuthenticated && consentInfo}
+								Click to view consent
+							{:else if session.isAuthenticated}
+								Authenticated (no consent info)
+							{:else}
+								Not Authenticated
+							{/if}
+							<Tooltip.Arrow class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-primary-200-800)]">
+								<Tooltip.ArrowTip />
+							</Tooltip.Arrow>
+						</Tooltip.Content>
+					</Tooltip.Positioner>
+				</Portal>
 			</Tooltip>
-			<!-- {#if !session.isAuthenticated}
-				<button class="btn btn-sm btn-primary" onclick={upgradeSession} disabled={session.status === 'loading'}>
-					Log in to connect banking data
-				</button>
-			{/if} -->
 		</div>
 	{/if}
 {/snippet}
 
 {#snippet inputField()}
-	<!-- Container with avatar and input box -->
-	<div class="relative flex items-center gap-3">
-		<!-- Avatar positioned to the left of input - clickable easter egg! -->
-		<Dialog onOpenChange={(details) => { if (details.open) loadDiagram(); }}>
-			<Dialog.Trigger
-				class="size-12 flex-shrink-0 cursor-pointer rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110"
-				title="Click me for a surprise!"
-				aria-label="View Opey system diagram"
-			>
-				<img
-					src="/opey_avatar.png"
-					alt="Opey Avatar"
-					class="h-full w-full rounded-full"
-				/>
-			</Dialog.Trigger>
+	<!-- Avatar positioned to the left of input - clickable easter egg! -->
+	<Dialog onOpenChange={(details) => { if (details.open) loadDiagram(); }}>
+		<Dialog.Trigger
+			class="size-12 flex-shrink-0 cursor-pointer rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110"
+			title="Click me for a surprise!"
+			aria-label="View Opey system diagram"
+		>
+			<img
+				src="/opey_avatar.png"
+				alt="Opey Avatar"
+				class="h-full w-full rounded-full"
+			/>
+		</Dialog.Trigger>
 			<Portal>
 				<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" />
 				<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -655,7 +665,7 @@
 		</Dialog>
 
 		<!-- Unified input container with textarea and controls -->
-		<div class="relative w-full flex-1 rounded-lg bg-primary-50 p-4 dark:bg-primary-600">
+		<div class="relative flex-1 rounded-lg bg-primary-50 p-4 dark:bg-primary-600">
 		<!-- Text area with auto-resize -->
 		<textarea
 			bind:value={messageInput}
@@ -673,11 +683,12 @@
 		></textarea>
 
 		<!-- Controls row - always visible at the bottom of the container -->
-		<div class="flex w-full items-center justify-between pt-1">
-			<div>
-				<!-- Placeholder for future buttons (like file upload) -->
-				<!-- <button class="btn variant-ghost-primary btn-sm">Add File +</button> -->
-			</div>
+		<div class="flex w-full items-end justify-between pt-1">
+			<div class="flex items-end gap-2">
+                {@render statusPips(session, options.currentConsentInfo)}
+                <!-- Placeholder for future buttons (like file upload) -->
+                <!-- <button class="btn variant-ghost-primary btn-sm">Add File +</button> -->
+            </div>
 
 			<div class="flex justify-end items-end">
 				{#if isCurrentlyStreaming}
@@ -694,11 +705,9 @@
 					</button>
 				{/if}
 
-				{@render statusPips(session, options.currentConsentInfo)}
 			</div>
 		</div>
 		</div>
-	</div>
 {/snippet}
 
 <div class="flex h-full w-full flex-col">
@@ -716,7 +725,7 @@
 			<div class="flex flex-1 flex-col items-center justify-center space-y-6">
 				{@render splash()}
 
-				<div class="w-full max-w-3xl px-4 {options.footerClasses || ''} mb-0">
+				<div class="flex w-2/3 items-center gap-3 {options.footerClasses || ''} mb-0">
 					{@render inputField()}
 				</div>
 
