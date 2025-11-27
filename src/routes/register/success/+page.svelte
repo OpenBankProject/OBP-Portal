@@ -69,6 +69,9 @@
 		</p>
 	</header>
 	<article class="space-y-4 p-4">
+		{#if userData.username}
+			<h2 class="h3 text-center mb-4">{userData.username}</h2>
+		{/if}
         <div class="preset-filled-primary-50-950 shadow-md rounded-lg p-4 m-1.5 relative">
             <button
                 class="absolute top-4 right-4 btn btn-sm preset-filled-primary-500"
@@ -85,7 +88,11 @@
             </button>
             <ul class="list-inside space-y-2 pr-16">
                 {#each Object.entries(userData) as [key, value]}
-                    {#if key === 'created_by_user'}
+                    {#if key === 'username'}
+                        <!-- Skip username as it's displayed as heading -->
+                    {:else if !value || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0 && value.constructor === Object)}
+                        <!-- Skip empty fields -->
+                    {:else if key === 'created_by_user'}
                     <li>
                         <strong class="text-tertiary-400">{formatFieldName(key)}:</strong> {JSON.stringify(value)}
                     </li>
