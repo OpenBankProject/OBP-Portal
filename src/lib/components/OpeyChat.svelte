@@ -725,7 +725,7 @@
 			<div class="flex flex-1 flex-col items-center justify-center space-y-6">
 				{@render splash()}
 
-				<div class="flex w-2/3 items-center gap-3 {options.footerClasses || ''} mb-0">
+				<div class="flex w-5/6 items-center gap-3 {options.footerClasses || ''} mb-0">
 					{@render inputField()}
 				</div>
 
