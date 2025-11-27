@@ -1,6 +1,32 @@
 <script lang="ts">
+    import { Copy, Check } from '@lucide/svelte';
+    import { createLogger } from '$lib/utils/logger';
+    
+    const logger = createLogger('UserRegisterSuccessPage');
     const { data } = $props()
     const userData = data.userData || {};
+
+    let copied = $state(false);
+
+    async function clickToCopy() {
+        const formattedData = Object.entries(userData)
+            .map(([key, value]) => {
+                const formattedValue = key === 'created_by_user' ? JSON.stringify(value) : value;
+                return `${formatFieldName(key)}: ${formattedValue}`;
+            })
+            .join('\n');
+
+        try {
+            await navigator.clipboard.writeText(formattedData);
+            copied = true;
+
+            setTimeout(() => {
+                copied = false;
+            }, 2000);
+        } catch (error) {
+            logger.error('Failed to copy user data:', error);
+        }
+    }
 
     // Function to convert field names to user-friendly labels
     function formatFieldName(key: string): string {
@@ -43,8 +69,21 @@
 		</p>
 	</header>
 	<article class="space-y-4 p-4">
-        <div class="preset-filled-primary-50-950 shadow-md rounded-lg p-4 m-1.5">
-            <ul class="list-inside space-y-2">
+        <div class="preset-filled-primary-50-950 shadow-md rounded-lg p-4 m-1.5 relative">
+            <button
+                class="absolute top-4 right-4 btn btn-sm preset-filled-primary-500"
+                onclick={clickToCopy}
+                disabled={copied}
+                aria-label="Copy registration details to clipboard"
+                title={copied ? 'Copied!' : 'Copy to clipboard'}
+            >
+                {#if copied}
+                    <Check class="h-4 w-4" />
+                {:else}
+                    <Copy class="h-4 w-4" />
+                {/if}
+            </button>
+            <ul class="list-inside space-y-2 pr-16">
                 {#each Object.entries(userData) as [key, value]}
                     {#if key === 'created_by_user'}
                     <li>
