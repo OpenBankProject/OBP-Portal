@@ -156,11 +156,6 @@
 							</p>
 						</div>
 					{/if}
-					{#if message.cancelled}
-						<div class="mt-2 text-sm italic opacity-70">
-							<span class="text-warning-500">⚠ Generation stopped by user</span>
-						</div>
-					{/if}
 				</div>
 			{/if}
 		{:else if message.role === 'tool'}

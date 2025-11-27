@@ -46,6 +46,14 @@ export class ChatState {
 	 * Updates temporary ID to backend ID when confirmation is received.
 	 */
 	syncUserMessage(backendId: string, content: string): void {
+		// First check if we already have a message with this backend ID
+		// This can happen if confirmations come out of order or during cancellation
+		const existingMessage = this.messages.find(msg => msg.id === backendId);
+		if (existingMessage) {
+			logger.debug(`Message with backend ID ${backendId} already exists, skipping sync`);
+			return;
+		}
+
 		// Find message by content and pending status (since temp ID won't match)
 		const index = this.messages.findIndex(
 			msg => msg.role === 'user' && 
@@ -61,16 +69,10 @@ export class ChatState {
 			this.messages = [...this.messages]; // Trigger reactivity
 			this.emit();
 		} else {
-			// Backend sent confirmation but we don't have the message yet
-			// This shouldn't normally happen with optimistic updates, but handle it gracefully
-			logger.warn(`Received user_message_confirmed but message not found. Adding with backend ID: ${backendId}`);
-			this.addMessage({
-				id: backendId,
-				role: 'user',
-				message: content,
-				timestamp: new Date(),
-				isPending: false
-			});
+			// Backend sent confirmation but we don't have a matching pending message
+			// This can happen during cancellation - log but don't add duplicate
+			logger.debug(`Received user_message_confirmed for ${backendId} but no matching pending message found. Skipping to avoid duplicates.`);
+			// Don't add the message - it may have already been synced or removed
 		}
 	}
 

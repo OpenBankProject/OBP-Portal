@@ -148,6 +148,12 @@ export class ChatController {
 			
 			this.state.removeLoadingMessages();
 
+			// Don't show errors for aborted streams - user already sees "generation stopped" message
+			if (err.message && err.message.includes('BodyStreamBuffer was aborted')) {
+				logger.debug('Stream was aborted by user, skipping error message');
+				return;
+			}
+
 			state.addMessage({
 				id: uuidv4(),
 				role: 'error',
