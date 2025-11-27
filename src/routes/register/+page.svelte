@@ -5,6 +5,10 @@
 
 	let { form }: PageProps = $props();
 
+	let firstName = $state(form?.formData?.first_name || '');
+	let lastName = $state(form?.formData?.last_name || '');
+	let email = $state(form?.formData?.email || '');
+	let username = $state(form?.formData?.username || '');
 	let password = $state('');
 	let repeatPassword = $state('');
 	let termsAccepted = $state(false);
@@ -83,15 +87,20 @@
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
+			{#if form?.error}
+				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
+					<p class="text-error-500 font-semibold">{form?.error}</p>
+				</div>
+			{/if}
 			<!-- --- -->
 			<label class="label">
 				<span class="label-text">First Name</span>
-				<input type="text" class="input" name="first_name" placeholder="Alfred" required />
+				<input type="text" class="input" name="first_name" placeholder="Alfred" bind:value={firstName} required />
 			</label>
 			<!-- --- -->
 			<label class="label">
 				<span class="label-text">Last Name</span>
-				<input type="text" class="input" name="last_name" placeholder="Prufrock" required />
+				<input type="text" class="input" name="last_name" placeholder="Prufrock" bind:value={lastName} required />
 			</label>
 
 			<label class="label">
@@ -101,13 +110,14 @@
 					class="input"
 					name="email"
 					placeholder="alfred.j.prufrock@example.com"
+					bind:value={email}
 					required
 				/>
 			</label>
 			<!-- --- -->
 			<label class="label">
 				<span class="label-text">Username</span>
-				<input type="text" class="input" name="username" placeholder="coffeespoon123" required />
+				<input type="text" class="input" name="username" placeholder="coffeespoon123" bind:value={username} required />
 			</label>
 
 			<label class="label">
@@ -258,8 +268,8 @@
 			</div>
 			<hr class="hr" />
 			{#if form?.error}
-				<div class="text-error-500 text-center">
-					<p>{form?.error}</p>
+				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
+					<p class="text-error-500 font-semibold">{form?.error}</p>
 				</div>
 			{/if}
 			<button

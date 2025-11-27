@@ -20,9 +20,17 @@ export const actions = {
             last_name: formEntries.last_name as string
         };
 
+        // Store form data to return on error (excluding password)
+        const formDataToReturn = {
+            first_name: formEntries.first_name as string,
+            last_name: formEntries.last_name as string,
+            email: formEntries.email as string,
+            username: formEntries.username as string
+        };
+
         // Make request to OBP to register the consumer
         try {
-            const response = await obp_requests.post(`/obp/v5.1.0/users`, requestBody);
+            const response = await obp_requests.post(`/obp/v6.0.0/users`, requestBody);
 
             
             logger.info("User registered successfully:", response);
@@ -39,21 +47,16 @@ export const actions = {
             
         } catch (error) {
             if (error instanceof OBPRequestError) {
-                // Handle specific OBP request errors
-                // Error for invalid password format gives instructions we want to send to the UI
-                if (error.obpErrorCode === 'OBP-30207') {
-                    return {
-                        error: error.message
-                    }
-                } else if (error.obpErrorCode === 'OBP-10001') {
-                    return {
-                        error: "Invalid Username"
-                    }
-                }
+                // Return the OBP error message directly - it already contains the error code and description
+                return {
+                    error: error.message,
+                    formData: formDataToReturn
+                };
             }
             logger.error("Error registering user:", error);
             return {
-                error: "Failed to register user"
+                error: `Failed to register user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                formData: formDataToReturn
             };
         }
 
