@@ -740,7 +740,9 @@
 			{@render suggestedQuestions()}
 
 			<div class="flex-shrink-0 p-4 {options.footerClasses || ''}">
-				{@render inputField()}
+				<div class="relative flex items-center justify-center">
+					{@render inputField()}
+				</div>
 			</div>
 		{/if}
 	</div>
