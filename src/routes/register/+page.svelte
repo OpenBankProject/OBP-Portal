@@ -15,6 +15,16 @@
 	let privacyAccepted = $state(false);
 	let showPassword = $state(false);
 	let passwordVisibilityType = $derived.by(() => (showPassword ? 'text' : 'password'));
+	let showError = $state(!!form?.error);
+
+	// Clear error when username or password fields are modified
+	function handleUsernameInput() {
+		showError = false;
+	}
+
+	function handlePasswordInput() {
+		showError = false;
+	}
 
 	function checkPasswordAgainstPolicy(password: string): boolean {
 		// Check if password meets policy: either strong (10+ chars with mixed case, numbers, special chars) or long (16-512 chars)
@@ -87,7 +97,7 @@
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
-			{#if form?.error}
+			{#if showError && form?.error}
 				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
 					<p class="text-error-500 font-semibold">{form?.error}</p>
 				</div>
@@ -117,7 +127,7 @@
 			<!-- --- -->
 			<label class="label">
 				<span class="label-text">Username</span>
-				<input type="text" class="input" name="username" placeholder="coffeespoon123" bind:value={username} required />
+				<input type="text" class="input" name="username" placeholder="coffeespoon123" bind:value={username} oninput={handleUsernameInput} required />
 			</label>
 
 			<label class="label">
@@ -128,6 +138,7 @@
 						class="input pr-10"
 						name="password"
 						bind:value={password}
+						oninput={handlePasswordInput}
 						placeholder="Enter Password"
 						required
 					/>
@@ -267,7 +278,7 @@
 				</div>
 			</div>
 			<hr class="hr" />
-			{#if form?.error}
+			{#if showError && form?.error}
 				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
 					<p class="text-error-500 font-semibold">{form?.error}</p>
 				</div>
