@@ -615,10 +615,10 @@
 {/snippet}
 
 {#snippet inputField()}
-	<!-- Avatar positioned to the left of input - clickable easter egg! -->
+	<!-- Avatar positioned absolutely to the left of input - clickable easter egg! -->
 	<Dialog onOpenChange={(details) => { if (details.open) loadDiagram(); }}>
 		<Dialog.Trigger
-			class="size-12 flex-shrink-0 cursor-pointer rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110"
+			class="absolute -left-16 top-1/2 -translate-y-1/2 size-12 cursor-pointer rounded-full drop-shadow-[-7px_7px_10px_var(--color-secondary-500)] transition-transform hover:scale-110"
 			title="Click me for a surprise!"
 			aria-label="View Opey system diagram"
 		>
@@ -665,7 +665,7 @@
 		</Dialog>
 
 		<!-- Unified input container with textarea and controls -->
-		<div class="relative flex-1 rounded-lg bg-primary-50 p-4 dark:bg-primary-600">
+		<div class="relative w-full rounded-lg bg-primary-50 p-4 dark:bg-primary-600">
 		<!-- Text area with auto-resize -->
 		<textarea
 			bind:value={messageInput}
@@ -725,7 +725,7 @@
 			<div class="flex flex-1 flex-col items-center justify-center space-y-6">
 				{@render splash()}
 
-				<div class="flex w-5/6 items-center gap-3 {options.footerClasses || ''} mb-0">
+				<div class="relative w-2/3 {options.footerClasses || ''} mb-0">
 					{@render inputField()}
 				</div>
 
