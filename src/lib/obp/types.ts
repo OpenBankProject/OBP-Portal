@@ -82,6 +82,10 @@ export interface OBPAddEntitlementBody {
     bank_id?: string;
 }
 
+export interface OBPPasswordResetInitiateRequestBody {
+    email: string;
+}
+
 export interface OBPPasswordResetRequestBody {
     token: string;
     new_password: string;
