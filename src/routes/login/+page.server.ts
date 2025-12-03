@@ -4,6 +4,7 @@ import type { ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ url }) => {
 	const errorMessage = url.searchParams.get('error');
+	const successMessage = url.searchParams.get('reset');
 	const allProviders = oauth2ProviderManager.getAllProviders();
 	const availableProviders = oauth2ProviderManager.getAvailableProviders();
 	const unavailableProviders = oauth2ProviderManager.getUnavailableProviders();
@@ -20,6 +21,7 @@ export const load: ServerLoad = async ({ url }) => {
 		unavailableProviders,
 		loading: false,
 		lastUpdated: new Date().toISOString(),
-		errorMessage
+		errorMessage,
+		successMessage
 	};
 };

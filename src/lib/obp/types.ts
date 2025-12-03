@@ -81,3 +81,8 @@ export interface OBPAddEntitlementBody {
     role_name: string;
     bank_id?: string;
 }
+
+export interface OBPPasswordResetRequestBody {
+    token: string;
+    new_password: string;
+}

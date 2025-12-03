@@ -10,6 +10,11 @@
         goto('/login', { replaceState: true });
     }
 
+    // Clear success message after displaying it
+    function clearSuccess() {
+        goto('/login', { replaceState: true });
+    }
+
     let refreshInterval: NodeJS.Timeout | undefined;
 
     function formatProviderName(provider: string): string {
@@ -44,6 +49,26 @@
         <div class="flex justify-between items-center">
             <h1 class="h2">Login</h1>
         </div>
+
+        {#if 'successMessage' in data && data.successMessage === 'success'}
+            <div class="mt-4 p-4 rounded-lg bg-green-500/20 border border-green-500/50 flex items-start justify-between">
+                <div class="flex items-start gap-3">
+                    <span class="text-green-400 text-xl">✓</span>
+                    <div>
+                        <p class="text-green-300 font-semibold">Password Reset Successful</p>
+                        <p class="text-green-200 text-sm mt-1">Your password has been reset. You can now log in with your new password.</p>
+                    </div>
+                </div>
+                <button 
+                    type="button" 
+                    onclick={clearSuccess}
+                    class="text-green-300 hover:text-green-100 ml-2"
+                    aria-label="Close success message"
+                >
+                    ✕
+                </button>
+            </div>
+        {/if}
 
         {#if data.errorMessage}
             <div class="mt-4 p-4 rounded-lg bg-red-500/20 border border-red-500/50 flex items-start justify-between">
