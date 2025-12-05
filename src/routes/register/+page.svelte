@@ -6,7 +6,7 @@
 
 	let { form }: PageProps = $props();
 
-	const registerHeadline = env.REGISTER_TEXT || 'Register for the Open Bank Project';
+	const registerHeadline = env.PUBLIC_REGISTER_TEXT || 'Register for the Open Bank Project';
 
 	let firstName = $state(form?.formData?.first_name || '');
 	let lastName = $state(form?.formData?.last_name || '');
