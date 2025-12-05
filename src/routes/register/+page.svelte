@@ -2,8 +2,11 @@
 	import LegalDocumentModal from '$lib/components/LegalDocumentModal.svelte';
 	import type { PageProps } from './$types';
 	import { Eye, EyeOff } from '@lucide/svelte';
+	import { env } from '$env/dynamic/public';
 
 	let { form }: PageProps = $props();
+
+	const registerHeadline = env.REGISTER_TEXT || 'Register for the Open Bank Project';
 
 	let firstName = $state(form?.formData?.first_name || '');
 	let lastName = $state(form?.formData?.last_name || '');
@@ -93,7 +96,7 @@
 	class="card dark:bg-primary-500/50 backdrop-blur-3xl border-primary-200-800 divide-primary-200-800 mx-auto my-10 md:px-15 flex flex-col divide-y border-[1px] shadow-lg max-w-[90%] lg:max-w-4xl"
 >
 	<header class="py-4">
-		<h1 class="h4 text-center">Register for the Open Bank Project</h1>
+		<h1 class="h4 text-center">{registerHeadline}</h1>
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
