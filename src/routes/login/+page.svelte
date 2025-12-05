@@ -50,7 +50,25 @@
             <h1 class="h2">Login</h1>
         </div>
 
-        {#if 'successMessage' in data && data.successMessage === 'success'}
+        {#if 'invitationAccepted' in data && data.invitationAccepted === 'true'}
+            <div class="mt-4 p-4 rounded-lg bg-green-500/20 border border-green-500/50 flex items-start justify-between">
+                <div class="flex items-start gap-3">
+                    <span class="text-green-400 text-xl">✓</span>
+                    <div>
+                        <p class="text-green-300 font-semibold">Account Created Successfully</p>
+                        <p class="text-green-200 text-sm mt-1">Your account has been created. You can now log in with your username and password.</p>
+                    </div>
+                </div>
+                <button 
+                    type="button" 
+                    onclick={clearSuccess}
+                    class="text-green-300 hover:text-green-100 ml-2"
+                    aria-label="Close success message"
+                >
+                    ✕
+                </button>
+            </div>
+        {:else if 'successMessage' in data && data.successMessage === 'success'}
             <div class="mt-4 p-4 rounded-lg bg-green-500/20 border border-green-500/50 flex items-start justify-between">
                 <div class="flex items-start gap-3">
                     <span class="text-green-400 text-xl">✓</span>

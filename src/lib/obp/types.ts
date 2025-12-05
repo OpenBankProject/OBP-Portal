@@ -90,3 +90,41 @@ export interface OBPPasswordResetRequestBody {
     token: string;
     new_password: string;
 }
+
+export interface OBPUserInvitation {
+    first_name: string;
+    last_name: string;
+    email: string;
+    company: string;
+    country: string;
+    purpose: 'DEVELOPER' | 'CUSTOMER';
+    status: 'CREATED' | 'FINISHED';
+}
+
+export interface OBPUserInvitationValidateRequestBody {
+    secret_key: number;
+}
+
+export interface OBPUserInvitationCreateRequestBody {
+    first_name: string;
+    last_name: string;
+    email: string;
+    company: string;
+    country: string;
+    purpose: 'DEVELOPER' | 'CUSTOMER';
+}
+
+export interface OBPUserInvitationsResponse {
+    user_invitations: OBPUserInvitation[];
+}
+
+export interface OBPUserInvitationAcceptRequestBody {
+    secret_key: number;
+    username: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    company: string;
+    country: string;
+}
