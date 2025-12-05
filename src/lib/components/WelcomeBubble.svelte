@@ -9,12 +9,15 @@
 	const COOKIE_NAME = 'obp_portal_welcomed';
 	const COOKIE_EXPIRY_DAYS = 365;
 
-	// Get welcome message from environment variable or use default
-	const welcomeMessage =
-		env.PUBLIC_WELCOME_MESSAGE ||
-		'Welcome to our new Portal. You might notice we have a new AI Agent called Opey who knows all about the OBP APIs. We hope you enjoy. Note: the previous portal can be accessed by the link at the bottom left of the page. Enjoy! Yours OBP team.';
+	// Get welcome message from environment variable
+	const welcomeMessage = env.PUBLIC_WELCOME_MESSAGE || '';
 
 	onMount(() => {
+		// Don't show bubble if welcome message is not set or empty
+		if (!welcomeMessage || welcomeMessage.trim() === '') {
+			return;
+		}
+
 		// Check if the user has already been welcomed
 		const hasBeenWelcomed = getCookie(COOKIE_NAME);
 
