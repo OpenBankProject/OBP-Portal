@@ -130,6 +130,10 @@
 	let logoUrl = $derived.by(() => {
 		return displayMode === 'dark' ? darkLogoUrl : lightLogoUrl;
 	});
+
+	// Logo width from environment variable (e.g., "200px", "50%", "10rem")
+	// Defaults to "100%" (full width) if not set
+	let logoWidth = $state(env.PUBLIC_LOGO_WIDTH || '100%');
 </script>
 
 <div
@@ -141,8 +145,8 @@
 			class="grid h-full grid-rows-[auto_1fr_auto] gap-4 preset-filled-primary-50-950"
 		>
 			<Navigation.Header class="p-4">
-				<a href="/" class="flex w-full items-center">
-					<img class="block w-full" src={logoUrl} alt="Logo" />
+				<a href="/" class="flex w-full items-center justify-center">
+					<img class="block" style="width: {logoWidth};" src={logoUrl} alt="Logo" />
 				</a>
 			</Navigation.Header>
 
