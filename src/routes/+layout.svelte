@@ -232,6 +232,18 @@
 						</a>
 					{/each}
 					<span> © TESOBE 2011-2025 </span>
+					{#if env.PUBLIC_SPONSOR_NOTE}
+						<span class="text-surface-800-200">{env.PUBLIC_SPONSOR_NOTE}</span>
+					{/if}
+					{#if env.PUBLIC_SPONSOR_IMAGE}
+						{#if env.PUBLIC_SPONSOR_INFO_URL}
+							<a href={env.PUBLIC_SPONSOR_INFO_URL} target="_blank" rel="noopener noreferrer">
+								<img src={env.PUBLIC_SPONSOR_IMAGE} alt="Sponsor" class="h-6" />
+							</a>
+						{:else}
+							<img src={env.PUBLIC_SPONSOR_IMAGE} alt="Sponsor" class="h-6" />
+						{/if}
+					{/if}
 					{#if data.externalLinks.LEGACY_PORTAL_URL}
 						<!-- Legacy Portal Link -->
 						<a
