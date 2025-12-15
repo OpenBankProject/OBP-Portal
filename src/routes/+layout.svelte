@@ -30,6 +30,9 @@
 	import type { RootLayoutData } from './+layout.server';
 
 	let { data, children } = $props();
+	
+	// Undocumented feature flag
+	let hideFooterElements = $state(env.UNDOCUMENTED_FEATURE_1_ENABLED === 'true');
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
 	let isMyAccountExpanded = $state(false);
@@ -134,6 +137,16 @@
 	// Logo width from environment variable (e.g., "200px", "50%", "10rem")
 	// Defaults to "100%" (full width) if not set
 	let logoWidth = $state(env.PUBLIC_LOGO_WIDTH || '100%');
+
+	// Sponsor image URL - supports light/dark mode
+	let sponsorImageUrl = $derived.by(() => {
+		if (displayMode === 'dark' && env.PUBLIC_SPONSOR_DARK_IMAGE) {
+			return env.PUBLIC_SPONSOR_DARK_IMAGE;
+		}
+		return env.PUBLIC_SPONSOR_IMAGE;
+	});
+
+
 </script>
 
 <div
@@ -235,17 +248,20 @@
 							{link.label}
 						</a>
 					{/each}
-					<span> © TESOBE 2011-2025 </span>
+					<a href="/about" class="hover:text-tertiary-400">About</a>
+					{#if !hideFooterElements}
+						<span> © TESOBE 2011-2025 </span>
+					{/if}
 					{#if env.PUBLIC_SPONSOR_NOTE}
 						<span class="text-surface-800-200">{env.PUBLIC_SPONSOR_NOTE}</span>
 					{/if}
-					{#if env.PUBLIC_SPONSOR_IMAGE}
+					{#if sponsorImageUrl}
 						{#if env.PUBLIC_SPONSOR_INFO_URL}
 							<a href={env.PUBLIC_SPONSOR_INFO_URL} target="_blank" rel="noopener noreferrer">
-								<img src={env.PUBLIC_SPONSOR_IMAGE} alt="Sponsor" class="h-6" />
+								<img src={sponsorImageUrl} alt="Sponsor" class="h-6" />
 							</a>
 						{:else}
-							<img src={env.PUBLIC_SPONSOR_IMAGE} alt="Sponsor" class="h-6" />
+							<img src={sponsorImageUrl} alt="Sponsor" class="h-6" />
 						{/if}
 					{/if}
 					{#if data.externalLinks.LEGACY_PORTAL_URL}
