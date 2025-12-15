@@ -42,10 +42,10 @@ export class ChatState {
 	}
 
 	/**
-	 * Sync a user message with backend-assigned ID.
-	 * Updates temporary ID to backend ID when confirmation is received.
+	 * Sync a user message with backend-assigned ID using correlation ID.
+	 * This is more reliable than matching by content.
 	 */
-	syncUserMessage(backendId: string, content: string): void {
+	syncUserMessage(backendId: string, correlationId: string): void {
 		// First check if we already have a message with this backend ID
 		// This can happen if confirmations come out of order or during cancellation
 		const existingMessage = this.messages.find(msg => msg.id === backendId);
@@ -54,24 +54,20 @@ export class ChatState {
 			return;
 		}
 
-		// Find message by content and pending status (since temp ID won't match)
+		// Find message by correlation ID (much more reliable than content matching)
 		const index = this.messages.findIndex(
-			msg => msg.role === 'user' && 
-				   msg.message === content && 
-				   msg.isPending === true
+			msg => msg.correlationId === correlationId && msg.isPending === true
 		);
 		
 		if (index !== -1) {
-			// Update with backend ID and mark as confirmed
-			logger.debug(`Syncing user message: ${this.messages[index].id} -> ${backendId}`);
+			logger.debug(`Syncing message via correlation ID: ${correlationId} → backend ID: ${backendId}`);
 			this.messages[index].id = backendId;
 			this.messages[index].isPending = false;
 			this.messages = [...this.messages]; // Trigger reactivity
 			this.emit();
 		} else {
-			// Backend sent confirmation but we don't have a matching pending message
-			// This can happen during cancellation - log but don't add duplicate
-			logger.debug(`Received user_message_confirmed for ${backendId} but no matching pending message found. Skipping to avoid duplicates.`);
+			// This shouldn't happen in normal flow
+			logger.warn(`Received user_message_confirmed for correlation ID ${correlationId} (backend ID: ${backendId}) but no matching pending message found.`);
 			// Don't add the message - it may have already been synced or removed
 		}
 	}

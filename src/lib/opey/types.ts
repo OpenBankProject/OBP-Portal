@@ -3,6 +3,7 @@
 export type Role = 'user' | 'assistant' | 'tool' | 'error' | 'approval_request';
 export interface BaseMessage {
 	id: string; // i.e. UUID4
+	correlationId?: string; // Temporary ID for optimistic UI updates
 	role: Role;
 	message: string;
 	timestamp: Date; // ISO string
@@ -15,6 +16,7 @@ export interface BaseMessage {
 
 export interface UserMessage extends BaseMessage {
 	role: 'user';
+	correlationId: string; // correlationId is required for user messages
 	// Additional fields specific to user messages can be added here
 }
 export interface AssistantMessage extends BaseMessage {

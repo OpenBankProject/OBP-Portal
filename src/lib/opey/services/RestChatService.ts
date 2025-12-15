@@ -92,10 +92,11 @@ export class RestChatService implements ChatService {
 	}
 
 	async send(msg: UserMessage, threadId?: string): Promise<void> {
-		// Create StreamInput with thread_id included
+		// Create StreamInput with thread_id and correlation_id included
 		const streamInput = {
 			message: msg.message,
 			thread_id: threadId,
+			correlation_id: msg.correlationId, // Add correlation ID for tracking
 			stream_tokens: true
 		};
 
@@ -209,6 +210,7 @@ export class RestChatService implements ChatService {
 				this.streamEventCallback?.({
 					type: 'user_message_confirmed',
 					messageId: eventData.message_id,
+					correlationId: eventData.correlation_id,
 					content: eventData.content,
 					timestamp: eventData.timestamp
 				});

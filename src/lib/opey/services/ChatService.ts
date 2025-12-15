@@ -23,7 +23,7 @@ export interface ChatService {
 }
 
 export type StreamEvent = 
-    | { type: 'user_message_confirmed', messageId: string, content: string, timestamp: number }
+    | { type: 'user_message_confirmed', messageId: string, correlationId: string, content: string, timestamp: number }
     | { type: 'assistant_start', messageId: string, timestamp: Date }
     | { type: 'assistant_token', messageId: string, token: string }
     | { type: 'assistant_complete', messageId: string }

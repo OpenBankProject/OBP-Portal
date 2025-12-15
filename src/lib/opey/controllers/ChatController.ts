@@ -17,10 +17,10 @@ export class ChatController {
 			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
-					case 'user_message_confirmed':
-						logger.debug(`User message confirmed with backend ID: ${event.messageId}`);
-						state.syncUserMessage(event.messageId, event.content);
-						break;
+				case 'user_message_confirmed':
+					logger.debug(`User message confirmed - backend ID: ${event.messageId}, correlation ID: ${event.correlationId}`);
+					state.syncUserMessage(event.messageId, event.correlationId);
+					break;
 					case 'thread_sync':
 						logger.debug(`Syncing thread_id with backend: ${event.threadId}`);
 						state.syncThreadId(event.threadId);
@@ -178,10 +178,12 @@ export class ChatController {
 	}
 
 	send(text: string): Promise<void> {
-		// Use temporary ID that will be replaced by backend-assigned ID
-		const tempId = `temp-${uuidv4()}`;
+		// Generate correlation ID for tracking
+		const correlationId = uuidv4();
+		
 		const msg: UserMessage = {
-			id: tempId,
+			id: correlationId, // Use correlation ID as temporary ID
+			correlationId: correlationId, // Also store explicitly
 			role: 'user',
 			message: text,
 			timestamp: new Date(),
@@ -198,6 +200,8 @@ export class ChatController {
 			timestamp: new Date(),
 			isLoading: true
 		});
+
+		logger.debug(`Sending message with correlation ID: ${correlationId}`);
 
 		// Backend will emit user_message_confirmed event with the real ID
 		// The event handler will update this message with the backend ID
