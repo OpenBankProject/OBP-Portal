@@ -31,8 +31,14 @@
 
 	let { data, children } = $props();
 	
-	// Undocumented feature flag
-	let hideFooterElements = $state(env.UNDOCUMENTED_FEATURE_1_ENABLED === 'true');
+	// Undocumented feature flag - accepts boolean or string values
+	let hideFooterElements = $state(
+		env.UNDOCUMENTED_FEATURE_1_ENABLED === true || 
+		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'true' || 
+		env.UNDOCUMENTED_FEATURE_1_ENABLED === '1' || 
+		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'TRUE' ||
+		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'True'
+	);
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
 	let isMyAccountExpanded = $state(false);
