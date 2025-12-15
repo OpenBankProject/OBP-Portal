@@ -5,7 +5,7 @@
 	import { myAccountItems } from '$lib/config/navigation';
 	import Toast from '$lib/components/Toast.svelte';
 	import WelcomeBubble from '$lib/components/WelcomeBubble.svelte';
-	import VersionInfo from '$lib/components/VersionInfo.svelte';
+
 
 	// Lucide Icons
 	import {
@@ -239,7 +239,6 @@
 
 			<Navigation.Footer class="p-4">
 				<div class="flex flex-wrap items-center gap-3 text-xs text-surface-800-200">
-					<VersionInfo />
 					<LightSwitch bind:mode={displayMode} />
 					{#each footerLinks as link, index}
 						<a href={link.href} class="flex items-center gap-2 hover:text-tertiary-400">

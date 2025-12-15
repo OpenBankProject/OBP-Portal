@@ -4,6 +4,15 @@
 
 	let htmlContent = $state('');
 
+	function formatBuildTime(isoString: string): string {
+		try {
+			const date = new Date(isoString);
+			return date.toLocaleString();
+		} catch {
+			return isoString;
+		}
+	}
+
 	// Default markdown content if environment variable is not set
 	const defaultMarkdown = `# About OBP Portal
 
@@ -80,5 +89,31 @@ For questions, support, or more information about the Open Bank Project, please 
 				<p class="text-surface-600-400">Loading...</p>
 			</div>
 		{/if}
+
+		<!-- Version Information Footer -->
+		<div class="mt-12 border-t border-surface-200-800 pt-8">
+			<div class="text-sm text-surface-600-400">
+				<span class="font-medium">Version:</span>
+				<span class="font-mono text-surface-900-100">{__APP_VERSION__}</span>
+				<span class="mx-2">•</span>
+				<span class="font-medium">Commit:</span>
+				<span class="font-mono text-surface-900-100">{__GIT_COMMIT__}</span>
+				<span class="mx-2">•</span>
+				<span class="font-medium">Branch:</span>
+				<span class="font-mono text-surface-900-100">{__GIT_BRANCH__}</span>
+				<span class="mx-2">•</span>
+				<span class="font-medium">Built:</span>
+				<span class="font-mono text-surface-900-100">{formatBuildTime(__BUILD_TIME__)}</span>
+				<span class="mx-2">•</span>
+				<a
+					href="https://github.com/OpenBankProject/OBP-Portal"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-primary-500 hover:text-primary-400 hover:underline"
+				>
+					GitHub
+				</a>
+			</div>
+		</div>
 	</div>
 </div>
