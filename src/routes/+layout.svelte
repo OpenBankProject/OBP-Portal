@@ -31,13 +31,12 @@
 
 	let { data, children } = $props();
 	
-	// Undocumented feature flag - accepts boolean or string values
+	// Undocumented feature flag - accepts string values (env vars are always strings in SvelteKit)
 	let hideFooterElements = $state(
-		env.UNDOCUMENTED_FEATURE_1_ENABLED === true || 
-		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'true' || 
-		env.UNDOCUMENTED_FEATURE_1_ENABLED === '1' || 
-		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'TRUE' ||
-		env.UNDOCUMENTED_FEATURE_1_ENABLED === 'True'
+		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === 'true' || 
+		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === '1' || 
+		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === 'TRUE' ||
+		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === 'True'
 	);
 	let isAuthenticated = $state(false);
 	let isMobileMenuOpen = $state(false);
