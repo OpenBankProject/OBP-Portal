@@ -95,12 +95,16 @@ For questions, support, or more information about the Open Bank Project, please 
 			<div class="text-sm text-surface-600-400">
 				<span class="font-medium">Version:</span>
 				<span class="font-mono text-surface-900-100">{__APP_VERSION__}</span>
-				<span class="mx-2">•</span>
-				<span class="font-medium">Commit:</span>
-				<span class="font-mono text-surface-900-100">{__GIT_COMMIT__}</span>
-				<span class="mx-2">•</span>
-				<span class="font-medium">Branch:</span>
-				<span class="font-mono text-surface-900-100">{__GIT_BRANCH__}</span>
+				{#if __GIT_COMMIT__ !== 'unknown'}
+					<span class="mx-2">•</span>
+					<span class="font-medium">Commit:</span>
+					<span class="font-mono text-surface-900-100">{__GIT_COMMIT__}</span>
+				{/if}
+				{#if __GIT_BRANCH__ !== 'unknown'}
+					<span class="mx-2">•</span>
+					<span class="font-medium">Branch:</span>
+					<span class="font-mono text-surface-900-100">{__GIT_BRANCH__}</span>
+				{/if}
 				<span class="mx-2">•</span>
 				<span class="font-medium">Built:</span>
 				<span class="font-mono text-surface-900-100">{formatBuildTime(__BUILD_TIME__)}</span>
