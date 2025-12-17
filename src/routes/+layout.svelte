@@ -88,7 +88,7 @@
 			? [
 					{
 						href: data.externalLinks.SUBSCRIPTIONS_URL,
-						label: 'Subscriptions',
+						label: 'Subscribe',
 						iconComponent: CreditCard,
 						external: true
 					}
