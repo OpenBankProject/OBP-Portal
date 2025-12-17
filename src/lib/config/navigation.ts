@@ -21,7 +21,7 @@ function buildMyAccountItems(): NavigationItem[] {
     if (env.PUBLIC_SUBSCRIPTIONS_URL) {
         items.push({
             href: env.PUBLIC_SUBSCRIPTIONS_URL,
-            label: 'Subscribe',
+            label: 'Subscriptions',
             iconComponent: CreditCard,
             external: true
         });
