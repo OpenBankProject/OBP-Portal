@@ -110,7 +110,7 @@ For questions, support, or more information about the Open Bank Project, please 
 				<span class="font-mono text-surface-900-100">{formatBuildTime(__BUILD_TIME__)}</span>
 				<span class="mx-2">•</span>
 				<a
-					href="https://github.com/OpenBankProject/OBP-Portal"
+					href="https://github.com/OpenBankProject"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-primary-500 hover:text-primary-400 hover:underline"
