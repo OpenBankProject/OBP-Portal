@@ -195,6 +195,7 @@ const transformHTML: Handle = async ({ event, resolve }) => {
 // Init SvelteKitSessions
 export const handle: Handle = sequence(
 	sveltekitSessionHandle({
+		name: 'obp-portal-connect.sid',
 		secret: 'secret',
 		store: new RedisStore({ 
 			client: redisClient,

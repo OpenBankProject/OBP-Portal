@@ -33,7 +33,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
     const userId = session.data.user.user_id;
 
     // Clear the session cookie and destroy the session
-    event.cookies.delete("session", {
+    event.cookies.delete("obp-portal-connect.sid", {
         path: "/",
     });
     await session.destroy();
