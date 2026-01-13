@@ -19,17 +19,24 @@ class OBPRequests {
 
 	async get(endpoint: string, accessToken?: string): Promise<any> {
 		logger.debug('GET', endpoint);
+		const url = `${this.base_url}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(`${this.base_url}${endpoint}`, {
+		const response = await fetch(url, {
 			headers
 		});
 
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		}
 
 		if (!response.ok) {
 			logger.error('Failed to fetch OBP data:', { statusText: response.statusText, data });
@@ -37,7 +44,7 @@ class OBPRequests {
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
-				throw new OBPErrorBase(`Error fetching OBP data: ${response.statusText}`);
+				throw new OBPErrorBase(`Error fetching OBP data from ${url}: ${response.statusText}`);
 			}
 		}
 
@@ -48,19 +55,26 @@ class OBPRequests {
 
 	async post(endpoint: string, body: any, accessToken?: string): Promise<any> {
 		logger.debug('POST', endpoint, body);
+		const url = `${this.base_url}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(`${this.base_url}${endpoint}`, {
+		const response = await fetch(url, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify(body)
 		});
 
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		}
 
 		if (!response.ok) {
 			logger.error('Failed to post OBP data:', { statusText: response.statusText, data });
@@ -68,7 +82,7 @@ class OBPRequests {
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
-				throw new OBPErrorBase(`Error posting OBP data: ${response.statusText}`);
+				throw new OBPErrorBase(`Error posting OBP data to ${url}: ${response.statusText}`);
 			}
 		}
 
@@ -79,25 +93,32 @@ class OBPRequests {
 
 	async delete(endpoint: string, accessToken?: string): Promise<any> {
 		logger.debug('DELETE', endpoint);
+		const url = `${this.base_url}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(`${this.base_url}${endpoint}`, {
+		const response = await fetch(url, {
 			method: 'DELETE',
 			headers
 		});
 
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		}
 
 		if (!response.ok) {
 			logger.error('Failed to delete OBP data:', response.statusText, data);
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
-				throw new OBPErrorBase(`Error deleting OBP data: ${response.statusText}`);
+				throw new OBPErrorBase(`Error deleting OBP data from ${url}: ${response.statusText}`);
 			}
 		}
 
@@ -108,26 +129,33 @@ class OBPRequests {
 
 	async put(endpoint: string, body: any, accessToken?: string): Promise<any> {
 		logger.debug('PUT', endpoint, body);
+		const url = `${this.base_url}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(`${this.base_url}${endpoint}`, {
+		const response = await fetch(url, {
 			method: 'PUT',
 			headers,
 			body: JSON.stringify(body)
 		});
 
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		}
 
 		if (!response.ok) {
 			logger.error('Failed to put OBP data:', { statusText: response.statusText, data });
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
-				throw new OBPErrorBase(`Error putting OBP data: ${response.statusText}`);
+				throw new OBPErrorBase(`Error putting OBP data to ${url}: ${response.statusText}`);
 			}
 		}
 
@@ -138,26 +166,33 @@ class OBPRequests {
 
 	async patch(endpoint: string, body: any, accessToken?: string): Promise<any> {
 		logger.debug('PATCH', endpoint, body);
+		const url = `${this.base_url}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(`${this.base_url}${endpoint}`, {
+		const response = await fetch(url, {
 			method: 'PATCH',
 			headers,
 			body: JSON.stringify(body)
 		});
 
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		}
 
 		if (!response.ok) {
 			logger.error('Failed to patch OBP data:', { statusText: response.statusText, data });
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
 			} else {
-				throw new OBPErrorBase(`Error patching OBP data: ${response.statusText}`);
+				throw new OBPErrorBase(`Error patching OBP data to ${url}: ${response.statusText}`);
 			}
 		}
 

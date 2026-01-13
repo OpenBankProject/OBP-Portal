@@ -15,6 +15,20 @@
         goto('/login', { replaceState: true });
     }
 
+    // Copy error message to clipboard
+    async function copyError() {
+        if (data.errorMessage) {
+            await navigator.clipboard.writeText(data.errorMessage);
+        }
+    }
+
+    // Copy provider error to clipboard
+    async function copyProviderError(errorText: string) {
+        if (errorText) {
+            await navigator.clipboard.writeText(errorText);
+        }
+    }
+
     let refreshInterval: NodeJS.Timeout | undefined;
 
     function formatProviderName(provider: string): string {
@@ -89,22 +103,35 @@
         {/if}
 
         {#if data.errorMessage}
-            <div class="mt-4 p-4 rounded-lg bg-red-500/20 border border-red-500/50 flex items-start justify-between">
-                <div class="flex items-start gap-3">
-                    <span class="text-red-400 text-xl">⚠</span>
-                    <div>
-                        <p class="text-red-300 font-semibold">Authentication Failed</p>
-                        <p class="text-red-200 text-sm mt-1">{data.errorMessage}</p>
+            <div class="mt-4 p-4 rounded-lg bg-red-500/20 border border-red-500/50">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                        <span class="text-red-400 text-xl flex-shrink-0">⚠</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-red-300 font-semibold">Authentication Failed</p>
+                            <div class="text-red-200 text-sm mt-1 max-h-32 overflow-y-auto break-words whitespace-pre-wrap">{data.errorMessage}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button 
+                            type="button" 
+                            onclick={copyError}
+                            class="text-red-300 hover:text-red-100"
+                            aria-label="Copy error message"
+                            title="Copy error"
+                        >
+                            📋
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick={clearError}
+                            class="text-red-300 hover:text-red-100"
+                            aria-label="Close error message"
+                        >
+                            ✕
+                        </button>
                     </div>
                 </div>
-                <button 
-                    type="button" 
-                    onclick={clearError}
-                    class="text-red-300 hover:text-red-100 ml-2"
-                    aria-label="Close error message"
-                >
-                    ✕
-                </button>
             </div>
         {/if}
 
@@ -126,8 +153,19 @@
                                     <span class="text-xs text-red-400">Unavailable</span>
                                 </div>
                                 {#if provider.error}
-                                    <div class="text-xs text-gray-400 mt-1 ml-5">
-                                        {provider.error}
+                                    <div class="mt-1 ml-5 flex items-start gap-2">
+                                        <div class="text-xs text-gray-400 max-h-20 overflow-y-auto break-words whitespace-pre-wrap flex-1">
+                                            {provider.error}
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onclick={() => copyProviderError(provider.error || '')}
+                                            class="text-gray-400 hover:text-gray-200 text-xs flex-shrink-0"
+                                            aria-label="Copy error message"
+                                            title="Copy error"
+                                        >
+                                            📋
+                                        </button>
                                     </div>
                                 {/if}
                             </div>
@@ -164,8 +202,19 @@
                                     <span class="text-xs text-red-400">Unavailable</span>
                                 </div>
                                 {#if provider.error}
-                                    <div class="text-xs text-gray-400 mt-1 ml-5">
-                                        {provider.error}
+                                    <div class="mt-1 ml-5 flex items-start gap-2">
+                                        <div class="text-xs text-gray-400 max-h-20 overflow-y-auto break-words whitespace-pre-wrap flex-1">
+                                            {provider.error}
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onclick={() => copyProviderError(provider.error || '')}
+                                            class="text-gray-400 hover:text-gray-200 text-xs flex-shrink-0"
+                                            aria-label="Copy error message"
+                                            title="Copy error"
+                                        >
+                                            📋
+                                        </button>
                                     </div>
                                 {/if}
                             </div>

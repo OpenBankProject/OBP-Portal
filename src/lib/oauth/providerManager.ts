@@ -73,11 +73,13 @@ class OAuth2ProviderManager {
 		} catch (error) {
 			logger.error('Failed to fetch well-known URIs, marking all providers as unavailable');
 			// Mark all defined providers as unavailable due to API connectivity issues
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			const detailedError = `Unable to fetch provider configuration from OBP API: ${errorMessage}`;
 			this.definedProviders.forEach((provider) => {
 				const existingProvider = this.status.providers.find((p) => p.provider === provider);
 				if (existingProvider) {
 					existingProvider.status = 'unavailable';
-					existingProvider.error = 'Unable to fetch provider configuration from OBP API';
+					existingProvider.error = detailedError;
 				}
 			});
 			throw error;

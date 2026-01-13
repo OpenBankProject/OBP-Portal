@@ -59,10 +59,20 @@ export async function GET(event: RequestEvent): Promise<Response> {
             if (response.ok) {
                 logger.info("Successfully revoked access token for user:", userId);
             } else {
-                logger.warn(`Token revocation failed with status ${response.status} for user:`, userId);
+                // Log detailed error information
+                const responseText = await response.text();
+                logger.error(
+                    `Token revocation failed for user: ${userId}`,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        endpoint: tokenRevokationUrl,
+                        responseBody: responseText
+                    }
+                );
             }
         } catch (error) {
-            logger.error("Error during token revocation:", error);
+            logger.error("Error during token revocation for user:", userId, error);
             // Continue with logout even if revocation fails
         }
     } else {
