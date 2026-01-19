@@ -51,6 +51,7 @@ For questions, support, or more information about the Open Bank Project, please 
 
 - [Official Website](https://www.openbankproject.com)
 - [GitHub Organization](https://github.com/OpenBankProject)
+- [Open Bank Project Chat](${env.PUBLIC_OBP_CHAT_URL || 'https://chat.openbankproject.com'})
 
 ---
 
