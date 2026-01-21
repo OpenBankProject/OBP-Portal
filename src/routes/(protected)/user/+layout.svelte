@@ -14,7 +14,7 @@
             {activeMenuItem.label}
         </h1>
         <p class="text-surface-600-400 text-sm mt-1">
-            Manage your {activeMenuItem.label.toLowerCase()} settings
+            {activeMenuItem.description || `Manage your ${activeMenuItem.label.toLowerCase()} settings`}
         </p>
     </header>
 

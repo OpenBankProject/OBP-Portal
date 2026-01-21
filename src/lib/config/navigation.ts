@@ -6,6 +6,7 @@ export interface NavigationItem {
     label: string;
     iconComponent: any;
     external?: boolean;
+    description?: string;
 }
 
 // Build navigation items dynamically based on environment variables
@@ -15,7 +16,7 @@ function buildMyAccountItems(): NavigationItem[] {
         { href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
         { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound },
         { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard },
-        { href: '/user/my-data', label: 'My Data', iconComponent: Database }
+        { href: '/user/my-data', label: 'My Data', iconComponent: Database, description: 'View my own data.' }
     ];
 
     // Only add Subscriptions link if PUBLIC_SUBSCRIPTIONS_URL is set

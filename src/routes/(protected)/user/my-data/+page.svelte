@@ -9,12 +9,6 @@
     }
 </script>
 
-<h1 class="text-gray-900 dark:text-gray-100">My Data</h1>
-
-<p class="mb-6 text-gray-700 dark:text-gray-300">
-    View and manage your personal data stored in dynamic entities.
-</p>
-
 {#if data.dynamicEntities && data.dynamicEntities.length > 0}
     <div class="space-y-6">
         {#each data.dynamicEntities as entity (entity.dynamicEntityId)}
