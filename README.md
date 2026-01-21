@@ -139,6 +139,11 @@ npm run dev
 # User should log out and back in to get fresh JWTs
 ```
 
+## Theming
+
+Themes should be created using the (skeleton UI designer)[https://themes.skeleton.dev/themes/create]. Then you can replace obp-theme.css with your file.
+
+
 ## Logging Configuration
 
 ### Username Logging for Opey Communication
