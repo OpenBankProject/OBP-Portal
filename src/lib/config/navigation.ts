@@ -1,4 +1,4 @@
-import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard } from '@lucide/svelte';
+import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard, Database } from '@lucide/svelte';
 import { env } from '$env/dynamic/public';
 
 export interface NavigationItem {
@@ -14,7 +14,8 @@ function buildMyAccountItems(): NavigationItem[] {
         { href: '/user', label: 'Profile', iconComponent: User },
         { href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
         { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound },
-        { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard } // New item
+        { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard },
+        { href: '/user/my-data', label: 'My Data', iconComponent: Database }
     ];
 
     // Only add Subscriptions link if PUBLIC_SUBSCRIPTIONS_URL is set
