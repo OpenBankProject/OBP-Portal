@@ -5,6 +5,7 @@ import type { OAuth2Tokens } from 'arctic';
 import type { RequestEvent } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import type { SessionOAuthStorageData } from '$lib/oauth/types';
 
 export async function GET(event: RequestEvent): Promise<Response> {
 	const { provider: urlProvider } = event.params;
@@ -172,6 +173,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	});
 
 	const obpAccessToken = tokens.accessToken();
+	let idToken;
+	try {
+		idToken = tokens.idToken();
+	} catch (error) {
+		// ID token might not be available for all providers/flows
+		idToken = undefined;
+	}
 
 	logger.debug(`PUBLIC_OBP_BASE_URL from env: ${env.PUBLIC_OBP_BASE_URL}`);
 	const currentUserUrl = `${env.PUBLIC_OBP_BASE_URL}/obp/v5.1.0/users/current`;
@@ -206,7 +214,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	);
 	logger.debug('Full current user data:', user);
 
-	if (user.user_id && user.email) {
+	if (user.user_id && (user.email || user.username)) {
 		// Store user data in session
 		const { session } = event.locals;
 		await session.setData({
@@ -214,8 +222,9 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			oauth: {
 				access_token: obpAccessToken,
 				refresh_token: tokens.refreshToken(),
+				...(idToken && { id_token: idToken }),
 				provider: provider
-			}
+			} as SessionOAuthStorageData
 		});
 		await session.save();
 		logger.debug('Session data set:', session.data);
@@ -226,7 +235,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			}
 		});
 	} else {
-		logger.error('Invalid user data received from OBP - missing user_id or email:', user);
+		logger.error('Invalid user data received from OBP - missing user_id or email/username:', user);
 		
 		// Clean up the state cookie
 		event.cookies.delete('obp_oauth_state', {
@@ -236,7 +245,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		return new Response(null, {
 			status: 302,
 			headers: {
-				Location: `/login?error=${encodeURIComponent('Invalid user data received. Please contact your administrator.')}`
+				Location: `/login?error=${encodeURIComponent('Invalid user data received - missing required user identification. Please contact your administrator.')}`
 			}
 		});
 	}
