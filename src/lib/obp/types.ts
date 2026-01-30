@@ -128,3 +128,26 @@ export interface OBPUserInvitationAcceptRequestBody {
     company: string;
     country: string;
 }
+
+// API Collection types
+export interface OBPApiCollection {
+    api_collection_id: string;
+    api_collection_name: string;
+    description: string;
+    is_sharable: boolean;
+    user_id: string;
+}
+
+export interface OBPApiCollectionsResponse {
+    api_collections: OBPApiCollection[];
+}
+
+export interface OBPApiCollectionEndpoint {
+    api_collection_endpoint_id: string;
+    api_collection_id: string;
+    operation_id: string;
+}
+
+export interface OBPApiCollectionEndpointsResponse {
+    api_collection_endpoints: OBPApiCollectionEndpoint[];
+}
