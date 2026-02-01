@@ -18,6 +18,7 @@ export interface FeaturedEndpoint {
 	request_url?: string;
 	summary?: string;
 	description?: string;
+	description_markdown?: string;
 	tags?: string[];
 }
 
@@ -180,6 +181,7 @@ export async function load(event: RequestEvent) {
 						endpoint.request_url = doc.specified_url || doc.request_url || '';
 						endpoint.summary = doc.summary || '';
 						endpoint.description = doc.description || '';
+						endpoint.description_markdown = doc.description_markdown || '';
 						endpoint.tags = doc.tags || [];
 						enrichedCount++;
 					} else {
