@@ -80,6 +80,11 @@
 				]
 			: []), // unpacks a conditional list so we can add menu items where we want
 		{
+			label: 'Featured',
+			href: '/featured',
+			iconComponent: Star
+		},
+		{
 			label: 'Get API Key',
 			href: '/consumers/register',
 			iconComponent: KeyRound
