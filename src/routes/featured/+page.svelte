@@ -40,6 +40,11 @@
 		return `${baseUrl}/resource-docs/${version}?operationid=${operationId}`;
 	}
 
+	function buildTellMeMoreUrl(operationId: string): string {
+		const question = `Tell me more about the API endpoint with operation ID: ${operationId}`;
+		return `/?ask=${encodeURIComponent(question)}`;
+	}
+
 	// Strip HTML tags and truncate text for preview
 	function getDescriptionPreview(html: string, maxLength: number = 150): string {
 		const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -82,18 +87,6 @@
 						{endpoint.summary || endpoint.operation_id}
 					</h3>
 
-					<!-- Verb and Path (only if enriched) -->
-					{#if hasEnrichedData && endpoint.request_verb}
-						<div class="mt-2 flex flex-wrap items-center gap-2">
-							<span class={`inline-flex rounded px-2 py-1 text-xs font-bold uppercase ${getMethodColor(endpoint.request_verb)}`}>
-								{endpoint.request_verb}
-							</span>
-							<code class="text-xs font-medium text-gray-600 dark:text-gray-400 break-all">
-								{endpoint.request_url}
-							</code>
-						</div>
-					{/if}
-
 					<!-- Description preview or full -->
 					{#if endpoint.description}
 						<div class="mt-2 flex-grow">
@@ -123,6 +116,18 @@
 						</div>
 					{/if}
 
+					<!-- Verb and Path (only if enriched) -->
+					{#if hasEnrichedData && endpoint.request_verb}
+						<div class="mt-2 flex flex-wrap items-center gap-2">
+							<span class={`inline-flex rounded px-2 py-1 text-xs font-bold uppercase ${getMethodColor(endpoint.request_verb)}`}>
+								{endpoint.request_verb}
+							</span>
+							<code class="text-xs font-medium text-gray-600 dark:text-gray-400 break-all">
+								{endpoint.request_url}
+							</code>
+						</div>
+					{/if}
+
 					<!-- Tags and Operation ID -->
 					<div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
 						<div class="flex items-end justify-between gap-2">
@@ -140,16 +145,26 @@
 								{/if}
 							</div>
 
-							<!-- Operation ID on the right (links to API Explorer) -->
-							<a
-								href={buildApiExplorerUrl(endpoint.operation_id)}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="text-xs text-primary-500 dark:text-primary-200 hover:underline font-mono whitespace-nowrap"
-								title="View in API Explorer"
-							>
-								{endpoint.operation_id}
-							</a>
+							<!-- Links on the right -->
+							<div class="flex items-center gap-2">
+								<a
+									href={buildTellMeMoreUrl(endpoint.operation_id)}
+									class="text-xs text-secondary-500 dark:text-secondary-300 hover:underline whitespace-nowrap"
+									title="Ask Opey about this endpoint"
+								>
+									Tell Me More
+								</a>
+								<span class="text-gray-300 dark:text-gray-600">|</span>
+								<a
+									href={buildApiExplorerUrl(endpoint.operation_id)}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="text-xs text-primary-500 dark:text-primary-200 hover:underline font-mono whitespace-nowrap"
+									title="View in API Explorer"
+								>
+									{endpoint.operation_id}
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>

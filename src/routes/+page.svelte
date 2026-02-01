@@ -3,8 +3,12 @@
 	import type { OpeyChatOptions, SuggestedQuestion } from '$lib/components/OpeyChat.svelte';
     import { CheckCheck, Layers, Rocket, UserLock, HelpCircle } from '@lucide/svelte';
 	import { env } from '$env/dynamic/public';
+	import { page } from '$app/stores';
 
 	let { data } = $props();
+
+	// Get the 'ask' query parameter from URL (used by "Tell Me More" links)
+	const askParam = $derived($page.url.searchParams.get('ask'));
 	let name = data.username || 'Guest';
 	let opeyConsentInfo = data.opeyConsentInfo;
 	let isAuthenticated = !!data.email;
@@ -50,7 +54,7 @@
     const suggestedQuestions: SuggestedQuestion[] = parseSuggestedQuestions();
 
 
-	let opeyChatOptions: Partial<OpeyChatOptions> = {
+	let opeyChatOptions: Partial<OpeyChatOptions> = $derived({
 		displayHeader: false,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
@@ -58,7 +62,8 @@
 		bodyClasses: 'bg-opacity-0',
 		footerClasses: 'bg-opacity-0',
 		displayConnectionPips: true,
-	};
+		initialUserMessage: askParam || undefined,
+	});
 	
 </script>
 
