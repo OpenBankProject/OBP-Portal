@@ -6,6 +6,42 @@
 	// Maximum characters to show in description preview
 	const DESCRIPTION_CUTOFF_LENGTH = 500;
 
+	// Calculate effective display length (after processing)
+	function getEffectiveLength(markdown: string | undefined, summary?: string): number {
+		if (!markdown) return 0;
+		let text = markdown;
+
+		// Remove summary if present (same logic as getDescriptionPreview)
+		if (summary) {
+			const cleanSummary = summary.trim();
+			const headingPattern = new RegExp(`^#+\\s*${cleanSummary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n*`, 'i');
+			text = text.replace(headingPattern, '').trim();
+			if (text.startsWith(cleanSummary)) {
+				text = text.substring(cleanSummary.length).trim();
+			}
+		}
+
+		// Find earliest stop phrase
+		let cutoffIndex = text.length;
+		for (const phrase of STOP_PHRASES) {
+			const index = text.indexOf(phrase);
+			if (index !== -1 && index < cutoffIndex) {
+				cutoffIndex = index;
+			}
+		}
+
+		return Math.min(cutoffIndex, DESCRIPTION_CUTOFF_LENGTH);
+	}
+
+	// Sort endpoints by effective display length (descending) so longer cards appear at top
+	let sortedEndpoints = $derived(
+		[...(data.endpoints || [])].sort((a, b) => {
+			const lenA = getEffectiveLength(a.description_markdown, a.summary);
+			const lenB = getEffectiveLength(b.description_markdown, b.summary);
+			return lenB - lenA;
+		})
+	);
+
 	// Track which operation IDs have been copied (for feedback)
 	let copiedIds = $state(new Set<string>());
 
@@ -293,7 +329,7 @@
 		</div>
 	{:else if data.endpoints && data.endpoints.length > 0}
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each data.endpoints as endpoint (endpoint.operation_id)}
+			{#each sortedEndpoints as endpoint (endpoint.operation_id)}
 				{@const hasEnrichedData = !!endpoint.summary}
 				<div class="flex flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
 					<!-- Title -->
