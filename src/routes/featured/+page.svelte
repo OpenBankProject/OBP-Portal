@@ -3,8 +3,9 @@
 
 	let { data } = $props();
 
-	// Maximum characters to show in description preview
+	// Target characters for description preview, with flexible buffer to find sentence boundary
 	const DESCRIPTION_CUTOFF_LENGTH = 500;
+	const DESCRIPTION_CUTOFF_BUFFER = 200; // Extra chars to search for sentence boundary
 
 	// Calculate effective display length (after processing)
 	function getEffectiveLength(markdown: string | undefined, summary?: string): number {
@@ -30,15 +31,17 @@
 			}
 		}
 
-		return Math.min(cutoffIndex, DESCRIPTION_CUTOFF_LENGTH);
+		// Use extended limit for finding sentence boundary
+		const extendedLimit = DESCRIPTION_CUTOFF_LENGTH + DESCRIPTION_CUTOFF_BUFFER;
+		return Math.min(cutoffIndex, extendedLimit);
 	}
 
-	// Sort endpoints by effective display length (descending) so longer cards appear at top
+	// Sort endpoints by effective display length (ascending) so shorter cards appear at top
 	let sortedEndpoints = $derived(
 		[...(data.endpoints || [])].sort((a, b) => {
 			const lenA = getEffectiveLength(a.description_markdown, a.summary);
 			const lenB = getEffectiveLength(b.description_markdown, b.summary);
-			return lenB - lenA;
+			return lenA - lenB;
 		})
 	);
 
@@ -189,6 +192,7 @@
 		'This is a management endpoint that requires the',
 		'Authentication is required if the view',
 		'Authentication is required as the tag',
+		'Examples:',
 	];
 
 	// Convert markdown to clean text (for finding cut points)
@@ -216,7 +220,7 @@
 			// Then apply markdown formatting
 			.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
 			.replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italic
-			.replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">$1</code>') // Inline code
+			.replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded break-all">$1</code>') // Inline code
 			.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-500 dark:text-primary-200 hover:underline">$1</a>') // Links
 			.replace(/^#{1,6}\s+(.+)$/gm, '<strong>$1</strong>') // Headings to bold
 			.replace(/\n\n+/g, '</p><p>') // Paragraph breaks
@@ -253,57 +257,58 @@
 			}
 		}
 
-		// Use the earlier of: stop phrase position or maxLength
-		const effectiveLength = Math.min(cutoffIndex, maxLength);
-		const stoppedByMaxLength = maxLength < cutoffIndex;
-
-		if (text.length <= effectiveLength && cutoffIndex === text.length) {
+		// If text is short enough and no stop phrase, return as-is
+		if (text.length <= maxLength && cutoffIndex === text.length) {
 			return markdownToHtml(text);
 		}
-
-		// Find the last sentence boundary before cutoff
-		let truncateAt = effectiveLength;
-		const searchRegion = text.substring(0, effectiveLength);
 
 		// Common abbreviations that shouldn't be treated as sentence ends
 		const abbreviations = ['i.e.', 'e.g.', 'etc.', 'vs.', 'Mr.', 'Mrs.', 'Dr.', 'Jr.', 'Sr.', 'Inc.', 'Ltd.', 'Corp.'];
 
-		// Look for sentence endings - period, exclamation, or question mark
-		let lastSentenceEnd = -1;
-		for (let i = searchRegion.length - 1; i >= 0; i--) {
-			const char = searchRegion[i];
-			if (char === '.' || char === '!' || char === '?') {
-				// Check if next char is space followed by uppercase (new sentence) or end of region
-				const isEndOfRegion = i === searchRegion.length - 1;
-				const nextChar = !isEndOfRegion ? searchRegion[i + 1] : '';
-				const charAfterSpace = (i + 2 < searchRegion.length) ? searchRegion[i + 2] : '';
+		// Helper function to find sentence boundary in a region
+		function findSentenceBoundary(region: string, searchBackwards: boolean = true): number {
+			if (searchBackwards) {
+				for (let i = region.length - 1; i >= 0; i--) {
+					const char = region[i];
+					if (char === '.' || char === '!' || char === '?') {
+						const isEndOfRegion = i === region.length - 1;
+						const nextChar = !isEndOfRegion ? region[i + 1] : '';
+						const charAfterSpace = (i + 2 < region.length) ? region[i + 2] : '';
 
-				// Must be followed by space and uppercase letter (new sentence start)
-				const looksLikeSentenceEnd = isEndOfRegion ||
-					(nextChar === ' ' && charAfterSpace && charAfterSpace === charAfterSpace.toUpperCase() && charAfterSpace.match(/[A-Z]/));
+						// Must be followed by newline, or space and uppercase letter
+						const looksLikeSentenceEnd = isEndOfRegion ||
+							nextChar === '\n' ||
+							(nextChar === ' ' && charAfterSpace && charAfterSpace.match(/[A-Z]/));
 
-				if (looksLikeSentenceEnd) {
-					// Check it's not part of an abbreviation
-					const precedingText = searchRegion.substring(Math.max(0, i - 5), i + 1).toLowerCase();
-					const isAbbreviation = abbreviations.some(abbr => precedingText.endsWith(abbr.toLowerCase()));
+						if (looksLikeSentenceEnd) {
+							const precedingText = region.substring(Math.max(0, i - 5), i + 1).toLowerCase();
+							const isAbbreviation = abbreviations.some(abbr => precedingText.endsWith(abbr.toLowerCase()));
 
-					if (!isAbbreviation) {
-						lastSentenceEnd = i + 1;
-						break;
+							if (!isAbbreviation) {
+								return i + 1;
+							}
+						}
 					}
 				}
 			}
+			return -1;
 		}
 
-		if (lastSentenceEnd > 50) { // Only use sentence boundary if we have enough content
-			truncateAt = lastSentenceEnd;
+		// Determine the maximum we're willing to show (stop phrase or extended limit)
+		const extendedLimit = maxLength + DESCRIPTION_CUTOFF_BUFFER;
+		const hardLimit = stoppedByPhrase ? cutoffIndex : Math.min(text.length, extendedLimit);
+
+		// Search for sentence boundary within the extended region
+		const searchRegion = text.substring(0, hardLimit);
+		let sentenceEnd = findSentenceBoundary(searchRegion);
+
+		// If found and it's reasonable (> 50 chars), use it
+		if (sentenceEnd > 50) {
+			return markdownToHtml(text.substring(0, sentenceEnd).trim());
 		}
 
-		let result = text.substring(0, truncateAt).trim();
-		// Only add ellipsis if we truncated due to maxLength, not due to stop phrase
-		if (stoppedByMaxLength && truncateAt < text.length) {
-			result += '...';
-		}
+		// No good sentence boundary found - use stop phrase position or hard limit
+		const result = text.substring(0, stoppedByPhrase ? cutoffIndex : hardLimit).trim();
 		return markdownToHtml(result);
 	}
 
@@ -339,7 +344,7 @@
 
 					<!-- Description -->
 					{#if endpoint.description_markdown}
-						<div class="mt-2 flex-grow text-sm text-gray-600 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none">
+						<div class="mt-2 flex-grow text-sm text-gray-600 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words">
 							{@html getDescriptionPreview(endpoint.description_markdown, DESCRIPTION_CUTOFF_LENGTH, endpoint.summary)}
 						</div>
 					{/if}
