@@ -103,7 +103,7 @@
 {#if data.collections && data.collections.length > 0}
     <div class="space-y-4">
         {#each data.collections as collection (collection.api_collection_id)}
-            <ApiCollectionCard {collection} showDeleteButton={true} showViewButton={true} />
+            <ApiCollectionCard {collection} showDeleteButton={true} showViewButton={true} apiExplorerUrl={data.apiExplorerUrl} />
         {/each}
     </div>
 {:else}

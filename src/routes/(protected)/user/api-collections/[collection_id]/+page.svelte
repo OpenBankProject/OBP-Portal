@@ -4,12 +4,71 @@
     let showAddEndpointForm = $state(false);
     let operationId = $state('');
     let showEditForm = $state(false);
+    let searchQuery = $state('');
+    let showDropdown = $state(false);
+    let highlightedIndex = $state(-1);
+    let showCopyFromForm = $state(false);
+    let selectedSourceCollection = $state('');
+
+    // Filter operations based on search query
+    let filteredOperations = $derived(() => {
+        if (!searchQuery.trim()) return [];
+        const query = searchQuery.toLowerCase();
+        return (data.availableOperations || [])
+            .filter((op: { operation_id: string; summary: string }) =>
+                op.operation_id.toLowerCase().includes(query) ||
+                op.summary.toLowerCase().includes(query)
+            )
+            .slice(0, 20); // Limit results for performance
+    });
+
+    function selectOperation(opId: string) {
+        operationId = opId;
+        searchQuery = opId;
+        showDropdown = false;
+        highlightedIndex = -1;
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        const ops = filteredOperations();
+        if (!showDropdown || ops.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            highlightedIndex = Math.min(highlightedIndex + 1, ops.length - 1);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            highlightedIndex = Math.max(highlightedIndex - 1, 0);
+        } else if (event.key === 'Enter' && highlightedIndex >= 0) {
+            event.preventDefault();
+            selectOperation(ops[highlightedIndex].operation_id);
+        } else if (event.key === 'Escape') {
+            showDropdown = false;
+            highlightedIndex = -1;
+        }
+    }
+
+    function handleInput() {
+        operationId = searchQuery;
+        showDropdown = searchQuery.trim().length > 0;
+        highlightedIndex = -1;
+    }
+
+    function handleBlur() {
+        // Delay hiding to allow click on dropdown item
+        setTimeout(() => {
+            showDropdown = false;
+        }, 200);
+    }
 
     // Reset form on success
     $effect(() => {
         if (form?.success) {
             operationId = '';
+            searchQuery = '';
             showAddEndpointForm = false;
+            showCopyFromForm = false;
+            selectedSourceCollection = '';
         }
     });
 </script>
@@ -21,13 +80,13 @@
 </div>
 
 {#if data.collection}
-<h1 class="text-gray-900 dark:text-gray-100">{data.collection.api_collection_name}</h1>
+<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{data.collection.api_collection_name}</h1>
 
 {#if data.collection.description}
     <p class="mb-4 text-gray-700 dark:text-gray-300">{data.collection.description}</p>
 {/if}
 
-<div class="mb-4 flex items-center gap-2">
+<div class="mb-4 flex flex-wrap items-center gap-2">
     <span class={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
         data.collection.is_sharable
             ? 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400'
@@ -36,6 +95,24 @@
         {data.collection.is_sharable ? 'Sharable' : 'Private'}
     </span>
     <span class="text-xs text-gray-500 font-mono">ID: {data.collection.api_collection_id}</span>
+    <a
+        href="/collections/{data.collection.api_collection_id}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-xs text-secondary-500 dark:text-secondary-300 hover:underline"
+    >
+        View in Portal
+    </a>
+    {#if data.apiExplorerUrl}
+        <a
+            href="{data.apiExplorerUrl}/resource-docs?api-collection-id={data.collection.api_collection_id}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs text-primary-500 dark:text-primary-200 hover:underline"
+        >
+            View in API Explorer
+        </a>
+    {/if}
 </div>
 
 {#if form?.error}
@@ -108,34 +185,106 @@
 <div class="mb-8">
     <h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Endpoints in Collection</h2>
 
-    <button
-        class="btn preset-filled-primary-500 mb-4"
-        onclick={() => showAddEndpointForm = !showAddEndpointForm}
-    >
-        {showAddEndpointForm ? 'Cancel' : 'Add Endpoint'}
-    </button>
+    <div class="flex flex-wrap gap-2 mb-4">
+        <button
+            class="btn preset-filled-primary-500"
+            onclick={() => { showAddEndpointForm = !showAddEndpointForm; showCopyFromForm = false; }}
+        >
+            {showAddEndpointForm ? 'Cancel' : 'Add Endpoint'}
+        </button>
+
+        {#if data.allCollections && data.allCollections.length > 0}
+            <button
+                class="btn preset-outlined-secondary-500"
+                onclick={() => { showCopyFromForm = !showCopyFromForm; showAddEndpointForm = false; }}
+            >
+                {showCopyFromForm ? 'Cancel' : 'Copy From'}
+            </button>
+        {/if}
+    </div>
+
+    {#if showCopyFromForm}
+        <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Copy Endpoints from Another Collection</h3>
+
+            <form method="POST" action="?/copyFrom" class="space-y-4">
+                <label class="label">
+                    <span class="label-text">Source Collection *</span>
+                    <select
+                        class="select w-full"
+                        name="source_collection_id"
+                        bind:value={selectedSourceCollection}
+                        required
+                    >
+                        <option value="">Select a collection...</option>
+                        {#each data.allCollections as coll (coll.api_collection_id)}
+                            <option value={coll.api_collection_id}>{coll.api_collection_name}</option>
+                        {/each}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        All endpoints from the selected collection will be copied. Existing endpoints will be skipped.
+                    </p>
+                </label>
+
+                <button type="submit" class="btn preset-filled-primary-500" disabled={!selectedSourceCollection}>
+                    Copy Endpoints
+                </button>
+            </form>
+        </div>
+    {/if}
 
     {#if showAddEndpointForm}
         <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Add Endpoint to Collection</h3>
 
             <form method="POST" action="?/addEndpoint" class="space-y-4">
+                <input type="hidden" name="operation_id" value={operationId} />
                 <label class="label">
                     <span class="label-text">Operation ID *</span>
-                    <input
-                        type="text"
-                        class="input"
-                        name="operation_id"
-                        placeholder="e.g., OBPv4.0.0-getBanks"
-                        bind:value={operationId}
-                        required
-                    />
+                    <div class="relative">
+                        <input
+                            type="text"
+                            class="input w-full"
+                            placeholder="Search for an operation ID..."
+                            bind:value={searchQuery}
+                            oninput={handleInput}
+                            onkeydown={handleKeydown}
+                            onfocus={() => { if (searchQuery.trim()) showDropdown = true; }}
+                            onblur={handleBlur}
+                            autocomplete="off"
+                        />
+                        {#if showDropdown && filteredOperations().length > 0}
+                            <div class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                                {#each filteredOperations() as op, index (op.operation_id)}
+                                    <button
+                                        type="button"
+                                        class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 {index === highlightedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+                                        onmousedown={() => selectOperation(op.operation_id)}
+                                    >
+                                        <div class="font-mono text-sm text-gray-900 dark:text-gray-100">
+                                            {op.operation_id}
+                                        </div>
+                                        {#if op.summary}
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                {op.summary}
+                                            </div>
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </div>
+                        {/if}
+                        {#if showDropdown && searchQuery.trim() && filteredOperations().length === 0}
+                            <div class="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">No matching operations found</p>
+                            </div>
+                        {/if}
+                    </div>
                     <p class="text-xs text-gray-500 mt-1">
-                        Enter the OBP API operation ID (e.g., OBPv4.0.0-getBanks, OBPv4.0.0-getAccounts)
+                        Type to search for an operation ID by name or description
                     </p>
                 </label>
 
-                <button type="submit" class="btn preset-filled-primary-500">
+                <button type="submit" class="btn preset-filled-primary-500" disabled={!operationId.trim()}>
                     Add Endpoint
                 </button>
             </form>

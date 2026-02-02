@@ -105,12 +105,23 @@ class OBPRequests {
 			headers
 		});
 
-		let data;
-		try {
-			data = await response.json();
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			throw new OBPErrorBase(`Failed to parse JSON response from ${url}: ${message}`);
+		// Handle empty responses (common for DELETE returning 204 No Content)
+		let data = null;
+		const contentLength = response.headers.get('content-length');
+		const hasContent = contentLength && parseInt(contentLength) > 0;
+
+		if (hasContent || response.status !== 204) {
+			const text = await response.text();
+			if (text) {
+				try {
+					data = JSON.parse(text);
+				} catch (error) {
+					// If response is not ok and we can't parse JSON, we'll handle it below
+					if (!response.ok) {
+						throw new OBPErrorBase(`Error deleting OBP data from ${url}: ${response.statusText}`);
+					}
+				}
+			}
 		}
 
 		if (!response.ok) {

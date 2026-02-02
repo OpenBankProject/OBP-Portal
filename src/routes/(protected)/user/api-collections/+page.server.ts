@@ -5,6 +5,7 @@ import { error, fail } from '@sveltejs/kit';
 import type { OBPApiCollection, OBPApiCollectionsResponse } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
 import { OBPRequestError } from '$lib/obp/errors';
+import { env } from '$env/dynamic/private';
 
 const API_VERSION = 'v6.0.0';
 
@@ -28,7 +29,7 @@ export async function load(event: RequestEvent) {
 	}
 
 	if (!collectionsResponse || !collectionsResponse.api_collections) {
-		return { collections: [] };
+		return { collections: [], apiExplorerUrl: env.API_EXPLORER_URL || '' };
 	}
 
 	// Sort by name alphabetically
@@ -36,7 +37,7 @@ export async function load(event: RequestEvent) {
 		a.api_collection_name.localeCompare(b.api_collection_name)
 	);
 
-	return { collections };
+	return { collections, apiExplorerUrl: env.API_EXPLORER_URL || '' };
 }
 
 export const actions = {

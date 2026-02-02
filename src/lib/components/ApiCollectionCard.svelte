@@ -6,9 +6,10 @@
         collection: OBPApiCollection;
         showDeleteButton?: boolean;
         showViewButton?: boolean;
+        apiExplorerUrl?: string;
     }
 
-    let { collection, showDeleteButton = false, showViewButton = true }: Props = $props();
+    let { collection, showDeleteButton = false, showViewButton = true, apiExplorerUrl = '' }: Props = $props();
 
     async function copyToClipboard(text: string, label: string) {
         try {
@@ -71,7 +72,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="mt-4 border-t pt-4 dark:border-gray-700 flex gap-2">
+    <div class="mt-4 border-t pt-4 dark:border-gray-700 flex flex-wrap items-center gap-2">
         {#if showViewButton}
             <a
                 href="/user/api-collections/{collection.api_collection_id}"
@@ -91,6 +92,25 @@
                     Delete
                 </button>
             </form>
+        {/if}
+
+        <a
+            href="/collections/{collection.api_collection_id}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs text-secondary-500 dark:text-secondary-300 hover:underline"
+        >
+            View in Portal
+        </a>
+        {#if apiExplorerUrl}
+            <a
+                href="{apiExplorerUrl}/resource-docs?api-collection-id={collection.api_collection_id}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs text-primary-500 dark:text-primary-200 hover:underline"
+            >
+                View in API Explorer
+            </a>
         {/if}
     </div>
 </div>
