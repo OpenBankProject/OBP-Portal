@@ -7,6 +7,18 @@
 	const DESCRIPTION_CUTOFF_LENGTH = 500;
 	const DESCRIPTION_CUTOFF_BUFFER = 200; // Extra chars to search for sentence boundary
 
+	// Stop phrases that indicate technical content - truncate before these
+	const STOP_PHRASES = [
+		'URL Parameters:',
+		'User Authentication is Optional. The User need not be logged in.',
+		'JSON response body fields:',
+		'User Authentication is Required.',
+		'This is a management endpoint that requires the',
+		'Authentication is required if the view',
+		'Authentication is required as the tag',
+		'Examples:',
+	];
+
 	// Calculate effective display length (after processing)
 	function getEffectiveLength(markdown: string | undefined, summary?: string): number {
 		if (!markdown) return 0;
@@ -182,18 +194,6 @@
 		const question = `Tell me more about the API endpoint with operation ID: ${operationId}`;
 		return `/?ask=${encodeURIComponent(question)}`;
 	}
-
-	// Stop phrases that indicate technical content - truncate before these
-	const STOP_PHRASES = [
-		'URL Parameters:',
-		'User Authentication is Optional. The User need not be logged in.',
-		'JSON response body fields:',
-		'User Authentication is Required.',
-		'This is a management endpoint that requires the',
-		'Authentication is required if the view',
-		'Authentication is required as the tag',
-		'Examples:',
-	];
 
 	// Convert markdown to clean text (for finding cut points)
 	function markdownToText(markdown: string): string {
