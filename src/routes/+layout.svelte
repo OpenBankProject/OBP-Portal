@@ -22,7 +22,8 @@
 		ChevronDown,
 		ChevronRight,
 		Settings,
-		CreditCard
+		CreditCard,
+		ShoppingBag
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
@@ -83,6 +84,11 @@
 			label: 'Featured',
 			href: '/featured',
 			iconComponent: Star
+		},
+		{
+			label: 'Products',
+			href: '/products',
+			iconComponent: ShoppingBag
 		},
 		{
 			label: 'Get API Key',
