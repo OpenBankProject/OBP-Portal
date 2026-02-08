@@ -86,7 +86,7 @@
 			iconComponent: Star
 		},
 		{
-			label: 'Products',
+			label: 'API Products',
 			href: '/products',
 			iconComponent: ShoppingBag
 		},

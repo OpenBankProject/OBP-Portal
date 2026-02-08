@@ -11,7 +11,7 @@
     let { product, showSubscribeButton = true, isLoggedIn = false }: Props = $props();
 
     function formatPrice(price: number | undefined, currency: string = 'USD'): string {
-        if (price === undefined || price === null) return 'Contact us';
+        if (price === undefined || price === null) return '';
         if (price === 0) return 'Free';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
