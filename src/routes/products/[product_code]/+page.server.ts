@@ -3,9 +3,9 @@ const logger = createLogger('ProductDetailServer');
 
 import type { RequestEvent } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
-import type { OBPProduct, OBPProductsResponse, APIProductDetails, OBPApiCollectionEndpointsResponse } from '$lib/obp/types';
+import type { OBPProduct, APIProductDetails, OBPApiCollectionEndpointsResponse } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
-import { OBPRequestError, OBPErrorBase } from '$lib/obp/errors';
+import { OBPErrorBase, OBPRateLimitError, OBPTimeoutError } from '$lib/obp/errors';
 import { env } from '$env/dynamic/private';
 
 const API_VERSION = 'v6.0.0';
@@ -15,45 +15,54 @@ interface EndpointInfo {
 	request_verb?: string;
 	request_url?: string;
 	summary?: string;
+	description_markdown?: string;
+	tags?: string[];
 }
 
 /**
- * Parse product attributes into a structured APIProductDetails object
+ * Parse product attributes into a structured APIProductDetails object.
+ * Handles both field names: 'product_attributes' (from getProducts list)
+ * and 'attributes' (from getProduct single endpoint).
+ * Also handles alternative attribute names used in the OBP API.
  */
 function parseProductAttributes(product: OBPProduct): APIProductDetails {
 	const details: APIProductDetails = {
 		product
 	};
 
-	if (product.product_attributes) {
-		for (const attr of product.product_attributes) {
-			switch (attr.name.toLowerCase()) {
-				case 'api_collection_id':
-					details.apiCollectionId = attr.value;
-					break;
-				case 'stripe_price_id':
-					details.stripePriceId = attr.value;
-					break;
-				case 'rate_limit_per_minute':
-					details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'rate_limit_per_day':
-					details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'features':
-					try {
-						details.features = JSON.parse(attr.value);
-					} catch {
-						details.features = attr.value.split(',').map(f => f.trim());
-					}
-					break;
-				case 'price_monthly':
-					details.priceMonthly = parseFloat(attr.value) || undefined;
-					break;
-				case 'price_currency':
-					details.priceCurrency = attr.value;
-					break;
-			}
+	const attrs = product.product_attributes || (product as any).attributes || [];
+
+	for (const attr of attrs) {
+		switch (attr.name.toLowerCase()) {
+			case 'api_collection_id':
+				details.apiCollectionId = attr.value;
+				break;
+			case 'stripe_price_id':
+				details.stripePriceId = attr.value;
+				break;
+			case 'rate_limit_per_minute':
+			case 'calls_per_minute':
+				details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
+				break;
+			case 'rate_limit_per_day':
+			case 'calls_per_day':
+				details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
+				break;
+			case 'features':
+				try {
+					details.features = JSON.parse(attr.value);
+				} catch {
+					details.features = attr.value.split(',').map((f: string) => f.trim());
+				}
+				break;
+			case 'price_monthly':
+			case 'monthly_subscription_amount':
+				details.priceMonthly = parseFloat(attr.value) || undefined;
+				break;
+			case 'price_currency':
+			case 'monthly_subscription_currency':
+				details.priceCurrency = attr.value;
+				break;
 		}
 	}
 
@@ -83,40 +92,34 @@ export async function load(event: RequestEvent) {
 		error(500, { message: 'Could not fetch banks list.' });
 	}
 
-	// Search for the product across all banks using the products listing endpoint
+	// Search for the product across all banks using the API Products endpoint
 	for (const bank of banks) {
 		try {
-			const productsResponse: OBPProductsResponse = await obp_requests.get(
-				`/obp/${API_VERSION}/banks/${bank.id}/products`
+			const apiProductResponse = await obp_requests.get(
+				`/obp/${API_VERSION}/banks/${bank.id}/api-products/${productCode}`,
+				token
 			);
 
-			if (productsResponse?.products) {
-				const matchingProduct = productsResponse.products.find(
-					(p: OBPProduct) => p.product_code === productCode
-				);
+			if (apiProductResponse) {
+				const obpProduct: OBPProduct = {
+					product_id: apiProductResponse.api_product_id,
+					bank_id: apiProductResponse.bank_id,
+					product_code: apiProductResponse.api_product_code,
+					parent_product_code: apiProductResponse.parent_api_product_code,
+					name: apiProductResponse.name,
+					more_info_url: apiProductResponse.more_info_url,
+					terms_and_conditions_url: apiProductResponse.terms_and_conditions_url,
+					description: apiProductResponse.description,
+					meta: apiProductResponse.meta,
+					product_attributes: apiProductResponse.attributes || []
+				};
 
-				if (matchingProduct) {
-					// Fetch attributes if not included
-					if (!matchingProduct.product_attributes || matchingProduct.product_attributes.length === 0) {
-						try {
-							const attrsResponse = await obp_requests.get(
-								`/obp/${API_VERSION}/banks/${bank.id}/products/${productCode}/attributes`
-							);
-							if (attrsResponse?.product_attributes) {
-								matchingProduct.product_attributes = attrsResponse.product_attributes;
-							}
-						} catch (e) {
-							logger.warn(`Could not fetch attributes for product ${productCode}:`, e);
-						}
-					}
-
-					product = parseProductAttributes(matchingProduct);
-					logger.info(`Found product ${productCode} in bank ${bank.id}`);
-					break;
-				}
+				product = parseProductAttributes(obpProduct);
+				logger.info(`Found API product ${productCode} in bank ${bank.id}`);
+				break;
 			}
 		} catch (e) {
-			// Products not available in this bank, continue searching
+			// Product not found in this bank, continue searching
 		}
 	}
 
@@ -176,7 +179,9 @@ export async function load(event: RequestEvent) {
 								operation_id: ep.operation_id,
 								request_verb: doc?.request_verb || 'GET',
 								request_url: doc?.specified_url || doc?.request_url || '',
-								summary: doc?.summary || ''
+								summary: doc?.summary || '',
+								description_markdown: doc?.description?.markdown || '',
+								tags: doc?.tags || []
 							});
 						}
 					}

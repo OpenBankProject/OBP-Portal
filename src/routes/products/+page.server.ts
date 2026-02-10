@@ -2,68 +2,102 @@ import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('ProductsServer');
 
 import type { RequestEvent } from '@sveltejs/kit';
-import type { OBPProduct, OBPProductsResponse, APIProductDetails } from '$lib/obp/types';
+import type { OBPProduct, APIProductDetails } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
-import { OBPRequestError, OBPErrorBase } from '$lib/obp/errors';
+import { OBPRequestError, OBPRateLimitError, OBPTimeoutError } from '$lib/obp/errors';
 import { env } from '$env/dynamic/private';
 
 const API_VERSION = 'v6.0.0';
 
 /**
- * Parse product attributes into a structured APIProductDetails object
+ * Parse product attributes into a structured APIProductDetails object.
  */
 function parseProductAttributes(product: OBPProduct): APIProductDetails {
 	const details: APIProductDetails = {
 		product
 	};
 
-	if (product.product_attributes) {
-		for (const attr of product.product_attributes) {
-			switch (attr.name.toLowerCase()) {
-				case 'api_collection_id':
-					details.apiCollectionId = attr.value;
-					break;
-				case 'stripe_price_id':
-					details.stripePriceId = attr.value;
-					break;
-				case 'rate_limit_per_minute':
-					details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'rate_limit_per_day':
-					details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'features':
-					try {
-						details.features = JSON.parse(attr.value);
-					} catch {
-						details.features = attr.value.split(',').map(f => f.trim());
-					}
-					break;
-				case 'price_monthly':
-					details.priceMonthly = parseFloat(attr.value) || undefined;
-					break;
-				case 'price_currency':
-					details.priceCurrency = attr.value;
-					break;
-			}
+	const attrs = product.product_attributes || [];
+
+	for (const attr of attrs) {
+		switch (attr.name.toLowerCase()) {
+			case 'api_collection_id':
+				details.apiCollectionId = attr.value;
+				break;
+			case 'stripe_price_id':
+				details.stripePriceId = attr.value;
+				break;
+			case 'rate_limit_per_minute':
+			case 'calls_per_minute':
+				details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
+				break;
+			case 'rate_limit_per_day':
+			case 'calls_per_day':
+				details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
+				break;
+			case 'features':
+				try {
+					details.features = JSON.parse(attr.value);
+				} catch {
+					details.features = attr.value.split(',').map((f: string) => f.trim());
+				}
+				break;
+			case 'price_monthly':
+			case 'monthly_subscription_amount':
+				details.priceMonthly = parseFloat(attr.value) || undefined;
+				break;
+			case 'price_currency':
+			case 'monthly_subscription_currency':
+				details.priceCurrency = attr.value;
+				break;
 		}
 	}
 
 	return details;
 }
 
+/**
+ * Map an API Product response object to our OBPProduct type.
+ * The API Product endpoint uses different field names (api_product_code, api_product_id, etc.)
+ */
+function mapApiProduct(apiProduct: any): OBPProduct {
+	return {
+		product_id: apiProduct.api_product_id,
+		bank_id: apiProduct.bank_id,
+		product_code: apiProduct.api_product_code,
+		parent_product_code: apiProduct.parent_api_product_code,
+		name: apiProduct.name,
+		more_info_url: apiProduct.more_info_url,
+		terms_and_conditions_url: apiProduct.terms_and_conditions_url,
+		description: apiProduct.description,
+		meta: apiProduct.meta,
+		product_attributes: apiProduct.attributes || []
+	};
+}
+
 export async function load(event: RequestEvent) {
 	const apiExplorerUrl = env.API_EXPLORER_URL || '';
+	const token = event.locals.session?.data?.oauth?.access_token;
+	const isLoggedIn = !!token;
+
+	const warnings: string[] = [];
 
 	// First check if OBP-API is responding
 	try {
 		await obp_requests.get(`/obp/${API_VERSION}/root`);
 	} catch (e) {
+		const errorMsg = e instanceof OBPTimeoutError
+			? 'OBP-API did not respond within 15 seconds. The server may be overloaded or down.'
+			: e instanceof OBPRateLimitError
+				? 'OBP-API rate limit exceeded. Please wait a moment and try again.'
+				: 'OBP-API is not responding. Please check that the API server is running.';
 		logger.error('OBP-API is not responding:', e);
 		return {
 			products: [],
-			error: 'OBP-API is not responding. Please check that the API server is running.',
-			apiExplorerUrl
+			warnings: [],
+			error: errorMsg,
+			apiExplorerUrl,
+			isLoggedIn
 		};
 	}
 
@@ -74,12 +108,10 @@ export async function load(event: RequestEvent) {
 		bankIds: string[];
 		rawBanksResponse?: any;
 		productResponses: Array<{ bankId: string; response?: any; error?: string }>;
-		attributesFetched: Array<{ productCode: string; attributes?: any; error?: string }>;
 	} = {
 		banksFound: 0,
 		bankIds: [],
-		productResponses: [],
-		attributesFetched: []
+		productResponses: []
 	};
 
 	// First, get all banks
@@ -87,68 +119,68 @@ export async function load(event: RequestEvent) {
 	try {
 		const banksResponse = await obp_requests.get(`/obp/${API_VERSION}/banks`);
 		debugInfo.rawBanksResponse = banksResponse;
-		// OBP API returns banks with 'id' property (not 'bank_id')
 		const rawBanks = banksResponse?.banks || [];
-		// Map to normalize - handle both 'id' and 'bank_id' property names
 		banks = rawBanks.map((b: any) => ({ id: b.id || b.bank_id }));
 		debugInfo.banksFound = banks.length;
 		debugInfo.bankIds = banks.map(b => b.id);
 		logger.info(`Found ${banks.length} banks: ${banks.map(b => b.id).join(', ')}`);
 	} catch (e) {
 		logger.error('Error fetching banks:', e);
+		const errorMsg = e instanceof OBPRateLimitError
+			? 'API rate limit exceeded while fetching banks. Please wait a moment and try again.'
+			: e instanceof OBPTimeoutError
+				? 'Request timed out while fetching banks. The API server may be overloaded.'
+				: 'Could not fetch banks list.';
 		return {
 			products: [],
-			error: 'Could not fetch banks list.',
+			warnings: [],
+			error: errorMsg,
 			apiExplorerUrl,
+			isLoggedIn,
 			debug: debugInfo
 		};
 	}
 
-	// Fetch products from each bank
+	// Fetch API Products from each bank using the dedicated api-products endpoint
 	for (const bank of banks) {
 		try {
-			const productsUrl = `/obp/${API_VERSION}/banks/${bank.id}/products?product_type=API_PRODUCT`;
-			const productsResponse: OBPProductsResponse = await obp_requests.get(productsUrl);
-			debugInfo.productResponses.push({ bankId: bank.id, response: productsResponse });
+			const apiProductsResponse = await obp_requests.get(
+				`/obp/${API_VERSION}/banks/${bank.id}/api-products`,
+				token
+			);
+			debugInfo.productResponses.push({ bankId: bank.id, response: apiProductsResponse });
 
-			if (productsResponse?.products && productsResponse.products.length > 0) {
-				logger.info(`Found ${productsResponse.products.length} products in bank ${bank.id}`);
+			const rawApiProducts = apiProductsResponse?.api_products || [];
+			if (rawApiProducts.length > 0) {
+				// Filter to only products belonging to this bank
+				const bankProducts = rawApiProducts.filter((p: any) => p.bank_id === bank.id);
+				const crossBankCount = rawApiProducts.length - bankProducts.length;
+				if (crossBankCount > 0) {
+					logger.warn(
+						`GET /banks/${bank.id}/api-products returned ${crossBankCount} product(s) from other banks. Skipping these.`
+					);
+				}
+				logger.info(`Found ${bankProducts.length} API products in bank ${bank.id}`);
 
-				// Fetch attributes for each product if not included
-				for (const product of productsResponse.products) {
-					// If product doesn't have attributes, try to fetch them
-					if (!product.product_attributes || product.product_attributes.length === 0) {
-						try {
-							const attrsUrl = `/obp/${API_VERSION}/banks/${bank.id}/products/${product.product_code}/attributes`;
-							const attrsResponse = await obp_requests.get(attrsUrl);
-							debugInfo.attributesFetched.push({
-								productCode: product.product_code,
-								attributes: attrsResponse
-							});
-							if (attrsResponse?.product_attributes) {
-								product.product_attributes = attrsResponse.product_attributes;
-							}
-						} catch (e) {
-							const errorMsg = e instanceof Error ? e.message : String(e);
-							debugInfo.attributesFetched.push({
-								productCode: product.product_code,
-								error: errorMsg
-							});
-						}
-					} else {
-						debugInfo.attributesFetched.push({
-							productCode: product.product_code,
-							attributes: { included_in_product: true, product_attributes: product.product_attributes }
-						});
-					}
-
-					const parsedProduct = parseProductAttributes(product);
-					products.push(parsedProduct);
+				for (const apiProduct of bankProducts) {
+					const product = mapApiProduct(apiProduct);
+					products.push(parseProductAttributes(product));
 				}
 			}
 		} catch (e) {
 			const errorMsg = e instanceof Error ? e.message : String(e);
 			debugInfo.productResponses.push({ bankId: bank.id, error: errorMsg });
+			if (e instanceof OBPRateLimitError) {
+				warnings.push(`API rate limit reached while loading products from bank "${bank.id}". Some products may be missing.`);
+				logger.warn('Rate limit hit, stopping bank iteration early');
+				break;
+			}
+			if (e instanceof OBPTimeoutError) {
+				warnings.push(`Request timed out loading products from bank "${bank.id}". Some products may be missing.`);
+			}
+			if (e instanceof OBPRequestError) {
+				warnings.push(e.message);
+			}
 		}
 	}
 
@@ -161,11 +193,9 @@ export async function load(event: RequestEvent) {
 		return priceA - priceB;
 	});
 
-	// Check if user is logged in
-	const isLoggedIn = !!event.locals.session?.data?.oauth?.access_token;
-
 	return {
 		products,
+		warnings,
 		apiExplorerUrl,
 		isLoggedIn,
 		debug: debugInfo

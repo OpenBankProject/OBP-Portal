@@ -126,6 +126,16 @@
         </ul>
     {/if}
 
+    <!-- Collection info -->
+    {#if product.apiCollectionId}
+        <div class="mb-4 text-xs text-gray-400 dark:text-gray-500">
+            <span>Collection: {product.apiCollectionId}</span>
+            {#if product.endpointCount !== undefined}
+                <span class="ml-2">&middot; {product.endpointCount} endpoint{product.endpointCount === 1 ? '' : 's'}</span>
+            {/if}
+        </div>
+    {/if}
+
     <!-- Actions -->
     <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
         <a
@@ -137,14 +147,14 @@
         {#if showSubscribeButton}
             {#if isLoggedIn}
                 <a
-                    href="/checkout/{product.product.product_code}"
+                    href="/subscriptions?api_product_code={product.product.product_code}"
                     class="btn preset-filled-primary-500 w-full text-center"
                 >
                     Subscribe
                 </a>
             {:else}
                 <a
-                    href="/login?redirect=/checkout/{product.product.product_code}"
+                    href="/login?redirect=/subscriptions?api_product_code={product.product.product_code}"
                     class="btn preset-outlined-primary-500 w-full text-center"
                 >
                     Sign in to Subscribe

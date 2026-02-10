@@ -23,7 +23,8 @@
 		ChevronRight,
 		Settings,
 		CreditCard,
-		ShoppingBag
+		ShoppingBag,
+		Landmark
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
@@ -91,20 +92,20 @@
 			iconComponent: ShoppingBag
 		},
 		{
+			label: 'Financial Products',
+			href: '/financial-products',
+			iconComponent: Landmark
+		},
+		{
 			label: 'Get API Key',
 			href: '/consumers/register',
 			iconComponent: KeyRound
 		},
-		...(data.externalLinks.SUBSCRIPTIONS_URL
-			? [
-					{
-						href: data.externalLinks.SUBSCRIPTIONS_URL,
-						label: 'Subscribe',
-						iconComponent: CreditCard,
-						external: true
-					}
-				]
-			: []),
+		{
+			label: 'Subscriptions',
+			href: '/subscriptions',
+			iconComponent: CreditCard
+		},
 		// ...(data.SUBSCRIPTIONS_URL
 		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 		// 	: []),

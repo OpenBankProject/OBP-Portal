@@ -1,10 +1,15 @@
 <script lang="ts">
 	import ProductCard from '$lib/components/ProductCard.svelte';
+	import { currentBank } from '$lib/stores/currentBank.svelte';
 
 	let { data } = $props();
 
 	let sortedProducts = $derived(
 		[...(data.products || [])].sort((a, b) => {
+			const currentBankId = currentBank.bankId;
+			const aIsCurrent = currentBankId && a.product.bank_id === currentBankId ? 0 : 1;
+			const bIsCurrent = currentBankId && b.product.bank_id === currentBankId ? 0 : 1;
+			if (aIsCurrent !== bIsCurrent) return aIsCurrent - bIsCurrent;
 			const priceA = a.priceMonthly ?? 0;
 			const priceB = b.priceMonthly ?? 0;
 			return priceA - priceB;
@@ -27,6 +32,14 @@
 		</p>
 	</div>
 
+	{#if data.warnings && data.warnings.length > 0}
+		<div class="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-900/20">
+			{#each data.warnings as warning}
+				<p class="text-sm text-yellow-700 dark:text-yellow-300">{warning}</p>
+			{/each}
+		</div>
+	{/if}
+
 	{#if data.error}
 		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-center dark:border-red-800 dark:bg-red-900/20">
 			<p class="text-red-600 dark:text-red-400">{data.error}</p>
@@ -34,7 +47,7 @@
 	{:else if sortedProducts.length > 0}
 		<!-- Products Grid -->
 		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each sortedProducts as product (product.product.product_code)}
+			{#each sortedProducts as product, i (product.product.product_id)}
 				<ProductCard
 					{product}
 					showSubscribeButton={true}
@@ -102,64 +115,4 @@
 		</div>
 	{/if}
 
-	<!-- Debug Info -->
-	{#if data.debug}
-		<details class="mt-8 rounded-lg border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-900/20">
-			<summary class="cursor-pointer font-semibold text-yellow-800 dark:text-yellow-200">Debug Info (click to expand)</summary>
-			<div class="mt-4 space-y-4 text-sm">
-				<div>
-					<p><strong>Banks found:</strong> {data.debug.banksFound}</p>
-					<p><strong>Bank IDs:</strong> {data.debug.bankIds?.join(', ') || 'none'}</p>
-					<p><strong>Products loaded:</strong> {data.products?.length || 0}</p>
-					<p><strong>Is logged in:</strong> {data.isLoggedIn}</p>
-				</div>
-
-				{#if data.debug.rawBanksResponse}
-					<div>
-						<strong>Raw banks response:</strong>
-						<pre class="mt-2 max-h-48 overflow-auto rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">{JSON.stringify(data.debug.rawBanksResponse, null, 2)}</pre>
-					</div>
-				{/if}
-
-				{#if data.debug.productResponses && data.debug.productResponses.length > 0}
-					<div>
-						<strong>Product responses by bank:</strong>
-						{#each data.debug.productResponses as pr}
-							<div class="mt-2 rounded border border-gray-300 p-2 dark:border-gray-600">
-								<p class="font-medium">Bank: {pr.bankId}</p>
-								{#if pr.error}
-									<p class="text-red-600">Error: {pr.error}</p>
-								{:else}
-									<pre class="mt-1 max-h-48 overflow-auto rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">{JSON.stringify(pr.response, null, 2)}</pre>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-
-				{#if data.debug.attributesFetched && data.debug.attributesFetched.length > 0}
-					<div>
-						<strong>Product attributes:</strong>
-						{#each data.debug.attributesFetched as attr}
-							<div class="mt-2 rounded border border-gray-300 p-2 dark:border-gray-600">
-								<p class="font-medium">Product: {attr.productCode}</p>
-								{#if attr.error}
-									<p class="text-red-600">Error: {attr.error}</p>
-								{:else}
-									<pre class="mt-1 max-h-32 overflow-auto rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">{JSON.stringify(attr.attributes, null, 2)}</pre>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-
-				{#if data.products && data.products.length > 0}
-					<div>
-						<strong>Parsed products:</strong>
-						<pre class="mt-2 max-h-96 overflow-auto rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">{JSON.stringify(data.products, null, 2)}</pre>
-					</div>
-				{/if}
-			</div>
-		</details>
-	{/if}
 </div>

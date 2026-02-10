@@ -1,7 +1,9 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('OBPRequests');
 import { env } from '$env/dynamic/public';
-import { OBPErrorBase, OBPRequestError } from '$lib/obp/errors';
+import { OBPErrorBase, OBPRequestError, OBPRateLimitError, OBPTimeoutError } from '$lib/obp/errors';
+
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 class OBPRequests {
 	base_url: string;
@@ -17,6 +19,13 @@ class OBPRequests {
 		logger.info('Initialized.');
 	}
 
+	private logRateLimitInfo(response: Response, url: string): void {
+		const remaining = response.headers.get('X-Rate-Limit-Remaining');
+		if (remaining !== null && parseInt(remaining) < 0) {
+			logger.warn(`Rate limit header warning for ${url}: X-Rate-Limit-Remaining=${remaining}`);
+		}
+	}
+
 	async get(endpoint: string, accessToken?: string): Promise<any> {
 		logger.debug('GET', endpoint);
 		const url = `${this.base_url}${endpoint}`;
@@ -26,9 +35,21 @@ class OBPRequests {
 		if (accessToken) {
 			headers['Authorization'] = `Bearer ${accessToken}`;
 		}
-		const response = await fetch(url, {
-			headers
-		});
+
+		let response: Response;
+		try {
+			response = await fetch(url, {
+				headers,
+				signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+			});
+		} catch (error) {
+			if (error instanceof DOMException && error.name === 'TimeoutError') {
+				throw new OBPTimeoutError(url, DEFAULT_TIMEOUT_MS);
+			}
+			throw error;
+		}
+
+		this.logRateLimitInfo(response, url);
 
 		let data;
 		try {
@@ -40,6 +61,14 @@ class OBPRequests {
 
 		if (!response.ok) {
 			logger.error('Failed to fetch OBP data:', { statusText: response.statusText, data });
+
+			if (response.status === 429) {
+				const reset = response.headers.get('X-Rate-Limit-Reset');
+				throw new OBPRateLimitError(
+					data?.message || `Rate limit exceeded for ${url}`,
+					reset ? parseInt(reset) : undefined
+				);
+			}
 
 			if (data && data.code && data.message) {
 				throw new OBPRequestError(data.code, data.message);
@@ -65,7 +94,8 @@ class OBPRequests {
 		const response = await fetch(url, {
 			method: 'POST',
 			headers,
-			body: JSON.stringify(body)
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
 		});
 
 		let data;
@@ -102,7 +132,8 @@ class OBPRequests {
 		}
 		const response = await fetch(url, {
 			method: 'DELETE',
-			headers
+			headers,
+			signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
 		});
 
 		// Handle empty responses (common for DELETE returning 204 No Content)
@@ -150,7 +181,8 @@ class OBPRequests {
 		const response = await fetch(url, {
 			method: 'PUT',
 			headers,
-			body: JSON.stringify(body)
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
 		});
 
 		let data;
@@ -187,7 +219,8 @@ class OBPRequests {
 		const response = await fetch(url, {
 			method: 'PATCH',
 			headers,
-			body: JSON.stringify(body)
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
 		});
 
 		let data;
