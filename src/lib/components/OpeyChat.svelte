@@ -402,6 +402,14 @@
 		await chatController.denyToolCall(toolCallId);
 	}
 
+	async function handleConsent(toolCallId: string, consentJwt: string) {
+		await chatController.grantConsent(toolCallId, consentJwt);
+	}
+
+	async function handleConsentDeny(toolCallId: string) {
+		await chatController.denyConsent(toolCallId);
+	}
+
 	async function handleBatchApprovalSubmit(
 		decisions: Map<string, { approved: boolean; level: string }>
 	) {
@@ -535,6 +543,8 @@
 					onBatchSubmit={handleBatchApprovalSubmit}
 					onRegenerate={handleRegenerate}
 					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
+					onConsent={handleConsent}
+					onConsentDeny={handleConsentDeny}
 				/>
 			{/each}
 		</div>

@@ -145,6 +145,15 @@ export class ChatController {
 						logger.debug(`Received batch approval request for ${event.toolCalls.length} tools`);
 						state.addBatchApprovalRequest(event.toolCalls);
 						break;
+					case 'consent_request':
+						logger.debug(`Received consent request for tool ${event.toolCallId}, operation: ${event.operationId}, roles: ${event.requiredRoles.join(', ')}`);
+						state.addConsentRequest(
+							event.toolCallId,
+							event.toolName,
+							event.operationId,
+							event.requiredRoles
+						);
+						break;
 				}
 			} catch (error) {
 				logger.error('Error processing stream event:', error, event);
@@ -334,6 +343,61 @@ export class ChatController {
 			});
 			throw error;
 		}
+	}
+
+	/**
+	 * Grant consent by sending the Consent-JWT back to the backend.
+	 * The backend will inject the JWT into the tool call headers and retry.
+	 */
+	async grantConsent(toolCallId: string, consentJwt: string): Promise<void> {
+		logger.debug(`Granting consent for tool call: ${toolCallId}`);
+
+		// Update state optimistically
+		this.state.updateConsentRequest(toolCallId, true);
+
+		try {
+			await this.service.sendConsentResponse(consentJwt, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send consent for ${toolCallId}:`, error);
+			// Revert optimistic update on error
+			this.state.updateToolMessage(toolCallId, {
+				waitingForConsent: true,
+				consentStatus: 'pending',
+				error: `Failed to send consent: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+			throw error;
+		}
+	}
+
+	/**
+	 * Deny consent — sends null consent_jwt to the backend.
+	 * The backend will handle the denial and the stream will continue.
+	 */
+	async denyConsent(toolCallId: string): Promise<void> {
+		logger.debug(`Denying consent for tool call: ${toolCallId}`);
+
+		// Update state
+		this.state.updateConsentRequest(toolCallId, false);
+		this.state.updateToolMessage(toolCallId, {
+			status: 'error',
+			toolOutput: 'Consent was denied by user'
+		});
+
+		try {
+			await this.service.sendConsentResponse(null, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send consent denial for ${toolCallId}:`, error);
+			this.state.updateToolMessage(toolCallId, {
+				error: `Failed to send consent denial: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		}
+	}
+
+	/**
+	 * Get all pending consent requests from the state.
+	 */
+	getPendingConsentRequests(): ToolMessage[] {
+		return this.state.getPendingConsentRequests();
 	}
 
 	/**

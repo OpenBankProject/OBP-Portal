@@ -209,6 +209,70 @@ export class ChatState {
 	}
 
 	/**
+	 * Add or update a tool message to indicate it's waiting for consent.
+	 * This is triggered by a consent_request event from the backend.
+	 */
+	addConsentRequest(
+		toolCallId: string,
+		toolName: string,
+		operationId: string | null,
+		requiredRoles: string[]
+	): void {
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+
+		if (toolMessage) {
+			// Update existing tool message with consent request
+			toolMessage.waitingForConsent = true;
+			toolMessage.consentStatus = 'pending';
+			toolMessage.consentOperationId = operationId || undefined;
+			toolMessage.consentRequiredRoles = requiredRoles;
+		} else {
+			logger.warn(`No tool message found for consent request: ${toolCallId}, creating new one`);
+			this.addToolMessage({
+				id: toolCallId,
+				role: 'tool',
+				message: '',
+				timestamp: new Date(),
+				toolCallId: toolCallId,
+				toolName: toolName,
+				toolInput: {},
+				isStreaming: false,
+				waitingForConsent: true,
+				consentStatus: 'pending',
+				consentOperationId: operationId || undefined,
+				consentRequiredRoles: requiredRoles
+			} as ToolMessage);
+		}
+
+		this.messages = [...this.messages];
+		this.emit();
+	}
+
+	/**
+	 * Update consent status for a tool message.
+	 */
+	updateConsentRequest(toolCallId: string, granted: boolean): void {
+		const toolMessage = this.getToolMessageByCallId(toolCallId);
+
+		if (toolMessage) {
+			toolMessage.consentStatus = granted ? 'granted' : 'denied';
+			toolMessage.waitingForConsent = false;
+		}
+
+		this.messages = [...this.messages];
+		this.emit();
+	}
+
+	/**
+	 * Get all tool messages that are currently waiting for consent.
+	 */
+	getPendingConsentRequests(): ToolMessage[] {
+		return this.messages.filter(
+			msg => msg.role === 'tool' && (msg as ToolMessage).waitingForConsent
+		) as ToolMessage[];
+	}
+
+	/**
 	 * Get all tool messages that are currently waiting for approval.
 	 */
 	getPendingApprovals(): ToolMessage[] {

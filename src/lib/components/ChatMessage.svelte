@@ -15,6 +15,8 @@
 		batchApprovalGroup?: ToolMessageType[];
 		userName?: string;
 		onRegenerate?: (messageId: string) => Promise<void>;
+		onConsent?: (toolCallId: string, consentJwt: string) => Promise<void>;
+		onConsentDeny?: (toolCallId: string) => Promise<void>;
 	}
 
 	let {
@@ -25,7 +27,9 @@
 		onBatchSubmit,
 		batchApprovalGroup,
 		userName = 'Guest',
-		onRegenerate
+		onRegenerate,
+		onConsent,
+		onConsentDeny
 	}: Props = $props();
 
 	// Track hover state for showing regenerate button
@@ -165,6 +169,8 @@
 				{onDeny}
 				{onBatchSubmit}
 				{batchApprovalGroup}
+				{onConsent}
+				{onConsentDeny}
 			/>
 		{:else if message.role === 'error'}
 			<div class="max-w-full p-2">

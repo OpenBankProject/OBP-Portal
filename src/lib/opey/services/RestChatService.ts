@@ -68,6 +68,24 @@ export class RestChatService implements ChatService {
 		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
 	}
 
+	async sendConsentResponse(consentJwt: string | null, threadId: string): Promise<void> {
+		logger.info(`Sending consent response for threadId=${threadId}, hasJwt=${!!consentJwt}`);
+
+		const payload = {
+			message: "",
+			thread_id: threadId,
+			consent_jwt: consentJwt
+		};
+
+		const init = await this.buildInit({
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+
+		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
+	}
+
 	async regenerate(messageId: string, threadId: string): Promise<void> {
 		logger.info(`Regenerating response from messageId=${messageId}, threadId=${threadId}`);
 		
@@ -309,6 +327,16 @@ export class RestChatService implements ChatService {
 						method: tc.method
 					})),
 					options: eventData.options || []
+				});
+				break;
+			case 'consent_request':
+				this.streamEventCallback?.({
+					type: 'consent_request',
+					toolCallId: eventData.tool_call_id,
+					toolName: eventData.tool_name,
+					operationId: eventData.operation_id || null,
+					requiredRoles: eventData.required_roles || [],
+					timestamp: eventData.timestamp || Date.now() / 1000
 				});
 				break;
 			default:

@@ -12,15 +12,18 @@
         CheckCircle,
     } from '@lucide/svelte';
 	import ToolApprovalCard from '../ToolApprovalCard.svelte';
+	import ConsentRequestCard from '../ConsentRequestCard.svelte';
 	    interface Props {
         message: ToolMessage;
         onApprove?: (toolCallId: string, approvalLevel?: string) => Promise<void>;
         onDeny?: (toolCallId: string) => Promise<void>;
         batchApprovalGroup?: ToolMessage[];  // Other tools in the same batch
         onBatchSubmit?: (decisions: Map<string, { approved: boolean; level: string }>) => Promise<void>;
+        onConsent?: (toolCallId: string, consentJwt: string) => Promise<void>;
+        onConsentDeny?: (toolCallId: string) => Promise<void>;
     }
     
-    let { message, onApprove, onDeny, batchApprovalGroup, onBatchSubmit }: Props = $props();
+    let { message, onApprove, onDeny, batchApprovalGroup, onBatchSubmit, onConsent, onConsentDeny }: Props = $props();
     
     // Check if this is part of a batch approval
     let isBatchApproval = $derived(!!batchApprovalGroup && batchApprovalGroup.length > 1);
@@ -143,11 +146,19 @@
         message.approvalStatus !== 'approved' && 
         message.approvalStatus !== 'denied'
     );
+
+    // Determine if consent UI should be shown
+    let showConsentInterface = $derived(
+        message.waitingForConsent && 
+        message.consentStatus === 'pending'
+    );
     
     // Determine status display
     let statusDisplay = $derived.by(() => {
         if (message.status === 'error') return 'Error';
         if (message.approvalStatus === 'denied') return 'Denied';
+        if (message.consentStatus === 'denied') return 'Consent Denied';
+        if (message.waitingForConsent) return 'Awaiting Consent';
         if (message.waitingForApproval) return 'Awaiting Approval';
         if (message.isStreaming) return 'Executing...';
         if (message.toolOutput) return 'Complete';
@@ -157,6 +168,8 @@
     let statusIcon = $derived.by(() => {
         if (message.status === 'error') return XCircle;
         if (message.approvalStatus === 'denied') return XCircle;
+        if (message.consentStatus === 'denied') return XCircle;
+        if (message.waitingForConsent) return AlertTriangle;
         if (message.waitingForApproval) return AlertTriangle;
         if (message.isStreaming) return LoaderCircle;
         if (message.toolOutput) return Check;
@@ -166,6 +179,8 @@
     let statusClass = $derived(() => {
         if (message.status === 'error') return 'stroke-error-500';
         if (message.approvalStatus === 'denied') return 'stroke-error-500';
+        if (message.consentStatus === 'denied') return 'stroke-error-500';
+        if (message.waitingForConsent) return 'stroke-tertiary-500';
         if (message.waitingForApproval) return 'stroke-warning-500';
         if (message.isStreaming) return 'stroke-warning-500 animate-spin';
         if (message.toolOutput) return 'stroke-success-500';
@@ -174,7 +189,7 @@
 
     // Track open accordion items
     let mainAccordionValue = $state<string[]>(
-        message.waitingForApproval || message.isStreaming ? [message.id] : []
+        message.waitingForApproval || message.waitingForConsent || message.isStreaming ? [message.id] : []
     );
     
     let nestedAccordionValue = $state<string[]>([]);
@@ -321,6 +336,15 @@
                     toolMessage={message}
                     onApprove={handleApprove}
                     onDeny={handleDeny}
+                />
+            {/if}
+
+            <!-- Consent Interface - Shown only when waiting for consent -->
+            {#if showConsentInterface && onConsent && onConsentDeny}
+                <ConsentRequestCard
+                    toolMessage={message}
+                    {onConsent}
+                    onDeny={onConsentDeny}
                 />
             {/if}
             
