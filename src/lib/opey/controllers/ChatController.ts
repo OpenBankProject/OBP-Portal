@@ -7,6 +7,7 @@ import { ChatState } from '../state/ChatState';
 
 export class ChatController {
 	private toolInstanceCounts: Record<string, number> = {};
+	private authRefreshCallback?: () => Promise<void>;
 
 	constructor(
 		private service: ChatService,
@@ -17,6 +18,12 @@ export class ChatController {
 			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
+				case 'auth_refresh_needed':
+					logger.info('Auth refresh needed - triggering callback');
+					if (this.authRefreshCallback) {
+						this.authRefreshCallback();
+					}
+					break;
 				case 'user_message_confirmed':
 					logger.debug(`User message confirmed - backend ID: ${event.messageId}, correlation ID: ${event.correlationId}`);
 					state.syncUserMessage(event.messageId, event.correlationId);
@@ -391,5 +398,13 @@ export class ChatController {
 
 	async cancel(): Promise<void> {
 		await this.service.cancel(this.state.getThreadId());
+	}
+
+	/**
+	 * Register a callback to be called when auth refresh is needed (401 from Opey).
+	 * The callback should refresh the session and return a promise that resolves when done.
+	 */
+	onAuthRefreshNeeded(callback: () => Promise<void>): void {
+		this.authRefreshCallback = callback;
 	}
 }

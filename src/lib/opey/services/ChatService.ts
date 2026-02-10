@@ -66,3 +66,4 @@ export type StreamEvent =
       }
     | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }
+    | { type: 'auth_refresh_needed' }

@@ -129,6 +129,13 @@ export class RestChatService implements ChatService {
 			}
 
 			if (!res.ok) {
+				// Handle 401 - token expired, need to refresh session
+				if (res.status === 401) {
+					logger.info('Received 401 from Opey - token may have expired, requesting auth refresh');
+					this.streamEventCallback?.({ type: 'auth_refresh_needed' });
+					return;
+				}
+
 				let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
 
 				try {
