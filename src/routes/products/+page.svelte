@@ -47,7 +47,7 @@
 	{:else if sortedProducts.length > 0}
 		<!-- Products Grid -->
 		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each sortedProducts as product, i (product.product.product_id)}
+			{#each sortedProducts as product, i (`${product.product.bank_id}-${product.product.product_code}`)}
 				<ProductCard
 					{product}
 					showSubscribeButton={true}

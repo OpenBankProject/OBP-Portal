@@ -62,7 +62,6 @@ function parseProductAttributes(product: OBPProduct): APIProductDetails {
  */
 function mapApiProduct(apiProduct: any): OBPProduct {
 	return {
-		product_id: apiProduct.api_product_id,
 		bank_id: apiProduct.bank_id,
 		product_code: apiProduct.api_product_code,
 		parent_product_code: apiProduct.parent_api_product_code,

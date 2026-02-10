@@ -102,7 +102,6 @@ export async function load(event: RequestEvent) {
 
 			if (apiProductResponse) {
 				const obpProduct: OBPProduct = {
-					product_id: apiProductResponse.api_product_id,
 					bank_id: apiProductResponse.bank_id,
 					product_code: apiProductResponse.api_product_code,
 					parent_product_code: apiProductResponse.parent_api_product_code,

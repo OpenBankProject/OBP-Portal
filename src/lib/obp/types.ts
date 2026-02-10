@@ -172,7 +172,6 @@ export interface OBPProductAttribute {
 }
 
 export interface OBPProduct {
-    product_id?: string;
     bank_id: string;
     product_code: string;
     parent_product_code?: string;
