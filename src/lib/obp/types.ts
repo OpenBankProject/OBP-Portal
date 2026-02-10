@@ -198,13 +198,18 @@ export interface OBPProductCollection {
     products: OBPProduct[];
 }
 
-// Parsed product attributes for API Products
+// API Product details (uses first-class fields from the API Product response)
 export interface APIProductDetails {
     product: OBPProduct;
     apiCollectionId?: string;
     stripePriceId?: string;
+    category?: string;
+    rateLimitPerSecond?: number;
     rateLimitPerMinute?: number;
+    rateLimitPerHour?: number;
     rateLimitPerDay?: number;
+    rateLimitPerWeek?: number;
+    rateLimitPerMonth?: number;
     features?: string[];
     priceMonthly?: number;
     priceCurrency?: string;

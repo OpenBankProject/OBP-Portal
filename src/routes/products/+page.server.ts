@@ -10,58 +10,11 @@ import { env } from '$env/dynamic/private';
 const API_VERSION = 'v6.0.0';
 
 /**
- * Parse product attributes into a structured APIProductDetails object.
+ * Map an API Product response directly to APIProductDetails.
+ * Reads first-class fields from the API Product response.
  */
-function parseProductAttributes(product: OBPProduct): APIProductDetails {
-	const details: APIProductDetails = {
-		product
-	};
-
-	const attrs = product.product_attributes || [];
-
-	for (const attr of attrs) {
-		switch (attr.name.toLowerCase()) {
-			case 'api_collection_id':
-				details.apiCollectionId = attr.value;
-				break;
-			case 'stripe_price_id':
-				details.stripePriceId = attr.value;
-				break;
-			case 'rate_limit_per_minute':
-			case 'calls_per_minute':
-				details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
-				break;
-			case 'rate_limit_per_day':
-			case 'calls_per_day':
-				details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
-				break;
-			case 'features':
-				try {
-					details.features = JSON.parse(attr.value);
-				} catch {
-					details.features = attr.value.split(',').map((f: string) => f.trim());
-				}
-				break;
-			case 'price_monthly':
-			case 'monthly_subscription_amount':
-				details.priceMonthly = parseFloat(attr.value) || undefined;
-				break;
-			case 'price_currency':
-			case 'monthly_subscription_currency':
-				details.priceCurrency = attr.value;
-				break;
-		}
-	}
-
-	return details;
-}
-
-/**
- * Map an API Product response object to our OBPProduct type.
- * The API Product endpoint uses different field names (api_product_code, api_product_id, etc.)
- */
-function mapApiProduct(apiProduct: any): OBPProduct {
-	return {
+function mapApiProductDetails(apiProduct: any): APIProductDetails {
+	const product: OBPProduct = {
 		bank_id: apiProduct.bank_id,
 		product_code: apiProduct.api_product_code,
 		parent_product_code: apiProduct.parent_api_product_code,
@@ -71,6 +24,22 @@ function mapApiProduct(apiProduct: any): OBPProduct {
 		description: apiProduct.description,
 		meta: apiProduct.meta,
 		product_attributes: apiProduct.attributes || []
+	};
+
+	return {
+		product,
+		apiCollectionId: apiProduct.collection_id || undefined,
+		category: apiProduct.category || undefined,
+		priceMonthly: apiProduct.monthly_subscription_amount
+			? parseFloat(apiProduct.monthly_subscription_amount)
+			: undefined,
+		priceCurrency: apiProduct.monthly_subscription_currency || undefined,
+		rateLimitPerSecond: apiProduct.per_second_call_limit || undefined,
+		rateLimitPerMinute: apiProduct.per_minute_call_limit || undefined,
+		rateLimitPerHour: apiProduct.per_hour_call_limit || undefined,
+		rateLimitPerDay: apiProduct.per_day_call_limit || undefined,
+		rateLimitPerWeek: apiProduct.per_week_call_limit || undefined,
+		rateLimitPerMonth: apiProduct.per_month_call_limit || undefined
 	};
 }
 
@@ -162,8 +131,7 @@ export async function load(event: RequestEvent) {
 				logger.info(`Found ${bankProducts.length} API products in bank ${bank.id}`);
 
 				for (const apiProduct of bankProducts) {
-					const product = mapApiProduct(apiProduct);
-					products.push(parseProductAttributes(product));
+					products.push(mapApiProductDetails(apiProduct));
 				}
 			}
 		} catch (e) {

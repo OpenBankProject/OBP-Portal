@@ -14,6 +14,40 @@ const API_VERSION = 'v6.0.0';
 const STRIPE_CHECKOUT_URL = env.STRIPE_CHECKOUT_URL || '';
 
 /**
+ * Map an API Product response directly to APIProductDetails.
+ * Reads first-class fields from the API Product response.
+ */
+function mapApiProductDetails(apiProduct: any): APIProductDetails {
+	const product: OBPProduct = {
+		bank_id: apiProduct.bank_id,
+		product_code: apiProduct.api_product_code,
+		parent_product_code: apiProduct.parent_api_product_code,
+		name: apiProduct.name,
+		more_info_url: apiProduct.more_info_url,
+		terms_and_conditions_url: apiProduct.terms_and_conditions_url,
+		description: apiProduct.description,
+		meta: apiProduct.meta,
+		product_attributes: apiProduct.attributes || []
+	};
+
+	return {
+		product,
+		apiCollectionId: apiProduct.collection_id || undefined,
+		category: apiProduct.category || undefined,
+		priceMonthly: apiProduct.monthly_subscription_amount
+			? parseFloat(apiProduct.monthly_subscription_amount)
+			: undefined,
+		priceCurrency: apiProduct.monthly_subscription_currency || undefined,
+		rateLimitPerSecond: apiProduct.per_second_call_limit || undefined,
+		rateLimitPerMinute: apiProduct.per_minute_call_limit || undefined,
+		rateLimitPerHour: apiProduct.per_hour_call_limit || undefined,
+		rateLimitPerDay: apiProduct.per_day_call_limit || undefined,
+		rateLimitPerWeek: apiProduct.per_week_call_limit || undefined,
+		rateLimitPerMonth: apiProduct.per_month_call_limit || undefined
+	};
+}
+
+/**
  * Find a product by scanning all banks
  */
 async function findProduct(productCode: string): Promise<APIProductDetails | null> {
@@ -30,13 +64,13 @@ async function findProduct(productCode: string): Promise<APIProductDetails | nul
 	// Search for the product in each bank
 	for (const bank of banks) {
 		try {
-			const productResponse: OBPProduct = await obp_requests.get(
-				`/obp/${API_VERSION}/banks/${bank.id}/products/${productCode}`
+			const apiProductResponse = await obp_requests.get(
+				`/obp/${API_VERSION}/banks/${bank.id}/api-products/${productCode}`
 			);
 
-			if (productResponse) {
+			if (apiProductResponse) {
 				logger.info(`Found product ${productCode} in bank ${bank.id}`);
-				return parseProductAttributes(productResponse);
+				return mapApiProductDetails(apiProductResponse);
 			}
 		} catch (e) {
 			// Product not in this bank, continue searching
@@ -44,49 +78,6 @@ async function findProduct(productCode: string): Promise<APIProductDetails | nul
 	}
 
 	return null;
-}
-
-/**
- * Parse product attributes
- */
-function parseProductAttributes(product: OBPProduct): APIProductDetails {
-	const details: APIProductDetails = {
-		product
-	};
-
-	if (product.product_attributes) {
-		for (const attr of product.product_attributes) {
-			switch (attr.name.toLowerCase()) {
-				case 'api_collection_id':
-					details.apiCollectionId = attr.value;
-					break;
-				case 'stripe_price_id':
-					details.stripePriceId = attr.value;
-					break;
-				case 'rate_limit_per_minute':
-					details.rateLimitPerMinute = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'rate_limit_per_day':
-					details.rateLimitPerDay = parseInt(attr.value, 10) || undefined;
-					break;
-				case 'features':
-					try {
-						details.features = JSON.parse(attr.value);
-					} catch {
-						details.features = attr.value.split(',').map(f => f.trim());
-					}
-					break;
-				case 'price_monthly':
-					details.priceMonthly = parseFloat(attr.value) || undefined;
-					break;
-				case 'price_currency':
-					details.priceCurrency = attr.value;
-					break;
-			}
-		}
-	}
-
-	return details;
 }
 
 function formatPrice(price: number | undefined, currency: string = 'USD'): string {
