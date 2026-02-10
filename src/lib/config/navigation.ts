@@ -1,4 +1,4 @@
-import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard, Database, FolderKanban, Package } from '@lucide/svelte';
+import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard, Database, FolderKanban } from '@lucide/svelte';
 import { env } from '$env/dynamic/public';
 
 export interface NavigationItem {
@@ -17,8 +17,7 @@ function buildMyAccountItems(): NavigationItem[] {
         { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound },
         { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard },
         { href: '/user/my-data', label: 'My Data', iconComponent: Database, description: 'View my own data.' },
-        { href: '/user/api-collections', label: 'My API Collections', iconComponent: FolderKanban, description: 'Manage your API endpoint collections.' },
-        { href: '/user/orders', label: 'Orders', iconComponent: Package, description: 'View your subscriptions and orders.' }
+        { href: '/user/api-collections', label: 'My API Collections', iconComponent: FolderKanban, description: 'Manage your API endpoint collections.' }
     ];
 
     // Only add Subscriptions link if PUBLIC_SUBSCRIPTIONS_URL is set

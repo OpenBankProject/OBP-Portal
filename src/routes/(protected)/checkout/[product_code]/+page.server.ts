@@ -168,9 +168,9 @@ export const actions = {
 			return fail(500, { error: errorMsg });
 		}
 
-		// If this is a free product, redirect to orders page
+		// If this is a free product, redirect to user profile
 		if (!product.priceMonthly || product.priceMonthly === 0) {
-			redirect(303, '/user/orders?success=true&product=' + encodeURIComponent(product.product.name));
+			redirect(303, '/user?success=true&product=' + encodeURIComponent(product.product.name));
 		}
 
 		// If Stripe integration is available, redirect to Stripe checkout
@@ -180,13 +180,13 @@ export const actions = {
 			checkoutUrl.searchParams.set('account_application_id', accountApplication?.account_application_id || '');
 			checkoutUrl.searchParams.set('user_id', user?.user_id || '');
 			checkoutUrl.searchParams.set('email', user?.email || '');
-			checkoutUrl.searchParams.set('success_url', `${request.headers.get('origin')}/user/orders?success=true`);
+			checkoutUrl.searchParams.set('success_url', `${request.headers.get('origin')}/user?success=true`);
 			checkoutUrl.searchParams.set('cancel_url', `${request.headers.get('origin')}/checkout/${productCode}?cancelled=true`);
 
 			redirect(303, checkoutUrl.toString());
 		}
 
-		// No Stripe integration - redirect to orders with pending status
-		redirect(303, '/user/orders?pending=true&product=' + encodeURIComponent(product.product.name));
+		// No Stripe integration - redirect to user profile with pending status
+		redirect(303, '/user?pending=true&product=' + encodeURIComponent(product.product.name));
 	}
 } satisfies Actions;
