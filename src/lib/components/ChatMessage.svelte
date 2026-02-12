@@ -92,7 +92,7 @@
 
 	<!-- Message content -->
 	<div
-		class="{message.role === 'user' ? 'max-w-3/5' : 'max-w-full'} group relative mt-3"
+		class="{message.role === 'user' ? 'max-w-3/5' : message.role === 'tool' ? 'w-2/3' : 'max-w-full'} group relative mt-3"
 		role="region"
 		aria-label="Chat message"
 		onmouseenter={() => {
