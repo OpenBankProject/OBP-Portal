@@ -40,6 +40,15 @@
 						Please check your spam folder if you don't see the email within a few minutes.
 					</p>
 				</div>
+				{#if form?.apiStatus === 'ok'}
+					<div class="rounded-lg border border-success-500 bg-success-500/10 p-3 text-center">
+						<p class="text-success-500 text-sm">{form.apiMessage}</p>
+					</div>
+				{:else if form?.apiStatus === 'error'}
+					<div class="rounded-lg border border-error-500 bg-error-500/10 p-3 text-center">
+						<p class="text-error-500 text-sm">{form.apiMessage}</p>
+					</div>
+				{/if}
 				<div class="text-center">
 					<a href="/login" class="btn preset-filled-primary-500">
 						Back to Login

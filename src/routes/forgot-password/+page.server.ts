@@ -28,32 +28,37 @@ export const actions = {
         try {
             // Call OBP API to initiate password reset
             const response = await obp_requests.post(
-                `/obp/v6.0.0/users/password-reset`, 
+                `/obp/v6.0.0/users/password-reset`,
                 requestBody
             );
 
             logger.info("Password reset email sent for:", email);
 
-            // Always return success to prevent email enumeration
-            // Don't reveal whether the email exists in the system
             return {
                 success: true,
-                email: email
+                email: email,
+                apiStatus: 'ok' as const,
+                apiMessage: 'OBP-API responded successfully.'
             };
 
         } catch (error) {
             // Log the actual error for debugging
+            let apiMessage = 'OBP-API is not responding.';
             if (error instanceof OBPRequestError) {
                 logger.error("OBP API error during password reset request:", error.message);
-            } else {
+                apiMessage = `OBP-API error: ${error.message}`;
+            } else if (error instanceof Error) {
                 logger.error("Error requesting password reset:", error);
+                apiMessage = `OBP-API error: ${error.message}`;
             }
 
             // Still return success to user to prevent email enumeration
             // This is a security best practice - don't reveal if email exists
             return {
                 success: true,
-                email: email
+                email: email,
+                apiStatus: 'error' as const,
+                apiMessage
             };
         }
     }

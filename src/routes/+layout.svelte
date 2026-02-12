@@ -266,7 +266,7 @@
 					{/each}
 					<a href="/about" class="hover:text-tertiary-400">About</a>
 					{#if !hideFooterElements}
-						<span> © TESOBE 2011-2025 </span>
+						<span> © TESOBE 2011-{Math.max(new Date().getFullYear(), 2026)} </span>
 					{/if}
 					{#if env.PUBLIC_SPONSOR_NOTE}
 						<span class="text-surface-800-200">{env.PUBLIC_SPONSOR_NOTE}</span>
