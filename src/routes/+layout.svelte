@@ -24,7 +24,8 @@
 		Settings,
 		CreditCard,
 		ShoppingBag,
-		Landmark
+		Landmark,
+		DatabaseZap
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
@@ -118,6 +119,16 @@
 						href: data.externalLinks.API_MANAGER_URL,
 						label: 'API Manager',
 						iconComponent: SquareTerminal,
+						external: true
+					}
+				]
+			: []),
+		...(data.externalLinks.SANDBOX_POPULATOR_URL
+			? [
+					{
+						href: data.externalLinks.SANDBOX_POPULATOR_URL,
+						label: 'Sandbox Populator',
+						iconComponent: DatabaseZap,
 						external: true
 					}
 				]
