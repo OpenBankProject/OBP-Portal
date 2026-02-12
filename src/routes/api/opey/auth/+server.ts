@@ -48,6 +48,7 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 	const consent = await obpIntegrationService.getOrCreateOpeyConsent(portalSession);
 	const consentJwt = consent.jwt;
 	const consentId = consent.consent_id;
+	const accessToken = portalSession.data?.oauth?.access_token;
 
 	// Extract and log user identifier from consent JWT
 	const userIdentifier = extractUsernameFromJWT(consentJwt);
@@ -59,6 +60,7 @@ async function _getAuthenticatedSession(opeyConsumerId: string, portalSession: S
 		method: 'POST',
 		headers: {
 			'Consent-Id': consentId,
+			'Authorization': `Bearer ${accessToken}`,
 			'Content-Type': 'application/json'
 		}
 	});

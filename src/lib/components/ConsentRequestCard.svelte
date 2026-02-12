@@ -26,12 +26,22 @@
 		consentError = null;
 
 		try {
+			// Normalize roles to strings (handle both string and object formats)
+			const normalizedRoles = (toolMessage.consentRequiredRoles || []).map((role: any) => {
+				if (typeof role === 'string') return role;
+				// Handle object format: {role: "CanCreateBank", requires_bank_id: false}
+				return role?.role || role?.role_name || role?.name || '';
+			}).filter(Boolean);
+
+			logger.info(`Creating consent with roles:`, normalizedRoles);
+			logger.info(`Original roles from toolMessage:`, toolMessage.consentRequiredRoles);
+
 			// Call our server-side API to create the consent at OBP
 			const response = await fetch('/api/opey/consent', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					required_roles: toolMessage.consentRequiredRoles || []
+					required_roles: normalizedRoles
 				})
 			});
 
@@ -110,9 +120,10 @@
 			<h4 class="mb-2 text-sm font-medium">Required Permissions:</h4>
 			<div class="flex flex-wrap gap-2">
 				{#each toolMessage.consentRequiredRoles as role}
+					{@const roleName = typeof role === 'string' ? role : (role?.role || role?.role_name || role?.name || JSON.stringify(role))}
 					<span class="flex items-center gap-1 rounded-full bg-tertiary-100 px-3 py-1 text-xs font-medium dark:bg-tertiary-800">
 						<Shield size={12} />
-						{role}
+						{roleName}
 					</span>
 				{/each}
 			</div>

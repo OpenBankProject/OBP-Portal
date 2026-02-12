@@ -68,14 +68,18 @@ export class RestChatService implements ChatService {
 		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
 	}
 
-	async sendConsentResponse(consentJwt: string | null, threadId: string): Promise<void> {
-		logger.info(`Sending consent response for threadId=${threadId}, hasJwt=${!!consentJwt}`);
+	async sendConsentResponse(toolCallId: string, consentJwt: string | null, threadId: string): Promise<void> {
+		logger.info(`Sending consent response for toolCallId=${toolCallId}, threadId=${threadId}, hasJwt=${!!consentJwt}`);
 
 		const payload = {
 			message: "",
 			thread_id: threadId,
-			consent_jwt: consentJwt
+			tool_call_approval: {
+				consent_jwt: consentJwt
+			}
 		};
+
+		logger.info(`Consent payload:`, JSON.stringify(payload, null, 2));
 
 		const init = await this.buildInit({
 			method: 'POST',

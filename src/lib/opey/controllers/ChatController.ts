@@ -356,7 +356,7 @@ export class ChatController {
 		this.state.updateConsentRequest(toolCallId, true);
 
 		try {
-			await this.service.sendConsentResponse(consentJwt, this.state.getThreadId());
+			await this.service.sendConsentResponse(toolCallId, consentJwt, this.state.getThreadId());
 		} catch (error) {
 			logger.error(`Failed to send consent for ${toolCallId}:`, error);
 			// Revert optimistic update on error
@@ -384,7 +384,7 @@ export class ChatController {
 		});
 
 		try {
-			await this.service.sendConsentResponse(null, this.state.getThreadId());
+			await this.service.sendConsentResponse(toolCallId, null, this.state.getThreadId());
 		} catch (error) {
 			logger.error(`Failed to send consent denial for ${toolCallId}:`, error);
 			this.state.updateToolMessage(toolCallId, {
