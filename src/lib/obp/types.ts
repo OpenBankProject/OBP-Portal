@@ -94,6 +94,7 @@ export interface OBPAddEntitlementBody {
 }
 
 export interface OBPPasswordResetInitiateRequestBody {
+    username: string;
     email: string;
 }
 

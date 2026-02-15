@@ -3,9 +3,10 @@
 
 	let { data, form }: { data: PageData; form: any } = $props();
 
+	let username = $state('');
 	let email = $state('');
 
-	let canSubmit = $derived(email.length > 0 && email.includes('@'));
+	let canSubmit = $derived(username.trim().length > 0 && email.length > 0 && email.includes('@'));
 </script>
 
 <div
@@ -14,7 +15,7 @@
 	<header class="py-4">
 		<h1 class="h4 text-center">Forgot Your Password?</h1>
 		<p class="text-center text-sm mt-2 opacity-75">
-			Enter your email address and we'll send you a link to reset your password
+			Enter your username and email address and we'll send you a link to reset your password
 		</p>
 	</header>
 	<article class="space-y-4 p-4">
@@ -65,6 +66,19 @@
 				{/if}
 
 				<label class="label">
+					<span class="label-text">Username</span>
+					<input
+						type="text"
+						class="input"
+						name="username"
+						placeholder="your_username"
+						bind:value={username}
+						required
+						autocomplete="username"
+					/>
+				</label>
+
+				<label class="label">
 					<span class="label-text">Email Address</span>
 					<input
 						type="email"
@@ -84,7 +98,7 @@
 					aria-label="Send Reset Link"
 				>
 					{#if !canSubmit}
-						Enter a Valid Email
+						Enter Username and Email
 					{:else}
 						Send Reset Link
 					{/if}
