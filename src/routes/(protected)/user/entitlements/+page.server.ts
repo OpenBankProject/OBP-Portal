@@ -1,6 +1,7 @@
 import { type SessionData } from 'svelte-kit-sessions';
 import { createLogger } from '$lib/utils/logger';
 import { obp_requests } from '$lib/obp/requests';
+import { OBPRequestError } from '$lib/obp/errors';
 import { fail } from '@sveltejs/kit';
 
 const logger = createLogger('user/entitlements/+page.server');
@@ -106,9 +107,15 @@ export const actions = {
             // Return success to trigger a page reload
             return { success: true, message: 'Entitlement added successfully' };
 
-        } catch (error) {
-            logger.error("Error adding entitlement:", error);
-            return fail(500, {entitlement: entitlement, error: 'Failed to add entitlement.', ...(bank_id ? { bank_id: bank_id } : {})});
+        } catch (err) {
+            logger.error("Error adding entitlement:", err);
+            let errorMessage = 'Failed to add entitlement.';
+            if (err instanceof OBPRequestError) {
+                errorMessage = err.message;
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            return fail(500, {entitlement: entitlement, error: errorMessage, ...(bank_id ? { bank_id: bank_id } : {})});
         }
     }
 } satisfies Actions

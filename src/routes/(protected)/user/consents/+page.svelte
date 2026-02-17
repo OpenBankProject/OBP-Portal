@@ -1,7 +1,7 @@
 <script lang="ts">
     import ConsentCard from "$lib/components/ConsentCard.svelte";
-    
-    let { data } = $props();
+
+    let { data, form } = $props();
 
     // Get current time in user's timezone for debugging
     let currentLocalTime = $state('');
@@ -41,6 +41,18 @@
         All times are displayed in your local timezone. Compare with consent expiration times.
     </p>
 </div>
+
+{#if form?.error}
+    <div class="bg-error-500/10 border-error-500 mb-8 rounded-lg border p-4 text-center">
+        <p class="text-error-500 font-semibold">{form.error}</p>
+    </div>
+{/if}
+
+{#if form?.success}
+    <div class="mb-8 rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-900/20">
+        <p class="font-semibold text-green-600 dark:text-green-400">{form.message}</p>
+    </div>
+{/if}
 
 <!-- Consents for Opey Section -->
 <div class="mb-10">

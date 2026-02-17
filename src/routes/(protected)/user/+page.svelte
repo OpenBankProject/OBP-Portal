@@ -3,6 +3,20 @@
 	import { type SessionData } from 'svelte-kit-sessions';
 	import ConsentCard from '$lib/components/ConsentCard.svelte';
 	import { toast } from '$lib/utils/toastService.js';
+	import { currentBank } from '$lib/stores/currentBank.svelte';
+	import { onMount } from 'svelte';
+
+	let bankSelectorId = $state(currentBank.bankId);
+
+	onMount(async () => {
+		await currentBank.fetchBanks();
+	});
+
+	$effect(() => {
+		if (currentBank.banks.length > 0 && bankSelectorId !== currentBank.bankId) {
+			currentBank.selectById(bankSelectorId);
+		}
+	});
 
 	const { data } = $props();
 	const userData: SessionData['user'] = data.userData || undefined;
@@ -305,6 +319,26 @@
 {/snippet}
 
 <div class="flex flex-col space-y-6">
+	<!-- Current Bank Selection -->
+	<div class="mx-10 pr-5">
+		<header class="flex items-center justify-between py-4">
+			<h1 class="h4 text-center align-middle">Current Bank</h1>
+		</header>
+		<div class="max-w-md">
+			<select
+				class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+				bind:value={bankSelectorId}
+			>
+				<option value="">No bank selected</option>
+				{#each currentBank.banks as bank}
+					<option value={bank.bank_id}>
+						{bank.short_name} - {bank.full_name}
+					</option>
+				{/each}
+			</select>
+		</div>
+	</div>
+
 	{@render userInfo(userData)}
 	{#if opeyConsentInfo && opeyConsentInfo.hasActiveConsent && opeyConsentInfo.consent}
 		<header class="py-4" id="opey-consent">

@@ -3,6 +3,7 @@ const logger = createLogger('ConsumerRegisterServer');
 import { type Actions, redirect } from "@sveltejs/kit";
 import { obp_requests } from "$lib/obp/requests";
 import type { OBPConsumerRequestBody } from "$lib/obp/types";
+import { OBPRequestError } from '$lib/obp/errors';
 
 export const actions = {
     default: async ({ request, locals, cookies }) => {
@@ -50,8 +51,14 @@ export const actions = {
             
         } catch (error) {
             logger.error("Error registering consumer:", error);
+            let errorMessage = "Failed to create consumer";
+            if (error instanceof OBPRequestError) {
+                errorMessage = error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
             return {
-                error: "Failed to create consumer"
+                error: errorMessage
             };
         }
 

@@ -10,11 +10,16 @@
 	let passwordVisibilityType = $derived.by(() => (showPassword ? 'text' : 'password'));
 
 	function checkPasswordAgainstPolicy(password: string): boolean {
-		// Minimum 10 characters with uppercase, lowercase, number, and special character
-		if (password.length < 10) {
+		if (password.length < 10 || password.length > 512) {
 			return false;
 		}
 
+		// 17+ characters: length alone is sufficient
+		if (password.length >= 17) {
+			return true;
+		}
+
+		// 10-16 characters: require complexity
 		const hasUpperCase = /[A-Z]/.test(password);
 		const hasLowerCase = /[a-z]/.test(password);
 		const hasNumbers = /\d/.test(password);
@@ -36,6 +41,7 @@
 
 	let isPasswordValid = $derived(checkPasswordAgainstPolicy(newPassword));
 	let arePasswordsMatching = $derived(checkPasswordsMatching());
+	let needsComplexity = $derived(newPassword.length < 17);
 
 	let canSubmit = $derived(
 		isPasswordValid && arePasswordsMatching && newPassword.length > 0 && confirmPassword.length > 0
@@ -88,19 +94,29 @@
 							<li class={newPassword.length >= 10 ? 'text-success-500' : ''}>
 								At least 10 characters
 							</li>
-							<li class={/[A-Z]/.test(newPassword) ? 'text-success-500' : ''}>
-								At least one uppercase letter
-							</li>
-							<li class={/[a-z]/.test(newPassword) ? 'text-success-500' : ''}>
-								At least one lowercase letter
-							</li>
-							<li class={/\d/.test(newPassword) ? 'text-success-500' : ''}>
-								At least one number
-							</li>
-							<li class={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? 'text-success-500' : ''}>
-								At least one special character
+							{#if needsComplexity}
+								<li class={/[A-Z]/.test(newPassword) ? 'text-success-500' : ''}>
+									At least one uppercase letter
+								</li>
+								<li class={/[a-z]/.test(newPassword) ? 'text-success-500' : ''}>
+									At least one lowercase letter
+								</li>
+								<li class={/\d/.test(newPassword) ? 'text-success-500' : ''}>
+									At least one number
+								</li>
+								<li class={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? 'text-success-500' : ''}>
+									At least one special character
+								</li>
+							{/if}
+							<li class={newPassword.length <= 512 ? 'text-success-500' : ''}>
+								At most 512 characters
 							</li>
 						</ul>
+						{#if newPassword.length >= 10 && needsComplexity}
+							<p class="text-xs opacity-75 mt-1">
+								Tip: Passwords of 17 or more characters only need to meet the length requirement.
+							</p>
+						{/if}
 					</div>
 				{/if}
 			</label>
@@ -134,7 +150,7 @@
 				{/if}
 
 				{#if arePasswordsMatching && confirmPassword.length > 0 && isPasswordValid}
-					<p class="text-success-500 text-xs mt-2">✓ Passwords match</p>
+					<p class="text-success-500 text-xs mt-2">Passwords match</p>
 				{/if}
 			</label>
 

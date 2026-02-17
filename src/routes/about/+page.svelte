@@ -51,10 +51,11 @@ For questions, support, or more information about the Open Bank Project, please 
 
 - [Official Website](https://www.openbankproject.com)
 - [GitHub Organization](https://github.com/OpenBankProject)
+- [Open Bank Project Chat](${env.PUBLIC_OBP_CHAT_URL || 'https://chat.openbankproject.com'})
 
 ---
 
-© TESOBE 2011-2025. All rights reserved.`;
+© TESOBE 2011-${Math.max(new Date().getFullYear(), 2026)}. All rights reserved.`;
 
 	onMount(async () => {
 		// Dynamically import markdown-it to avoid SSR issues

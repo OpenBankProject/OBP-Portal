@@ -1,5 +1,7 @@
 <script lang="ts">
-	
+	import type { PageProps } from './$types';
+
+	let { form }: PageProps = $props();
 </script>
 
 <div
@@ -9,6 +11,11 @@
 		<h1 class="h4 text-center">Register a consumer</h1>
 	</header>
 	<article class="space-y-4 p-4">
+		{#if form?.error}
+			<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
+				<p class="text-error-500 font-semibold">{form.error}</p>
+			</div>
+		{/if}
 		<form class="w-full space-y-6 pb-10" method="POST">
 			<label class="label">
 				<span class="label-text">Application Type</span>

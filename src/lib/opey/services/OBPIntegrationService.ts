@@ -85,7 +85,6 @@ export class DefaultOBPIntegrationService implements OBPIntegrationService {
 					logger.info(
 						`checkExistingOpeyConsent says: Retrieved existing consent JWT - User: ${userIdentifier}`
 					);
-					logger.debug(`checkExistingOpeyConsent: Full consent details: ${JSON.stringify(consent)}`);
 					return consent;
 				} else if (consent.consumer_id === this.opeyConsumerId) {
 					logger.debug(

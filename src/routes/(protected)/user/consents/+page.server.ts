@@ -4,6 +4,7 @@ import type { RequestEvent, Actions } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
 import type { OBPConsent } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
+import { OBPRequestError } from '$lib/obp/errors';
 import { env } from '$env/dynamic/private';
 
 const displayConsent = (consent: OBPConsent): boolean => {
@@ -107,10 +108,16 @@ export const actions = {
 		// Make request to OBP to delete the consent
 		try {
 			const response = await obp_requests.delete(`/obp/v5.1.0/my/consents/${consentId}`, token);
-		} catch (error) {
-			logger.error('Error deleting consent:', error);
+		} catch (err) {
+			logger.error('Error deleting consent:', err);
+			let errorMessage = 'Failed to delete consent.';
+			if (err instanceof OBPRequestError) {
+				errorMessage = err.message;
+			} else if (err instanceof Error) {
+				errorMessage = err.message;
+			}
 			return {
-				error: 'Failed to delete consent.'
+				error: errorMessage
 			};
 		}
 
