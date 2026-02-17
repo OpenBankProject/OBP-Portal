@@ -28,12 +28,13 @@ export async function POST(event: RequestEvent) {
 
 		const body = await event.request.json();
 		const { required_roles, bank_id } = body;
+		const normalizedRequiredRoles = required_roles == null ? [] : required_roles;
 
 		logger.info(`Consent request received:`, { required_roles, bank_id });
 
-		if (!required_roles || !Array.isArray(required_roles) || required_roles.length === 0) {
+		if (!Array.isArray(normalizedRequiredRoles)) {
 			logger.warn('Invalid required_roles:', required_roles);
-			return json({ error: 'required_roles must be a non-empty array' }, { status: 400 });
+			return json({ error: 'required_roles must be an array when provided' }, { status: 400 });
 		}
 
 		const opeyConsumerId = env.OPEY_CONSUMER_ID;
@@ -49,18 +50,18 @@ export async function POST(event: RequestEvent) {
 		logger.info(`User has ${userRoles.length} roles:`, userRoles);
 
 		// Check which required roles the user doesn't have
-		const missingRoles = required_roles.filter((role: string) => !userRoles.includes(role));
+		const missingRoles = normalizedRequiredRoles.filter((role: string) => !userRoles.includes(role));
 		if (missingRoles.length > 0) {
 			logger.error(`User is missing required roles:`, missingRoles);
 			logger.error(`User has roles:`, userRoles);
-			logger.error(`Required roles:`, required_roles);
+			logger.error(`Required roles:`, normalizedRequiredRoles);
 			return json({ 
 				error: `OBP-35013: You don't have the required roles. Missing: ${missingRoles.join(', ')}. You have: ${userRoles.join(', ')}` 
 			}, { status: 403 });
 		}
 
 		// Build entitlements array from required roles
-		const entitlements = required_roles.map((roleName: string) => ({
+		const entitlements = normalizedRequiredRoles.map((roleName: string) => ({
 			role_name: roleName,
 			bank_id: bank_id || ''
 		}));
@@ -76,7 +77,7 @@ export async function POST(event: RequestEvent) {
 			time_to_live: 3600 // 1 hour
 		};
 
-		logger.info(`Creating role-specific consent with ${required_roles.length} roles: ${required_roles.join(', ')}`);
+		logger.info(`Creating role-specific consent with ${normalizedRequiredRoles.length} roles: ${normalizedRequiredRoles.join(', ')}`);
 		logger.info(`Consent body:`, JSON.stringify(consentBody, null, 2));
 
 		const consent = await obp_requests.post(
@@ -91,7 +92,7 @@ export async function POST(event: RequestEvent) {
 			consent_jwt: consent.jwt,
 			consent_id: consent.consent_id,
 			status: consent.status,
-			roles: required_roles
+			roles: normalizedRequiredRoles
 		});
 	} catch (error: any) {
 		logger.error('Failed to create consent:', error);
