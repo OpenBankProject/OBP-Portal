@@ -36,9 +36,6 @@
 		allMessages = []
 	}: Props = $props();
 
-	// Track hover state for showing regenerate button
-	let isHovered = $state(false);
-
 	// Check if message can be regenerated
 	// Don't allow regeneration for messages with temporary IDs or still pending confirmation
 	let canRegenerate = $derived(
@@ -109,41 +106,33 @@
 		class="{message.role === 'user' ? 'max-w-3/5' : message.role === 'tool' ? 'w-2/3' : 'max-w-full'} group relative mt-3"
 		role="region"
 		aria-label="Chat message"
-		onmouseenter={() => {
-			if (message.role === 'user' || message.role === 'assistant') isHovered = true;
-		}}
-		onmouseleave={() => {
-			if (message.role === 'user' || message.role === 'assistant') isHovered = false;
-		}}
 	>
 		{#if message.role === 'user'}
 			<div class="relative max-w-full rounded-2xl preset-filled-tertiary-500 p-2 text-white">
 				{message.message}
 			</div>
 
-			<!-- Action buttons - only show on hover for confirmed user messages -->
-			{#if isHovered}
-				<div class="mt-1 flex justify-end gap-1" id="message-options">
+			<!-- Action buttons - visible on hover via CSS opacity (always in DOM to prevent layout shift) -->
+			<div class="mt-1 flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" id="message-options">
+				<button
+					onclick={handleCopyAsMarkdown}
+					class="rounded-full p-1.5 transition-transform hover:scale-120"
+					title="Copy message"
+					aria-label="Copy message"
+				>
+					<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+				</button>
+				{#if onRegenerate && canRegenerate}
 					<button
-						onclick={handleCopyAsMarkdown}
+						onclick={() => onRegenerate?.(message.id)}
 						class="rounded-full p-1.5 transition-transform hover:scale-120"
-						title="Copy message"
-						aria-label="Copy message"
+						title="Regenerate response"
+						aria-label="Regenerate response"
 					>
-						<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+						<RotateCw class="h-4 w-4 text-surface-700 dark:text-surface-200" />
 					</button>
-					{#if onRegenerate && canRegenerate}
-						<button
-							onclick={() => onRegenerate?.(message.id)}
-							class="rounded-full p-1.5 transition-transform hover:scale-120"
-							title="Regenerate response"
-							aria-label="Regenerate response"
-						>
-							<RotateCw class="h-4 w-4 text-surface-700 dark:text-surface-200" />
-						</button>
-					{/if}
-				</div>
-			{/if}
+				{/if}
+			</div>
 		{:else if message.role === 'assistant'}
 			{#if message.isLoading}
 				<!-- Loading spinner while waiting for response -->
@@ -185,18 +174,16 @@
 						</div>
 					{/if}
 				</div>
-				{#if isHovered}
-					<div class="mt-1 flex justify-start">
-						<button
-							onclick={handleCopyAsMarkdown}
-							class="rounded-full p-1.5 transition-transform hover:scale-120"
-							title="Copy message"
-							aria-label="Copy message"
-						>
-							<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
-						</button>
-					</div>
-				{/if}
+				<div class="mt-1 flex justify-start opacity-0 transition-opacity group-hover:opacity-100">
+					<button
+						onclick={handleCopyAsMarkdown}
+						class="rounded-full p-1.5 transition-transform hover:scale-120"
+						title="Copy message"
+						aria-label="Copy message"
+					>
+						<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+					</button>
+				</div>
 			{/if}
 		{:else if message.role === 'tool'}
 			<ToolMessage
