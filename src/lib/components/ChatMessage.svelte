@@ -3,7 +3,9 @@
 	import { renderMarkdown } from '$lib/markdown/helper-funcs';
 	import type { BaseMessage, ToolMessage as ToolMessageType } from '$lib/opey/types';
 	import { ToolMessage } from './tool-messages';
-	import { RotateCw } from '@lucide/svelte';
+	import { RotateCw, Copy } from '@lucide/svelte';
+	import { messageToMarkdown } from '$lib/opey/utils/chatToMarkdown';
+	import { toast } from '$lib/utils/toastService';
 
 	// Props
 	interface Props {
@@ -17,6 +19,7 @@
 		onRegenerate?: (messageId: string) => Promise<void>;
 		onConsent?: (toolCallId: string, consentJwt: string) => Promise<void>;
 		onConsentDeny?: (toolCallId: string) => Promise<void>;
+		allMessages?: BaseMessage[];
 	}
 
 	let {
@@ -29,7 +32,8 @@
 		userName = 'Guest',
 		onRegenerate,
 		onConsent,
-		onConsentDeny
+		onConsentDeny,
+		allMessages = []
 	}: Props = $props();
 
 	// Track hover state for showing regenerate button
@@ -40,6 +44,16 @@
 	let canRegenerate = $derived(
 		message.role === 'user' && !message.isPending && !message.id.startsWith('temp-')
 	);
+
+	async function handleCopyAsMarkdown() {
+		try {
+			const md = messageToMarkdown(message, allMessages);
+			await navigator.clipboard.writeText(md);
+			toast.success('Copied to clipboard');
+		} catch {
+			toast.error('Failed to copy');
+		}
+	}
 
 	// Format error messages - can be extended to handle specific error types
 	function getErrorMessage(error?: string): string {
@@ -96,10 +110,10 @@
 		role="region"
 		aria-label="Chat message"
 		onmouseenter={() => {
-			if (message.role === 'user') isHovered = true;
+			if (message.role === 'user' || message.role === 'assistant') isHovered = true;
 		}}
 		onmouseleave={() => {
-			if (message.role === 'user') isHovered = false;
+			if (message.role === 'user' || message.role === 'assistant') isHovered = false;
 		}}
 	>
 		{#if message.role === 'user'}
@@ -107,17 +121,27 @@
 				{message.message}
 			</div>
 
-			<!-- Regenerate button - only show on hover for confirmed user messages -->
-			{#if isHovered && onRegenerate && canRegenerate}
-				<div class="mt-1 flex justify-end" id="message-options">
+			<!-- Action buttons - only show on hover for confirmed user messages -->
+			{#if isHovered}
+				<div class="mt-1 flex justify-end gap-1" id="message-options">
 					<button
-						onclick={() => onRegenerate?.(message.id)}
+						onclick={handleCopyAsMarkdown}
 						class="rounded-full p-1.5 transition-transform hover:scale-120"
-						title="Regenerate response"
-						aria-label="Regenerate response"
+						title="Copy message"
+						aria-label="Copy message"
 					>
-						<RotateCw class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+						<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
 					</button>
+					{#if onRegenerate && canRegenerate}
+						<button
+							onclick={() => onRegenerate?.(message.id)}
+							class="rounded-full p-1.5 transition-transform hover:scale-120"
+							title="Regenerate response"
+							aria-label="Regenerate response"
+						>
+							<RotateCw class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+						</button>
+					{/if}
 				</div>
 			{/if}
 		{:else if message.role === 'assistant'}
@@ -161,6 +185,18 @@
 						</div>
 					{/if}
 				</div>
+				{#if isHovered}
+					<div class="mt-1 flex justify-start">
+						<button
+							onclick={handleCopyAsMarkdown}
+							class="rounded-full p-1.5 transition-transform hover:scale-120"
+							title="Copy message"
+							aria-label="Copy message"
+						>
+							<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+						</button>
+					</div>
+				{/if}
 			{/if}
 		{:else if message.role === 'tool'}
 			<ToolMessage

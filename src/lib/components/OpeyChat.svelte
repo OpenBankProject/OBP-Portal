@@ -20,7 +20,9 @@
 	// Import other components
 	import { ToolError, ObpApiResponse, DefaultToolResponse } from './tool-messages';
 	import ChatMessage from './ChatMessage.svelte';
-	import { CircleArrowUp, StopCircle, type Icon as IconType } from '@lucide/svelte';
+	import { CircleArrowUp, StopCircle, Copy, type Icon as IconType } from '@lucide/svelte';
+	import { chatToMarkdown } from '$lib/opey/utils/chatToMarkdown';
+	import { toast } from '$lib/utils/toastService';
 	import type { Snippet } from 'svelte';
 
 	// Interface for chat options
@@ -427,6 +429,16 @@
 		await chatController.regenerate(messageId);
 	}
 
+	async function handleCopyChat() {
+		try {
+			const md = chatToMarkdown(chat.messages);
+			await navigator.clipboard.writeText(md);
+			toast.success('Chat copied to clipboard');
+		} catch {
+			toast.error('Failed to copy chat');
+		}
+	}
+
 	// TEMPORARY: Test function to manually trigger a single approval message
 	function addTestApprovalMessage() {
 		chatState.addApprovalRequest(
@@ -548,6 +560,7 @@
 					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
 					onConsent={handleConsent}
 					onConsentDeny={handleConsentDeny}
+					allMessages={chat.messages}
 				/>
 			{/each}
 		</div>
@@ -699,8 +712,16 @@
 		<div class="flex w-full items-end justify-between pt-1">
 			<div class="flex items-end gap-2">
                 {@render statusPips(session, options.currentConsentInfo)}
-                <!-- Placeholder for future buttons (like file upload) -->
-                <!-- <button class="btn variant-ghost-primary btn-sm">Add File +</button> -->
+                {#if chat.messages.length > 0}
+                    <button
+                        class="rounded-full p-1 transition-transform hover:scale-120"
+                        onclick={handleCopyChat}
+                        title="Copy chat as markdown"
+                        aria-label="Copy chat as markdown"
+                    >
+                        <Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+                    </button>
+                {/if}
             </div>
 
 			<div class="flex justify-end items-end">
