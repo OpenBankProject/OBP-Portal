@@ -71,7 +71,8 @@ export type StreamEvent =
         toolName: string,
         operationId: string | null,
         requiredRoles: string[],
-        timestamp: number
+        timestamp: number,
+        toolCallCount: number
       }
     | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }

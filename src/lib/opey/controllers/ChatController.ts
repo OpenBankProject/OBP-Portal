@@ -146,12 +146,13 @@ export class ChatController {
 						state.addBatchApprovalRequest(event.toolCalls);
 						break;
 					case 'consent_request':
-						logger.debug(`Received consent request for tool ${event.toolCallId}, operation: ${event.operationId}, roles: ${event.requiredRoles.join(', ')}`);
+						logger.debug(`Received consent request for tool ${event.toolCallId}, operation: ${event.operationId}, roles: ${event.requiredRoles.join(', ')}, count: ${event.toolCallCount}`);
 						state.addConsentRequest(
 							event.toolCallId,
 							event.toolName,
 							event.operationId,
-							event.requiredRoles
+							event.requiredRoles,
+							event.toolCallCount
 						);
 						break;
 				}

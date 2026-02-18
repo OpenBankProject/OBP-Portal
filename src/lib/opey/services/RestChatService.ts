@@ -74,9 +74,9 @@ export class RestChatService implements ChatService {
 		const payload = {
 			message: "",
 			thread_id: threadId,
-			tool_call_approval: {
-				consent_jwt: consentJwt
-			}
+			tool_call_approval: consentJwt !== null
+				? { consent_jwt: consentJwt }
+				: { consent_denied: true }
 		};
 
 		logger.info(`Consent payload:`, JSON.stringify(payload, null, 2));
@@ -340,7 +340,8 @@ export class RestChatService implements ChatService {
 					toolName: eventData.tool_name,
 					operationId: eventData.operation_id || null,
 					requiredRoles: eventData.required_roles || [],
-					timestamp: eventData.timestamp || Date.now() / 1000
+					timestamp: eventData.timestamp || Date.now() / 1000,
+					toolCallCount: eventData.tool_call_count ?? 1
 				});
 				break;
 			default:

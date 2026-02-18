@@ -2,6 +2,7 @@
 	import type { ToolMessage } from '$lib/opey/types';
 	import { createLogger } from '$lib/utils/logger';
 	import { Shield, CheckCircle, XCircle, KeyRound, AlertTriangle, Loader2 } from '@lucide/svelte';
+	import { expandRoleRequirements, deduplicateRoles } from '$lib/opey/utils/roles';
 
 	const logger = createLogger('ConsentRequestCard');
 
@@ -27,11 +28,13 @@
 
 		try {
 			// Normalize roles to strings (handle both string and object formats)
-			const normalizedRoles = (toolMessage.consentRequiredRoles || []).map((role: any) => {
-				if (typeof role === 'string') return role;
-				// Handle object format: {role: "CanCreateBank", requires_bank_id: false}
-				return role?.role || role?.role_name || role?.name || '';
-			}).filter(Boolean);
+			const normalizedRoles = deduplicateRoles(
+				(toolMessage.consentRequiredRoles || []).map((role: any) => {
+					if (typeof role === 'string') return role;
+					// Handle object format: {role: "CanCreateBank", requires_bank_id: false}
+					return role?.role || role?.role_name || role?.name || '';
+				}).filter(Boolean)
+			);
 
 			logger.info(`Creating consent with roles:`, normalizedRoles);
 			logger.info(`Original roles from toolMessage:`, toolMessage.consentRequiredRoles);
@@ -92,8 +95,12 @@
 
 	<!-- Explanation -->
 	<p class="mb-3 text-sm text-surface-700 dark:text-surface-300">
-		This operation requires additional permissions. You'll be granting a temporary, role-specific
-		consent that authorizes this specific action.
+		{#if (toolMessage.consentToolCallCount ?? 1) > 1}
+			<strong>{toolMessage.consentToolCallCount} calls</strong> to <code class="rounded bg-primary-100 px-1 dark:bg-primary-800">{toolMessage.toolName}</code> need consent. You'll be granting a temporary, role-specific consent that authorizes all of them.
+		{:else}
+			This operation requires additional permissions. You'll be granting a temporary, role-specific
+			consent that authorizes this specific action.
+		{/if}
 	</p>
 
 	<!-- Operation Info -->
@@ -116,15 +123,29 @@
 
 	<!-- Required Roles -->
 	{#if toolMessage.consentRequiredRoles && toolMessage.consentRequiredRoles.length > 0}
+		{@const rawRoles = (toolMessage.consentRequiredRoles || []).map((r: any) =>
+			typeof r === 'string' ? r : (r?.role || r?.role_name || r?.name || JSON.stringify(r))
+		)}
+		{@const roleRequirements = expandRoleRequirements(deduplicateRoles(rawRoles))}
 		<div class="mb-4">
 			<h4 class="mb-2 text-sm font-medium">Required Permissions:</h4>
-			<div class="flex flex-wrap gap-2">
-				{#each toolMessage.consentRequiredRoles as role}
-					{@const roleName = typeof role === 'string' ? role : (role?.role || role?.role_name || role?.name || JSON.stringify(role))}
-					<span class="flex items-center gap-1 rounded-full bg-tertiary-100 px-3 py-1 text-xs font-medium dark:bg-tertiary-800">
-						<Shield size={12} />
-						{roleName}
-					</span>
+			<div class="flex flex-col gap-2">
+				{#each roleRequirements as req}
+					<div class="flex flex-wrap items-center gap-2">
+						<span class="flex items-center gap-1 rounded-full bg-tertiary-100 px-3 py-1 text-xs font-medium dark:bg-tertiary-800">
+							<Shield size={12} />
+							{req.role}
+						</span>
+						{#if req.alternatives.length > 0}
+							<span class="text-xs text-surface-500 dark:text-surface-400">or</span>
+							{#each req.alternatives as alt}
+								<span class="flex items-center gap-1 rounded-full border border-tertiary-300 px-3 py-1 text-xs font-medium text-surface-600 dark:border-tertiary-600 dark:text-surface-400">
+									<Shield size={12} />
+									{alt}
+								</span>
+							{/each}
+						{/if}
+					</div>
 				{/each}
 			</div>
 		</div>

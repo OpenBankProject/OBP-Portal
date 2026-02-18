@@ -56,6 +56,7 @@ export interface ToolMessage extends BaseMessage {
 	consentStatus?: 'pending' | 'granted' | 'denied'; // Status of the consent request
 	consentOperationId?: string; // OBP API operation that requires consent
 	consentRequiredRoles?: string[]; // OBP roles the user must consent to
+	consentToolCallCount?: number; // Number of pending tool calls this consent will cover
 }
 
 /**

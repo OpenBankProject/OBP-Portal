@@ -4,6 +4,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { obp_requests } from '$lib/obp/requests';
 import { env } from '$env/dynamic/private';
+import { deduplicateRoles, pickConsentRole } from '$lib/opey/utils/roles';
 
 /**
  * POST /api/opey/consent
@@ -46,22 +47,40 @@ export async function POST(event: RequestEvent) {
 		// First, get the user's current roles to check what they have access to
 		logger.info('Fetching user entitlements to check available roles...');
 		const userEntitlements = await obp_requests.get('/obp/v5.1.0/my/entitlements', accessToken);
-		const userRoles = (userEntitlements.list || []).map((e: any) => e.role_name);
-		logger.info(`User has ${userRoles.length} roles:`, userRoles);
+		const userRoleNames: string[] = (userEntitlements.list || []).map((e: any) => e.role_name);
+		const userRolesSet = new Set(userRoleNames);
+		logger.info(`User has ${userRoleNames.length} roles:`, userRoleNames);
 
-		// Check which required roles the user doesn't have
-		const missingRoles = normalizedRequiredRoles.filter((role: string) => !userRoles.includes(role));
-		if (missingRoles.length > 0) {
-			logger.error(`User is missing required roles:`, missingRoles);
-			logger.error(`User has roles:`, userRoles);
-			logger.error(`Required roles:`, normalizedRequiredRoles);
-			return json({ 
-				error: `OBP-35013: You don't have the required roles. Missing: ${missingRoles.join(', ')}. You have: ${userRoles.join(', ')}` 
+		// Collapse any role that is superseded by another role already in the list
+		// e.g. ["CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank"] → ["CanCreateEntitlementAtAnyBank"]
+		const deduped = deduplicateRoles(normalizedRequiredRoles);
+		logger.info(`Deduplicated required roles: ${deduped.join(', ')}`);
+
+		// For each deduplicated role, pick the best role the user actually holds
+		// (exact match first, then a broader superseding role)
+		const pickedRoles: string[] = [];
+		const unsatisfiable: string[] = [];
+		for (const requiredRole of deduped) {
+			const picked = pickConsentRole(requiredRole, userRolesSet);
+			if (picked === null) {
+				unsatisfiable.push(requiredRole);
+			} else {
+				pickedRoles.push(picked);
+			}
+		}
+
+		if (unsatisfiable.length > 0) {
+			logger.error(`User cannot satisfy roles:`, unsatisfiable);
+			logger.error(`User has roles:`, userRoleNames);
+			return json({
+				error: `You don't have the required roles. Missing: ${unsatisfiable.join(', ')}. You have: ${userRoleNames.join(', ')}`
 			}, { status: 403 });
 		}
 
-		// Build entitlements array from required roles
-		const entitlements = normalizedRequiredRoles.map((roleName: string) => ({
+		logger.info(`Using picked roles for consent JWT: ${pickedRoles.join(', ')}`);
+
+		// Build entitlements array from the picked roles (not the raw required list)
+		const entitlements = pickedRoles.map((roleName: string) => ({
 			role_name: roleName,
 			bank_id: bank_id || ''
 		}));
@@ -77,7 +96,7 @@ export async function POST(event: RequestEvent) {
 			time_to_live: 3600 // 1 hour
 		};
 
-		logger.info(`Creating role-specific consent with ${normalizedRequiredRoles.length} roles: ${normalizedRequiredRoles.join(', ')}`);
+		logger.info(`Creating role-specific consent with ${pickedRoles.length} roles: ${pickedRoles.join(', ')}`);
 		logger.info(`Consent body:`, JSON.stringify(consentBody, null, 2));
 
 		const consent = await obp_requests.post(

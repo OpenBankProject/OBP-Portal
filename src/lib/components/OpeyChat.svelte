@@ -116,27 +116,31 @@
 	let userHasScrolledUp = $state(false);
 	let isAutoScrollEnabled = $state(true);
 
-	// Function to scroll to bottom
+	let isProgrammaticScroll = false;
+
 	function scrollToBottom() {
 		if (messagesContainer && isAutoScrollEnabled) {
+			isProgrammaticScroll = true;
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 	}
 
-	// Detect if user has scrolled up manually
 	function handleScroll(event: Event) {
+		// Ignore scroll events fired by scrollToBottom() itself
+		if (isProgrammaticScroll) {
+			isProgrammaticScroll = false;
+			return;
+		}
+
 		if (!messagesContainer) return;
 
 		const element = event.target as HTMLElement;
-		const isAtBottom =
-			Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
+		const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 10;
 
-		// If user scrolls to bottom, re-enable auto-scroll
 		if (isAtBottom) {
 			userHasScrolledUp = false;
 			isAutoScrollEnabled = true;
 		} else {
-			// User has scrolled up
 			userHasScrolledUp = true;
 			isAutoScrollEnabled = false;
 		}
@@ -192,11 +196,10 @@
 
 	// Watch for message changes and auto-scroll
 	$effect(() => {
-		// Trigger on messages change
+		// Trigger on messages change (tokens, tool cards, consent cards, new messages)
 		chat.messages;
 
-		// Only auto-scroll if enabled and streaming is happening
-		if (isAutoScrollEnabled && (isCurrentlyStreaming || chat.messages.some((m) => m.isLoading))) {
+		if (isAutoScrollEnabled) {
 			// Use requestAnimationFrame to ensure DOM has updated
 			requestAnimationFrame(() => {
 				scrollToBottom();
