@@ -1,3 +1,14 @@
+export interface OBPBank {
+  bank_id: string;
+  bank_code?: string;
+  short_name?: string;
+  full_name?: string;
+  logo?: string;
+  website?: string;
+  bank_routings?: { scheme: string; address: string }[];
+  attributes?: { name: string; value: string }[];
+}
+
 export interface OBPConsent {
     consent_reference_id: string;
     consent_id: string;
@@ -83,6 +94,7 @@ export interface OBPAddEntitlementBody {
 }
 
 export interface OBPPasswordResetInitiateRequestBody {
+    username: string;
     email: string;
 }
 
@@ -127,4 +139,122 @@ export interface OBPUserInvitationAcceptRequestBody {
     email: string;
     company: string;
     country: string;
+}
+
+// API Collection types
+export interface OBPApiCollection {
+    api_collection_id: string;
+    api_collection_name: string;
+    description: string;
+    is_sharable: boolean;
+    user_id: string;
+}
+
+export interface OBPApiCollectionsResponse {
+    api_collections: OBPApiCollection[];
+}
+
+export interface OBPApiCollectionEndpoint {
+    api_collection_endpoint_id: string;
+    api_collection_id: string;
+    operation_id: string;
+}
+
+export interface OBPApiCollectionEndpointsResponse {
+    api_collection_endpoints: OBPApiCollectionEndpoint[];
+}
+
+// Product types (API Tiers)
+export interface OBPProductAttribute {
+    name: string;
+    type: 'STRING' | 'INTEGER' | 'DOUBLE' | 'DATE_WITH_DAY';
+    value: string;
+    is_active?: boolean;
+}
+
+export interface OBPProduct {
+    bank_id: string;
+    product_code: string;
+    parent_product_code?: string;
+    name: string;
+    more_info_url?: string;
+    terms_and_conditions_url?: string;
+    description?: string;
+    meta?: {
+        license: {
+            id: string;
+            name: string;
+        };
+    };
+    product_attributes?: OBPProductAttribute[];
+}
+
+export interface OBPProductsResponse {
+    products: OBPProduct[];
+}
+
+// Product Collection (grouping of products)
+export interface OBPProductCollection {
+    collection_code: string;
+    products: OBPProduct[];
+}
+
+// API Product details (uses first-class fields from the API Product response)
+export interface APIProductDetails {
+    product: OBPProduct;
+    apiCollectionId?: string;
+    stripePriceId?: string;
+    category?: string;
+    rateLimitPerSecond?: number;
+    rateLimitPerMinute?: number;
+    rateLimitPerHour?: number;
+    rateLimitPerDay?: number;
+    rateLimitPerWeek?: number;
+    rateLimitPerMonth?: number;
+    features?: string[];
+    priceMonthly?: number;
+    priceCurrency?: string;
+    endpointCount?: number;
+}
+
+// Account Application (Order)
+export interface OBPAccountApplication {
+    account_application_id: string;
+    product_code: string;
+    user: {
+        user_id: string;
+        email: string;
+        provider_id: string;
+        provider: string;
+        username: string;
+    };
+    customer?: {
+        customer_id: string;
+        customer_number: string;
+        legal_name: string;
+        mobile_phone_number: string;
+        email: string;
+        face_image: {
+            url: string;
+            date: string;
+        };
+        date_of_birth: string;
+        relationship_status: string;
+        dependants: number;
+        dob_of_dependants: string[];
+        highest_education_attained: string;
+        employment_status: string;
+        kyc_status: boolean;
+        last_ok_date: string;
+    };
+    date_of_application: string;
+    status: 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'ACTIVE' | 'CANCELLED';
+}
+
+export interface OBPAccountApplicationsResponse {
+    account_applications: OBPAccountApplication[];
+}
+
+export interface OBPAccountApplicationCreateBody {
+    product_code: string;
 }

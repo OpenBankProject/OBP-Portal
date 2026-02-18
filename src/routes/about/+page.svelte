@@ -55,7 +55,7 @@ For questions, support, or more information about the Open Bank Project, please 
 
 ---
 
-© TESOBE 2011-2025. All rights reserved.`;
+© TESOBE 2011-${Math.max(new Date().getFullYear(), 2026)}. All rights reserved.`;
 
 	onMount(async () => {
 		// Dynamically import markdown-it to avoid SSR issues

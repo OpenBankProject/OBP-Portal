@@ -38,6 +38,7 @@
 		suggestedQuestions: SuggestedQuestion[]; // List of suggested questions to display
 		displayConnectionPips: boolean; // Whether to display connection status pips
 		initialAssistantMessage?: string;
+		initialUserMessage?: string; // Auto-send this message when session is ready
 		currentConsentInfo?: OBPConsentInfo; // Consent info for the status pip
 		headerClasses?: string; // Optional classes for the header
 		footerClasses?: string;
@@ -229,6 +230,11 @@
 		// e.g. await initializeOpeySessionWithRetry(5, 2000);
 		// would try 5 times with a base delay of 2 seconds
 		await initializeOpeySessionWithRetry();
+
+		// Auto-send initial user message if provided and session is ready
+		if (options.initialUserMessage && session.status === 'ready') {
+			await sendMessage(options.initialUserMessage);
+		}
 
 		// Start polling for health status if connection pips are enabled
 		if (options.displayConnectionPips) {

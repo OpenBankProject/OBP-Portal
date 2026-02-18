@@ -22,7 +22,10 @@
 		ChevronDown,
 		ChevronRight,
 		Settings,
-		CreditCard
+		CreditCard,
+		ShoppingBag,
+		Landmark,
+		DatabaseZap
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
@@ -80,20 +83,30 @@
 				]
 			: []), // unpacks a conditional list so we can add menu items where we want
 		{
+			label: 'Featured',
+			href: '/featured',
+			iconComponent: Star
+		},
+		{
+			label: 'API Products',
+			href: '/products',
+			iconComponent: ShoppingBag
+		},
+		{
+			label: 'Financial Products',
+			href: '/financial-products',
+			iconComponent: Landmark
+		},
+		{
 			label: 'Get API Key',
 			href: '/consumers/register',
 			iconComponent: KeyRound
 		},
-		...(data.externalLinks.SUBSCRIPTIONS_URL
-			? [
-					{
-						href: data.externalLinks.SUBSCRIPTIONS_URL,
-						label: 'Subscribe',
-						iconComponent: CreditCard,
-						external: true
-					}
-				]
-			: []),
+		{
+			label: 'Subscriptions',
+			href: '/subscriptions',
+			iconComponent: CreditCard
+		},
 		// ...(data.SUBSCRIPTIONS_URL
 		// 	? [{ href: data.SUBSCRIPTIONS_URL, label: 'Subscriptions', iconComponent: Star }]
 		// 	: []),
@@ -106,6 +119,16 @@
 						href: data.externalLinks.API_MANAGER_URL,
 						label: 'API Manager',
 						iconComponent: SquareTerminal,
+						external: true
+					}
+				]
+			: []),
+		...(data.externalLinks.SANDBOX_POPULATOR_URL
+			? [
+					{
+						href: data.externalLinks.SANDBOX_POPULATOR_URL,
+						label: 'Sandbox Populator',
+						iconComponent: DatabaseZap,
 						external: true
 					}
 				]
@@ -254,7 +277,7 @@
 					{/each}
 					<a href="/about" class="hover:text-tertiary-400">About</a>
 					{#if !hideFooterElements}
-						<span> © TESOBE 2011-2025 </span>
+						<span> © TESOBE 2011-{Math.max(new Date().getFullYear(), 2026)} </span>
 					{/if}
 					{#if env.PUBLIC_SPONSOR_NOTE}
 						<span class="text-surface-800-200">{env.PUBLIC_SPONSOR_NOTE}</span>

@@ -6,6 +6,25 @@ export class OBPErrorBase extends Error {
     }
 }
 
+export class OBPRateLimitError extends OBPErrorBase {
+    retryAfterSeconds?: number;
+
+    constructor(message: string, retryAfterSeconds?: number) {
+        super(message);
+        this.name = 'OBPRateLimitError';
+        this.retryAfterSeconds = retryAfterSeconds;
+        Object.setPrototypeOf(this, OBPRateLimitError.prototype);
+    }
+}
+
+export class OBPTimeoutError extends OBPErrorBase {
+    constructor(url: string, timeoutMs: number) {
+        super(`Request to ${url} timed out after ${timeoutMs}ms`);
+        this.name = 'OBPTimeoutError';
+        Object.setPrototypeOf(this, OBPTimeoutError.prototype);
+    }
+}
+
 export class OBPRequestError extends OBPErrorBase {
     code: string
     message: string;

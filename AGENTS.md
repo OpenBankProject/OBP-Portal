@@ -2,6 +2,24 @@
 
 `npm run dev`
 
+## Error Handling
+
+When displaying error messages from the OBP-API, ALWAYS show the full, original error message returned by the API. Do NOT wrap, summarize, or create generic/fantasy error messages. The OBP-API returns specific error codes and messages that are important for debugging.
+
+Example - CORRECT:
+```typescript
+if (e instanceof OBPRequestError) {
+    return { error: e.message }; // Shows actual OBP error like "OBP-30001: User not found"
+}
+```
+
+Example - INCORRECT:
+```typescript
+return { error: 'Could not fetch data. Please try again later.' }; // Generic/fantasy message
+```
+
+The `OBPRequestError` class contains the actual error message from the OBP-API. Always use `e.message` directly.
+
 ## Theming/CSS
 
 ALWAYS use skeletonUI's Tailwind framework for setting colours and css for elements, do not use native Tailwind. If in doubt the colour variables would be in obp-theme.css
