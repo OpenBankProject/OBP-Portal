@@ -206,7 +206,15 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	);
 	logger.debug('Full current user data:', user);
 
-	if (user.user_id && user.email) {
+	if (user.user_id) {
+		// Check if email is valid (not a placeholder)
+		const hasValidEmail = user.email && !user.email.endsWith('@noemail.local');
+		
+		if (!hasValidEmail) {
+			logger.warn(`User ${user.user_id} logged in without valid email. Email: ${user.email || 'null'}`);
+			logger.warn('This user should update their email address in the system.');
+		}
+		
 		// Store user data in session
 		const { session } = event.locals;
 		await session.setData({
@@ -219,6 +227,18 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		});
 		await session.save();
 		logger.debug('Session data set:', session.data);
+		
+		// Optionally redirect to profile page if email is invalid
+		// Uncomment the following lines to force email update:
+		// if (!hasValidEmail) {
+		//   return new Response(null, {
+		//     status: 302,
+		//     headers: {
+		//       Location: `/profile?warning=${encodeURIComponent('Please update your email address')}`
+		//     }
+		//   });
+		// }
+		
 		return new Response(null, {
 			status: 302,
 			headers: {
@@ -226,7 +246,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			}
 		});
 	} else {
-		logger.error('Invalid user data received from OBP - missing user_id or email:', user);
+		logger.error('Invalid user data received from OBP - missing user_id:', user);
 		
 		// Clean up the state cookie
 		event.cookies.delete('obp_oauth_state', {
