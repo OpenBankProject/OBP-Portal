@@ -20,6 +20,14 @@ return { error: 'Could not fetch data. Please try again later.' }; // Generic/fa
 
 The `OBPRequestError` class contains the actual error message from the OBP-API. Always use `e.message` directly.
 
+## Using ChromeDevTools
+
+When the user asks for some UI/css changes to be made, use chrome devtools MCP server to implement the changes, assume that the dev server is already running and that you do not need to run it before hand.
+
+### UI debugging opey chatbot
+
+When debugging the chat app, you need to populate it with some messages by typing in the input field and pressing the send/enter button.
+
 ## Theming/CSS
 
 ALWAYS use skeletonUI's Tailwind framework for setting colours and css for elements, do not use native Tailwind. If in doubt the colour variables would be in obp-theme.css

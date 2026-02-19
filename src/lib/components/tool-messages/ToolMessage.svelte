@@ -374,7 +374,7 @@
                 {#if message.toolInput}
                     <div class="space-y-2">
                         <h4 class="text-sm font-semibold text-surface-950-50">Tool Input</h4>
-                        <pre class="text-xs preset-filled-surface-200-800 p-3 rounded-lg border border-surface-300-700 overflow-x-auto max-h-60">{JSON.stringify(message.toolInput, null, 2)}</pre>
+                        <pre class="text-xs preset-filled-surface-200-800 p-3 rounded-lg border border-surface-300-700 overflow-x-auto max-h-60 text-left">{JSON.stringify(message.toolInput, null, 2)}</pre>
                     </div>
                 {/if}
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ToolMessage } from '$lib/opey/types';
 	import { createLogger } from '$lib/utils/logger';
-	import { Shield, CheckCircle, XCircle, KeyRound, AlertTriangle, Loader2 } from '@lucide/svelte';
+	import { Shield, CheckCircle, XCircle, KeyRound, Loader2 } from '@lucide/svelte';
 	import { expandRoleRequirements, deduplicateRoles } from '$lib/opey/utils/roles';
 
 	const logger = createLogger('ConsentRequestCard');
@@ -108,113 +108,76 @@
 	}
 </script>
 
-<div class="card rounded-lg border-2 border-tertiary-500 p-4 bg-tertiary-50-950/10">
-	<!-- Header -->
-	<div class="mb-3 flex items-center justify-between">
-		<div class="flex items-center gap-2">
-			<KeyRound class="text-tertiary-600 dark:text-tertiary-400" size={24} />
-			<h3 class="text-lg font-semibold">Consent Required</h3>
-		</div>
+<div class="card rounded-lg border border-tertiary-500/60 px-3 py-2.5 bg-tertiary-50-950/10">
+	<!-- Header row: icon + title + tool/operation context -->
+	<div class="mb-1.5 flex items-center gap-2">
+		<KeyRound class="text-tertiary-600 dark:text-tertiary-400 flex-shrink-0" size={16} />
+		<span class="text-sm font-semibold">Consent Required</span>
+		<code class="ml-auto rounded bg-primary-100 px-1.5 py-0.5 text-xs dark:bg-primary-800">{toolMessage.toolName}</code>
 	</div>
 
-	<!-- Explanation -->
-	<p class="mb-3 text-sm text-surface-700 dark:text-surface-300">
+	<!-- Brief explanation -->
+	<p class="mb-2 text-xs text-surface-600 dark:text-surface-400">
 		{#if (toolMessage.consentToolCallCount ?? 1) > 1}
-			<strong>{toolMessage.consentToolCallCount} calls</strong> to <code class="rounded bg-primary-100 px-1 dark:bg-primary-800">{toolMessage.toolName}</code> need consent. You'll be granting a temporary, role-specific consent that authorizes all of them.
+			<strong>{toolMessage.consentToolCallCount} calls</strong> need a temporary consent (1 hr).
 		{:else}
-			This operation requires additional permissions. You'll be granting a temporary, role-specific
-			consent that authorizes this specific action.
+			Grant a temporary consent (1 hr) for this action.
 		{/if}
 	</p>
 
-	<!-- Operation Info -->
-	{#if toolMessage.consentOperationId}
-		<div class="mb-3">
-			<span class="text-sm font-medium">Operation:</span>
-			<code class="ml-2 rounded bg-tertiary-100 px-2 py-1 text-sm dark:bg-tertiary-800">
-				{toolMessage.consentOperationId}
-			</code>
-		</div>
-	{/if}
-
-	<!-- Tool Name -->
-	<div class="mb-3">
-		<span class="text-sm font-medium">Tool:</span>
-		<code class="ml-2 rounded bg-primary-100 px-2 py-1 text-sm dark:bg-primary-800">
-			{toolMessage.toolName}
-		</code>
-	</div>
-
-	<!-- Required Roles -->
+	<!-- Required Roles (inline chips) -->
 	{#if toolMessage.consentRequiredRoles && toolMessage.consentRequiredRoles.length > 0}
 		{@const rawRoles = (toolMessage.consentRequiredRoles || []).map((r: any) =>
 			typeof r === 'string' ? r : (r?.role || r?.role_name || r?.name || JSON.stringify(r))
 		)}
 		{@const roleRequirements = expandRoleRequirements(deduplicateRoles(rawRoles))}
-		<div class="mb-4">
-			<h4 class="mb-2 text-sm font-medium">Required Permissions:</h4>
-			<div class="flex flex-col gap-2">
-				{#each roleRequirements as req}
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="flex items-center gap-1 rounded-full bg-tertiary-100 px-3 py-1 text-xs font-medium dark:bg-tertiary-800">
-							<Shield size={12} />
-							{req.role}
+		<div class="mb-2 flex flex-wrap items-center gap-1">
+			{#each roleRequirements as req}
+				<span class="inline-flex items-center gap-1 rounded-full bg-tertiary-100 px-2 py-0.5 text-[11px] font-medium dark:bg-tertiary-800">
+					<Shield size={10} />
+					{req.role}
+				</span>
+				{#if req.alternatives.length > 0}
+					<span class="text-[11px] text-surface-500">or</span>
+					{#each req.alternatives as alt}
+						<span class="inline-flex items-center gap-1 rounded-full border border-tertiary-300 px-2 py-0.5 text-[11px] font-medium text-surface-600 dark:border-tertiary-600 dark:text-surface-400">
+							<Shield size={10} />
+							{alt}
 						</span>
-						{#if req.alternatives.length > 0}
-							<span class="text-xs text-surface-500 dark:text-surface-400">or</span>
-							{#each req.alternatives as alt}
-								<span class="flex items-center gap-1 rounded-full border border-tertiary-300 px-3 py-1 text-xs font-medium text-surface-600 dark:border-tertiary-600 dark:text-surface-400">
-									<Shield size={12} />
-									{alt}
-								</span>
-							{/each}
-						{/if}
-					</div>
-				{/each}
-			</div>
+					{/each}
+				{/if}
+			{/each}
 		</div>
 	{/if}
 
-	<!-- Security Notice -->
-	<div class="mb-4 flex items-start gap-2 rounded bg-surface-200-800 p-3">
-		<AlertTriangle class="mt-0.5 flex-shrink-0 text-warning-600 dark:text-warning-400" size={16} />
-		<p class="text-xs text-surface-600 dark:text-surface-400">
-			This consent is temporary (1 hour) and scoped only to the permissions listed above.
-			The consent JWT is handled securely and never exposed to the AI model.
-		</p>
-	</div>
-
 	<!-- Error Display -->
 	{#if consentError}
-		<div class="mb-3 rounded bg-error-50 p-3 text-sm text-error-700 dark:bg-error-900/30 dark:text-error-300">
+		<div class="mb-2 rounded bg-error-50 px-2 py-1.5 text-xs text-error-700 dark:bg-error-900/30 dark:text-error-300">
 			{consentError}
 		</div>
 	{/if}
 
 	<!-- Action Buttons -->
-	<div class="flex gap-3">
-		<!-- Grant Consent Button -->
+	<div class="flex gap-2">
 		<button
-			class="btn flex-1 preset-filled-tertiary-500"
+			class="btn btn-sm flex-1 preset-filled-tertiary-500"
 			onclick={handleGrantConsent}
 			disabled={isProcessing}
 		>
 			{#if isProcessing}
-				<Loader2 size={18} class="animate-spin" />
-				<span>Creating consent...</span>
+				<Loader2 size={14} class="animate-spin" />
+				<span>Granting...</span>
 			{:else}
-				<CheckCircle size={18} />
-				<span>Grant Consent</span>
+				<CheckCircle size={14} />
+				<span>Grant</span>
 			{/if}
 		</button>
-
-		<!-- Deny Button -->
 		<button
-			class="btn flex-1 preset-outlined-error-500"
+			class="btn btn-sm preset-outlined-error-500"
 			onclick={handleDenyConsent}
 			disabled={isProcessing}
 		>
-			<XCircle size={18} />
+			<XCircle size={14} />
 			<span>Deny</span>
 		</button>
 	</div>

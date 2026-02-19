@@ -779,7 +779,7 @@
 			</div>
 		{:else}
 			<!--Main Chat Layout: messages fill space, input at bottom-->
-			<div class="min-h-0 min-w-0 flex-1 overflow-hidden px-4">
+			<div class="relative min-h-0 min-w-0 flex-1 overflow-hidden px-4">
 				{@render body()}
 			</div>
 

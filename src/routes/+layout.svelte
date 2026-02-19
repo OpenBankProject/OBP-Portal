@@ -310,7 +310,7 @@
 	>
 		<div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 48px);">
 			<div
-				class="bg-opacity-0 flex items-center justify-end px-4 py-2"
+				class="bg-opacity-0 flex items-center justify-end px-4 py-2 shadow-md z-10"
 				style="height: 48px; flex-shrink: 0;"
 			>
 				{#if isAuthenticated}
