@@ -550,14 +550,14 @@
 {#snippet body()}
 	<Menu onSelect={(details) => { if (details.value === 'copy-chat') handleCopyChat(); }}>
 		<Menu.ContextTrigger
-			class="h-full"
+			class="block h-full w-full"
 		>
 			<article
 				bind:this={messagesContainer}
 				onscroll={handleScroll}
-				class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}"
+				class="h-full w-full overflow-y-auto overflow-x-hidden py-4 {options.bodyClasses || ''}"
 			>
-				<div class="space-y-4">
+				<div class="space-y-4 min-w-0">
 					{#each chat.messages as message, index (message.id)}
 						<ChatMessage
 							{message}
@@ -779,13 +779,13 @@
 			</div>
 		{:else}
 			<!--Main Chat Layout: messages fill space, input at bottom-->
-			<div class="flex-1 overflow-hidden">
+			<div class="min-h-0 min-w-0 flex-1 overflow-hidden px-4">
 				{@render body()}
 			</div>
 
 			{@render suggestedQuestions()}
 
-			<div class="flex-shrink-0 p-4 {options.footerClasses || ''}">
+			<div class="flex-shrink-0 px-4 pb-2 {options.footerClasses || ''}">
 				<div class="relative flex items-center justify-center">
 					{@render inputField()}
 				</div>
