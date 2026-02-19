@@ -217,7 +217,8 @@ export class ChatState {
 		toolName: string,
 		operationId: string | null,
 		requiredRoles: string[],
-		toolCallCount: number = 1
+		toolCallCount: number = 1,
+		bankId?: string
 	): void {
 		const toolMessage = this.getToolMessageByCallId(toolCallId);
 
@@ -228,6 +229,7 @@ export class ChatState {
 			toolMessage.consentOperationId = operationId || undefined;
 			toolMessage.consentRequiredRoles = requiredRoles;
 			toolMessage.consentToolCallCount = toolCallCount;
+			if (bankId) toolMessage.consentBankId = bankId;
 		} else {
 			logger.warn(`No tool message found for consent request: ${toolCallId}, creating new one`);
 			this.addToolMessage({
@@ -243,7 +245,8 @@ export class ChatState {
 				consentStatus: 'pending',
 				consentOperationId: operationId || undefined,
 				consentRequiredRoles: requiredRoles,
-				consentToolCallCount: toolCallCount
+				consentToolCallCount: toolCallCount,
+				consentBankId: bankId
 			} as ToolMessage);
 		}
 

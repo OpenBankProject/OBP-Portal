@@ -18,6 +18,28 @@
 	let consentError = $state<string | null>(null);
 
 	/**
+	 * Resolve the bank_id for bank-scoped consent roles.
+	 * Priority: explicit consentBankId from backend > extracted from toolInput path_params.
+	 */
+	function resolveBankId(): string | undefined {
+		// 1. Explicit bank_id from the consent_request event
+		if (toolMessage.consentBankId) return toolMessage.consentBankId;
+
+		// 2. Check if any role requires bank_id
+		const needsBankId = (toolMessage.consentRequiredRoles || []).some((role: any) =>
+			typeof role === 'object' && role?.requires_bank_id
+		);
+		if (!needsBankId) return undefined;
+
+		// 3. Extract from toolInput path_params (set during the original tool call)
+		const pathParams = toolMessage.toolInput?.path_params;
+		if (pathParams?.BANK_ID) return pathParams.BANK_ID;
+		if (pathParams?.bank_id) return pathParams.bank_id;
+
+		return undefined;
+	}
+
+	/**
 	 * Create a role-specific consent via the server-side API route,
 	 * then pass the JWT back to the chat controller.
 	 */
@@ -36,7 +58,8 @@
 				}).filter(Boolean)
 			);
 
-			logger.info(`Creating consent with roles:`, normalizedRoles);
+			const bankId = resolveBankId();
+			logger.info(`Creating consent with roles:`, normalizedRoles, `bank_id:`, bankId);
 			logger.info(`Original roles from toolMessage:`, toolMessage.consentRequiredRoles);
 
 			// Call our server-side API to create the consent at OBP
@@ -44,7 +67,8 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					required_roles: normalizedRoles
+					required_roles: normalizedRoles,
+					bank_id: bankId
 				})
 			});
 

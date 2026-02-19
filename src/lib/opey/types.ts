@@ -57,6 +57,7 @@ export interface ToolMessage extends BaseMessage {
 	consentOperationId?: string; // OBP API operation that requires consent
 	consentRequiredRoles?: string[]; // OBP roles the user must consent to
 	consentToolCallCount?: number; // Number of pending tool calls this consent will cover
+	consentBankId?: string; // Bank ID for bank-scoped consent roles
 }
 
 /**

@@ -341,7 +341,8 @@ export class RestChatService implements ChatService {
 					operationId: eventData.operation_id || null,
 					requiredRoles: eventData.required_roles || [],
 					timestamp: eventData.timestamp || Date.now() / 1000,
-					toolCallCount: eventData.tool_call_count ?? 1
+					toolCallCount: eventData.tool_call_count ?? 1,
+					bankId: eventData.bank_id || null
 				});
 				break;
 			default:

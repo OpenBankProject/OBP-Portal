@@ -72,7 +72,8 @@ export type StreamEvent =
         operationId: string | null,
         requiredRoles: string[],
         timestamp: number,
-        toolCallCount: number
+        toolCallCount: number,
+        bankId?: string | null
       }
     | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }
