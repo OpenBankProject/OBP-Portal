@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { ShieldUserIcon } from '@lucide/svelte';
-	import { Tooltip, Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { Tooltip, Dialog, Portal, Menu } from '@skeletonlabs/skeleton-svelte';
 	import { createLogger } from '$lib/utils/logger';
 
 	const logger = createLogger('OpeyChat');
@@ -548,29 +548,45 @@
 {/snippet}
 
 {#snippet body()}
-	<article
-		bind:this={messagesContainer}
-		onscroll={handleScroll}
-		class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}"
-	>
-		<div class="space-y-4">
-			{#each chat.messages as message, index (message.id)}
-				<ChatMessage
-					{message}
-					previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
-					userName={options.currentlyActiveUserName}
-					onApprove={handleApprove}
-					onDeny={handleDeny}
-					onBatchSubmit={handleBatchApprovalSubmit}
-					onRegenerate={handleRegenerate}
-					batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
-					onConsent={handleConsent}
-					onConsentDeny={handleConsentDeny}
-					allMessages={chat.messages}
-				/>
-			{/each}
-		</div>
-	</article>
+	<Menu onSelect={(details) => { if (details.value === 'copy-chat') handleCopyChat(); }}>
+		<Menu.ContextTrigger
+			class="h-full"
+		>
+			<article
+				bind:this={messagesContainer}
+				onscroll={handleScroll}
+				class="h-full overflow-y-auto p-4 {options.bodyClasses || ''}"
+			>
+				<div class="space-y-4">
+					{#each chat.messages as message, index (message.id)}
+						<ChatMessage
+							{message}
+							previousMessageRole={index > 0 ? chat.messages[index - 1].role : undefined}
+							userName={options.currentlyActiveUserName}
+							onApprove={handleApprove}
+							onDeny={handleDeny}
+							onBatchSubmit={handleBatchApprovalSubmit}
+							onRegenerate={handleRegenerate}
+							batchApprovalGroup={pendingApprovalTools.length > 1 ? pendingApprovalTools : undefined}
+							onConsent={handleConsent}
+							onConsentDeny={handleConsentDeny}
+							allMessages={chat.messages}
+						/>
+					{/each}
+				</div>
+			</article>
+		</Menu.ContextTrigger>
+		<Portal>
+			<Menu.Positioner>
+				<Menu.Content class="card bg-surface-100-900 p-1 shadow-xl">
+					<Menu.Item value="copy-chat" disabled={chat.messages.length === 0}>
+						<Copy class="mr-2 h-4 w-4" />
+						<Menu.ItemText>Copy chat as markdown</Menu.ItemText>
+					</Menu.Item>
+				</Menu.Content>
+			</Menu.Positioner>
+		</Portal>
+	</Menu>
 {/snippet}
 
 {#snippet suggestedQuestions()}
@@ -718,16 +734,6 @@
 		<div class="flex w-full items-end justify-between pt-1">
 			<div class="flex items-end gap-2">
                 {@render statusPips(session, options.currentConsentInfo)}
-                {#if chat.messages.length > 0}
-                    <button
-                        class="rounded-full p-1 transition-transform hover:scale-120"
-                        onclick={handleCopyChat}
-                        title="Copy chat as markdown"
-                        aria-label="Copy chat as markdown"
-                    >
-                        <Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
-                    </button>
-                {/if}
             </div>
 
 			<div class="flex justify-end items-end">
