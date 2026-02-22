@@ -9,7 +9,8 @@
 			<div class="bg-error-500/10 border-error-500 mb-4 rounded-lg border p-4">
 				<p class="text-error-500 font-semibold">{data.loadError}</p>
 			</div>
-		{:else}
+		{/if}
+
 			<p class="mb-6 text-gray-700 dark:text-gray-300">
 				{#if data.flow === 'payment'}
 					Please enter the OTP to authorise this payment.
@@ -75,5 +76,4 @@
 					<button type="submit" class="btn preset-filled-primary-500 w-full">Verify OTP</button>
 				</form>
 			{/if}
-		{/if}
 	</div>

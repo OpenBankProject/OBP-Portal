@@ -13,7 +13,8 @@
 				<div class="bg-error-500/10 border-error-500 mt-4 mb-4 rounded-lg border p-4">
 					<p class="text-error-500 font-semibold">{data.loadError}</p>
 				</div>
-			{:else}
+			{/if}
+
 				<!-- TODO: applicationName and requestedScopes are placeholder values.
 					 Replace with actual data from the OIDC provider's consent introspection API.
 					 See +page.server.ts for details on provider-specific integration. -->
@@ -73,6 +74,5 @@
 						</form>
 					</div>
 				{/if}
-			{/if}
 		</div>
 	</div>

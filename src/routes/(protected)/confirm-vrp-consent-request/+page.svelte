@@ -11,7 +11,8 @@
 			<div class="bg-error-500/10 border-error-500 mb-4 rounded-lg border p-4">
 				<p class="text-error-500 font-semibold">{data.loadError}</p>
 			</div>
-		{:else}
+		{/if}
+
 			<p class="mb-6 text-gray-700 dark:text-gray-300">
 				Please review the Variable Recurring Payment consent details below and confirm if you agree.
 			</p>
@@ -109,5 +110,4 @@
 					Confirm Consent
 				</button>
 			</form>
-		{/if}
 	</div>

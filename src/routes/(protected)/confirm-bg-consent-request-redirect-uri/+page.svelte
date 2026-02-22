@@ -29,7 +29,8 @@
 			<div class="bg-error-500/10 border-error-500 mb-4 rounded-lg border p-4">
 				<p class="text-error-500 font-semibold">{data.loadError}</p>
 			</div>
-		{:else}
+		{/if}
+
 			<div
 				class="mb-6 rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20"
 			>
@@ -53,5 +54,4 @@
 					>.
 				</p>
 			{/if}
-		{/if}
 	</div>

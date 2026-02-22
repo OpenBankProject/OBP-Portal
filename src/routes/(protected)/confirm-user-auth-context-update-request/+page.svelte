@@ -9,7 +9,8 @@
 			<div class="bg-error-500/10 border-error-500 mb-4 rounded-lg border p-4">
 				<p class="text-error-500 font-semibold">{data.loadError}</p>
 			</div>
-		{:else}
+		{/if}
+
 			<p class="mb-6 text-gray-700 dark:text-gray-300">
 				Please enter the OTP code you received to complete the verification process.
 			</p>
@@ -51,5 +52,4 @@
 
 				<button type="submit" class="btn preset-filled-primary-500 w-full">Confirm</button>
 			</form>
-		{/if}
 	</div>
