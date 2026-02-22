@@ -3,10 +3,11 @@ const logger = createLogger('LayoutServer');
 import type { RequestEvent } from "@sveltejs/kit";
 import { obpIntegrationService } from '$lib/opey/services/OBPIntegrationService';
 import type { OBPConsentInfo } from '$lib/obp/types';
+import { obp_requests } from '$lib/obp/requests';
 // import { computePosition, autoUpdate, offset, shift, flip, arrow } from '@floating-ui/dom';
 // import { storePopup } from '@skeletonlabs/skeleton';
 // storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
-			
+
 import { env } from "$env/dynamic/private";
 import { env as publicEnv } from '$env/dynamic/public';
 import { LESS } from '$env/static/private';
@@ -17,6 +18,7 @@ export interface RootLayoutData {
     username?: string;
     opeyConsentInfo?: OBPConsentInfo;
     externalLinks: Record<string, string>;
+    showEarlyAccess?: boolean;
 }
 
 export async function load(event: RequestEvent) {
@@ -59,8 +61,24 @@ export async function load(event: RequestEvent) {
 		logger.error('Error fetching Opey consent info:', error);
 	}
 
+	// Check if user has EARLY_ACCESS personal data field set to YES
+	let showEarlyAccess = false;
+	const accessToken = session?.data?.oauth?.access_token;
+	if (accessToken) {
+		try {
+			const response = await obp_requests.get('/obp/v6.0.0/my/personal-data-fields', accessToken);
+			const fields = response.user_attributes || [];
+			showEarlyAccess = fields.some(
+				(f: { name: string; value: string }) => f.name === 'EARLY_ACCESS' && f.value === 'YES'
+			);
+		} catch (error) {
+			logger.debug('Could not fetch personal data fields for early access check:', error);
+		}
+	}
+
 	return {
 		...data,
-		externalLinks: validExternalLinks
+		externalLinks: validExternalLinks,
+		showEarlyAccess
 	} as RootLayoutData
 }
