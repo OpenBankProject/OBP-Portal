@@ -25,7 +25,8 @@
 		CreditCard,
 		ShoppingBag,
 		Landmark,
-		DatabaseZap
+		DatabaseZap,
+		LayoutList
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
@@ -68,6 +69,7 @@
 	function toggleMyAccount() {
 		isMyAccountExpanded = !isMyAccountExpanded;
 	}
+
 
 	// Some items in the menu are rendered conditionally based on the presence of URLs set in the environment variables.
 	// This is to ensure no broken links
@@ -191,7 +193,7 @@
 				</a>
 			</Navigation.Header>
 
-			<Navigation.Content class="">
+			<Navigation.Content class="overflow-y-auto overflow-x-hidden">
 				<!-- Main Menu Group -->
 				<Navigation.Group>
 					<Navigation.Menu class="flex flex-col gap-2 px-2">
@@ -256,7 +258,27 @@
 								{/each}
 							</Navigation.Menu>
 						{/if}
+
 					</Navigation.Group>
+
+					{#if data.showEarlyAccess}
+						<Navigation.Group>
+							<Navigation.Menu class="flex flex-col gap-2 px-2">
+								<a
+									href="/user/early-access"
+									class="btn w-full justify-start gap-3 px-2 hover:preset-tonal"
+									class:preset-filled-primary-50-950={page.url.pathname === '/user/early-access'}
+									class:border={page.url.pathname === '/user/early-access'}
+									class:border-solid-secondary-500={page.url.pathname === '/user/early-access'}
+									title="Early Access"
+									aria-label="Early Access"
+								>
+									<LayoutList class="size-5" />
+									<span>Early Access</span>
+								</a>
+							</Navigation.Menu>
+						</Navigation.Group>
+					{/if}
 				{/if}
 			</Navigation.Content>
 

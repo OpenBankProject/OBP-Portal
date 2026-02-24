@@ -258,3 +258,64 @@ export interface OBPAccountApplicationsResponse {
 export interface OBPAccountApplicationCreateBody {
     product_code: string;
 }
+
+// User Auth Context Update types
+export interface OBPUserAuthContextUpdate {
+    user_auth_context_update_id: string;
+    user_id: string;
+    key: string;
+    value: string;
+    status: string;
+    consumer_id: string;
+}
+
+// Consent Request types
+export interface OBPConsentRequestResponse {
+    consent_request_id: string;
+    payload: string;
+    consumer_id: string;
+}
+
+// Consent Challenge types
+export interface OBPConsentChallengeResponse {
+    consent_id: string;
+    jwt: string;
+    status: string;
+}
+
+// Berlin Group Consent Access types
+export interface OBPBGConsentAccess {
+    accounts?: { iban: string }[];
+    balances?: { iban: string }[];
+    transactions?: { iban: string }[];
+    availableAccounts?: string;
+}
+
+// Consumer Details types
+export interface OBPConsumerDetails {
+    consumer_id: string;
+    app_name: string;
+    app_type: string;
+    description: string;
+    developer_email: string;
+    redirect_url: string;
+    company: string;
+    enabled: boolean;
+    created: string;
+}
+
+// Berlin Group Payment Authorisation types
+export interface OBPBGPaymentAuthorisation {
+    authorisation_id: string;
+    sca_status: string;
+}
+
+// Personal Data Field (User Attribute)
+export interface OBPPersonalDataField {
+    user_attribute_id: string;
+    name: string;
+    type: 'STRING' | 'INTEGER' | 'DOUBLE' | 'DATE_WITH_DAY';
+    value: string;
+    is_personal: boolean;
+    insert_date: string;
+}
