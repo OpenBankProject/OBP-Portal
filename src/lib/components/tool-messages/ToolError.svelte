@@ -26,7 +26,7 @@
 	}
 </script>
 
-<div class="card rounded-lg border-2 border-error-500 bg-error-50-950 p-4">
+<div class="card rounded-lg border-2 border-error-500 bg-error-50-950 p-4 text-left">
 	<!-- Header -->
 	<div class="mb-3 flex items-center justify-between">
 		<div class="flex items-center gap-2">
@@ -74,6 +74,6 @@
 
 	<!-- Error Details -->
 	{#if showDetails}
-		<pre class="text-xs mt-3 preset-filled-surface-200-800 p-3 rounded-lg max-h-96 overflow-auto font-mono whitespace-pre border border-error-300 dark:border-error-700">{errorOutput}</pre>
+		<pre class="text-xs text-left mt-3 preset-filled-surface-200-800 p-3 rounded-lg max-h-96 overflow-auto font-mono whitespace-pre border border-error-300 dark:border-error-700">{errorOutput}</pre>
 	{/if}
 </div>

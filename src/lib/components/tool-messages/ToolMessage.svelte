@@ -215,7 +215,7 @@
 
 {#if isBatchApproval && isFirstInBatch}
     <!-- Batch Approval View -->
-    <div class="card variant-ghost-warning rounded-lg border-2 border-warning-500 p-4 space-y-4">
+    <div class="card variant-ghost-warning rounded-lg border-2 border-warning-500 p-4 space-y-4 text-left">
         <!-- Header -->
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -317,7 +317,7 @@
     <!-- This is part of a batch but not the first - don't render, it's shown above -->
 {:else}
     <!-- Single Tool Card (Simplified) -->
-    <div class="card rounded-lg border-1 {borderColorClass} bg-primary-300-700 transition-all">
+    <div class="card rounded-lg border-1 {borderColorClass} bg-primary-300-700 transition-all text-left">
         <!-- Card Header - Always Visible, Clickable to Expand -->
         <button
             type="button"

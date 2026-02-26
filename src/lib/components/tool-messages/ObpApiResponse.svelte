@@ -43,8 +43,8 @@
     }
 </script>
 
-<div class="card rounded-lg border-2 p-4" 
-     class:border-error-500={isError} 
+<div class="card rounded-lg border-2 p-4 text-left"
+     class:border-error-500={isError}
      class:bg-error-50={isError}
      class:dark:bg-error-950={isError}
      class:border-surface-300-700={!isError}
@@ -107,6 +107,6 @@
 
     <!-- Output Content -->
     {#if showOutput}
-        <pre class="text-xs mt-2 preset-filled-surface-200-800 p-3 rounded-lg max-h-96 overflow-auto font-mono whitespace-pre border border-surface-300-700">{outputContent}</pre>
+        <pre class="text-xs text-left mt-2 preset-filled-surface-200-800 p-3 rounded-lg max-h-96 overflow-auto font-mono whitespace-pre border border-surface-300-700">{outputContent}</pre>
     {/if}
 </div>
