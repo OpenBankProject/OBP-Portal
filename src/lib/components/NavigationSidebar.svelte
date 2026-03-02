@@ -2,11 +2,10 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import { fade } from 'svelte/transition';
 	import {
-		PanelLeftClose,
-		PanelLeftOpen,
+		ChevronLeft,
+		ChevronRight,
 		User,
-		ChevronDown,
-		ChevronRight
+		ChevronDown
 	} from '@lucide/svelte';
 	import LightSwitch from '$lib/components/LightSwitch.svelte';
 	import type { NavigationItem } from '$lib/config/navigation';
@@ -98,27 +97,27 @@
 	}
 </script>
 
-<div class="h-full transition-all duration-300">
+<div class="relative h-full transition-all duration-300">
+	{#if isNavExpanded}
+		<button
+			type="button"
+			onclick={toggleNav}
+			class="absolute -right-6 top-6 z-10 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+			title="Collapse navigation"
+			aria-label="Collapse navigation"
+		>
+			<ChevronLeft class="size-5" />
+		</button>
+	{/if}
 	<Navigation
 		layout={isNavExpanded ? 'sidebar' : 'rail'}
 		class="grid h-full grid-rows-[auto_1fr_auto] gap-4 preset-filled-primary-50-950"
 	>
 		<Navigation.Header class="px-2 py-4">
 			{#if isNavExpanded}
-				<div class="flex items-center justify-between gap-2">
-					<a href="/" class="flex min-w-0 flex-1 items-center justify-center">
-						<img class="block" style="width: {logoWidth};" src={logoUrl} alt="Logo" />
-					</a>
-					<button
-						type="button"
-						onclick={toggleNav}
-						class="btn-icon hover:preset-tonal flex-shrink-0"
-						title="Collapse navigation"
-						aria-label="Collapse navigation"
-					>
-						<PanelLeftClose class="size-5" />
-					</button>
-				</div>
+				<a href="/" class="flex w-full items-center justify-center">
+					<img class="block" style="width: {logoWidth};" src={logoUrl} alt="Logo" />
+				</a>
 			{:else}
 				<button
 					type="button"
@@ -127,7 +126,7 @@
 					title="Expand navigation"
 					aria-label="Expand navigation"
 				>
-					<PanelLeftOpen class="size-5" />
+					<ChevronRight class="size-5" />
 				</button>
 			{/if}
 		</Navigation.Header>
@@ -141,8 +140,8 @@
 						<a
 							href={item.href}
 							class="btn w-full gap-3 px-2 hover:preset-tonal"
-							class:justify-start={textVisible}
-							class:justify-center={!textVisible}
+							class:justify-start={isNavExpanded}
+							class:justify-center={!isNavExpanded}
 							class:preset-filled-primary-50-950={currentPathname === item.href}
 							class:border={currentPathname === item.href}
 							class:border-solid-secondary-500={currentPathname === item.href}
