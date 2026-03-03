@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import { fade } from 'svelte/transition';
 	import {
 		ChevronLeft,
 		ChevronRight,
@@ -56,11 +54,7 @@
 	}: NavigationSidebarProps = $props();
 
 	let isNavExpanded = $state(true);
-	// Separate from isNavExpanded so text can fade out *before* the rail closes,
-	// and fade in *after* the rail has opened.
-	let textVisible = $state(true);
 	let isMyAccountExpanded = $state(false);
-	let toggleTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	let isMyAccountActive = $derived(currentPathname.startsWith('/user'));
 
@@ -75,29 +69,11 @@
 	}
 
 	function toggleNav() {
-		if (toggleTimeout) clearTimeout(toggleTimeout);
-
-		if (isNavExpanded) {
-			// Phase 1: fade out text content (150ms out:fade)
-			textVisible = false;
-			// Phase 2: close the rail after text has gone
-			toggleTimeout = setTimeout(() => {
-				isNavExpanded = false;
-				toggleTimeout = null;
-			}, 180);
-		} else {
-			// Phase 1: open the rail (Skeleton's wipe animation ~200ms)
-			isNavExpanded = true;
-			// Phase 2: fade in text once rail is open
-			toggleTimeout = setTimeout(() => {
-				textVisible = true;
-				toggleTimeout = null;
-			}, 220);
-		}
+		isNavExpanded = !isNavExpanded;
 	}
 </script>
 
-<div class="relative h-full transition-all duration-300">
+<div class="relative h-full">
 	{#if isNavExpanded}
 		<button
 			type="button"
@@ -109,39 +85,45 @@
 			<ChevronLeft class="size-5" />
 		</button>
 	{/if}
-	<Navigation
-		layout={isNavExpanded ? 'sidebar' : 'rail'}
-		class="grid h-full grid-rows-[auto_1fr_auto] gap-4 preset-filled-primary-50-950"
-	>
-		<Navigation.Header class="px-2 py-4">
-			{#if isNavExpanded}
-				<a href="/" class="flex w-full items-center justify-center">
-					<img class="block" style="width: {logoWidth};" src={logoUrl} alt="Logo" />
-				</a>
-			{:else}
-				<button
-					type="button"
-					onclick={toggleNav}
-					class="btn w-full justify-center gap-3 px-2 hover:preset-tonal"
-					title="Expand navigation"
-					aria-label="Expand navigation"
-				>
-					<ChevronRight class="size-5" />
-				</button>
-			{/if}
-		</Navigation.Header>
 
-		<Navigation.Content class="">
-			<!-- Main Menu Group -->
-			<Navigation.Group>
-				<Navigation.Menu class="flex flex-col gap-2 px-2 !justify-start">
-					{#each menuItems as item}
-						{@const Icon = item.iconComponent}
+	<nav
+		class="flex h-full flex-col gap-4 overflow-hidden preset-filled-primary-50-950
+		       transition-[width] duration-200 ease-[cubic-bezier(0.165,0.85,0.45,1)]"
+		style="width: {isNavExpanded ? '256px' : '64px'}"
+	>
+		<!-- Header -->
+		<header class="relative px-3 py-4">
+			<a
+				href="/"
+				class="flex w-full items-center justify-center transition-opacity duration-200"
+				class:opacity-0={!isNavExpanded}
+				class:pointer-events-none={!isNavExpanded}
+			>
+				<img class="block" style="width: {logoWidth};" src={logoUrl} alt="Logo" />
+			</a>
+			<button
+				type="button"
+				onclick={toggleNav}
+				class="btn absolute top-1/2 left-0 right-0 -translate-y-1/2 w-full justify-start gap-3 px-3 hover:preset-tonal transition-opacity duration-200"
+				class:opacity-0={isNavExpanded}
+				class:pointer-events-none={isNavExpanded}
+				title="Expand navigation"
+				aria-label="Expand navigation"
+			>
+				<ChevronRight class="size-5" />
+			</button>
+		</header>
+
+		<!-- Content -->
+		<div class="flex-1 overflow-y-auto overflow-x-hidden">
+			<!-- Main Menu -->
+			<ul class="flex flex-col gap-2 px-3">
+				{#each menuItems as item}
+					{@const Icon = item.iconComponent}
+					<li>
 						<a
 							href={item.href}
-							class="btn w-full gap-3 px-2 hover:preset-tonal"
-							class:justify-start={isNavExpanded}
-							class:justify-center={!isNavExpanded}
+							class="btn w-full justify-start gap-3 px-3 py-2 whitespace-nowrap overflow-hidden hover:preset-tonal"
 							class:preset-filled-primary-50-950={currentPathname === item.href}
 							class:border={currentPathname === item.href}
 							class:border-solid-secondary-500={currentPathname === item.href}
@@ -150,82 +132,83 @@
 							target={item.external ? '_blank' : undefined}
 							rel={item.external ? 'noopener noreferrer' : undefined}
 						>
-							<Icon class="size-5" />
-							{#if textVisible}
-								<span out:fade={{ duration: 150 }}>{item.label}</span>
+							<Icon class="size-5 shrink-0" />
+							{#if isNavExpanded}
+								<span class="overflow-hidden">{item.label}</span>
 							{/if}
 						</a>
-					{/each}
-				</Navigation.Menu>
-			</Navigation.Group>
+					</li>
+				{/each}
+			</ul>
 
 			{#if isAuthenticated}
-				<!-- My Account Group -->
-				<Navigation.Group>
-					{#if textVisible}
+				<!-- My Account -->
+				<div class="mt-2 px-3">
+					{#if isNavExpanded}
 						<button
 							type="button"
-							class="hover:bg-surface-100-800 mx-2 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
+							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
 							class:bg-primary-100-800={isMyAccountActive}
 							onclick={toggleMyAccount}
 						>
-							<div class="flex items-center gap-3">
-								<User class="h-5 w-5" />
+							<div class="flex items-center gap-3 whitespace-nowrap overflow-hidden">
+								<User class="h-5 w-5 shrink-0" />
 								<span>My Account</span>
 							</div>
 							{#if isMyAccountExpanded}
-								<ChevronDown class="h-4 w-4" />
+								<ChevronDown class="h-4 w-4 shrink-0" />
 							{:else}
-								<ChevronRight class="h-4 w-4" />
+								<ChevronRight class="h-4 w-4 shrink-0" />
 							{/if}
 						</button>
 
 						{#if isMyAccountExpanded}
-							<Navigation.Menu class="mt-1 ml-4 flex flex-col gap-1 px-2">
+							<ul class="mt-1 ml-4 flex flex-col gap-1">
 								{#each myAccountItems as subItem}
 									{@const Icon = subItem.iconComponent}
-									<a
-										href={subItem.href}
-										class="btn w-full justify-start gap-3 px-2 pl-6 text-sm hover:preset-tonal"
-										class:preset-filled-secondary-50-950={currentPathname === subItem.href}
-										class:border-l-2={currentPathname === subItem.href}
-										class:border-primary-500={currentPathname === subItem.href}
-										title={subItem.label}
-										aria-label={subItem.label}
-										target={subItem.external ? '_blank' : undefined}
-										rel={subItem.external ? 'noopener noreferrer' : undefined}
-									>
-										<Icon class="size-4" />
-										<span>{subItem.label}</span>
-									</a>
+									<li>
+										<a
+											href={subItem.href}
+											class="btn w-full justify-start gap-3 px-2 pl-6 text-sm whitespace-nowrap overflow-hidden hover:preset-tonal"
+											class:preset-filled-secondary-50-950={currentPathname === subItem.href}
+											class:border-l-2={currentPathname === subItem.href}
+											class:border-primary-500={currentPathname === subItem.href}
+											title={subItem.label}
+											aria-label={subItem.label}
+											target={subItem.external ? '_blank' : undefined}
+											rel={subItem.external ? 'noopener noreferrer' : undefined}
+										>
+											<Icon class="size-4 shrink-0" />
+											<span>{subItem.label}</span>
+										</a>
+									</li>
 								{/each}
-							</Navigation.Menu>
+							</ul>
 						{/if}
 					{:else}
-						<Navigation.Menu class="flex flex-col gap-2 px-2 !justify-start">
-							<a
-								href="/user"
-								class="btn w-full justify-center gap-3 px-2 hover:preset-tonal"
-								class:preset-filled-primary-50-950={isMyAccountActive}
-								title="My Account"
-								aria-label="My Account"
-							>
-								<User class="size-5" />
-							</a>
-						</Navigation.Menu>
+						<a
+							href="/user"
+							class="btn w-full justify-start gap-3 px-3 py-2 hover:preset-tonal"
+							class:preset-filled-primary-50-950={isMyAccountActive}
+							title="My Account"
+							aria-label="My Account"
+						>
+							<User class="size-5" />
+						</a>
 					{/if}
-				</Navigation.Group>
+				</div>
 			{/if}
-		</Navigation.Content>
+		</div>
 
-		{#if !isNavExpanded && collapsedLogoUrl}
-			<Navigation.Footer class="flex justify-center px-2 py-4">
-				<a href="/" title="Home">
-					<img src={collapsedLogoUrl} alt="Logo" class="size-7" />
-				</a>
-			</Navigation.Footer>
-		{:else if textVisible}
-			<Navigation.Footer class="px-2 py-4">
+		<!-- Footer -->
+		<footer class="px-3 py-4">
+			{#if !isNavExpanded && collapsedLogoUrl}
+				<div class="flex justify-center">
+					<a href="/" title="Home">
+						<img src={collapsedLogoUrl} alt="Logo" class="size-7" />
+					</a>
+				</div>
+			{:else if isNavExpanded}
 				<div class="flex flex-wrap items-center gap-3 text-xs text-surface-800-200">
 					<LightSwitch bind:mode={displayMode} />
 					{#each footerLinks as link}
@@ -257,7 +240,6 @@
 						{/if}
 					{/if}
 					{#if legacyPortalUrl}
-						<!-- Legacy Portal Link -->
 						<a
 							href={legacyPortalUrl}
 							class="w-full justify-start text-xs text-tertiary-700-300 hover:underline"
@@ -267,7 +249,7 @@
 						</a>
 					{/if}
 				</div>
-			</Navigation.Footer>
-		{/if}
-	</Navigation>
+			{/if}
+		</footer>
+	</nav>
 </div>
