@@ -205,7 +205,7 @@
 			{#if !isNavExpanded && collapsedLogoUrl}
 				<div class="flex justify-center">
 					<a href="/" title="Home">
-						<img src={collapsedLogoUrl} alt="Logo" class="size-7" />
+						<img src={collapsedLogoUrl} alt="Logo" class="max-w-10 max-h-10 object-contain" />
 					</a>
 				</div>
 			{:else if isNavExpanded}

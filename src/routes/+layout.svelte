@@ -149,7 +149,7 @@
 		sponsorNote={env.PUBLIC_SPONSOR_NOTE}
 		legacyPortalUrl={data.externalLinks.LEGACY_PORTAL_URL}
 		hideFooterExtras={hideFooterExtras}
-		collapsedLogoUrl="/obp_logo_symbol_only.svg"
+		collapsedLogoUrl={env.PUBLIC_MINIMAL_LOGO_URL || '/obp_logo_symbol_only.svg'}
 	/>
 	<div
 		class="h-full bg-conic-250 from-30% via-40% to-50% dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950"
