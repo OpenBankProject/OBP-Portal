@@ -11,6 +11,7 @@ export interface ChatService {
     send(msg: UserMessage, threadId?: string): Promise<void>
     sendApproval(toolCallId: string, approved: boolean, threadId: string, approvalLevel?: string): Promise<void>
     sendBatchApproval(decisions: Record<string, { approved: boolean; level: string }>, threadId: string): Promise<void>
+    sendConsentResponse(toolCallId: string, consentJwt: string | null, threadId: string): Promise<void>
     regenerate(messageId: string, threadId: string): Promise<void>
 
     /**
@@ -64,5 +65,16 @@ export type StreamEvent =
         }>,
         options: string[]
       }
+    | {
+        type: 'consent_request',
+        toolCallId: string,
+        toolName: string,
+        operationId: string | null,
+        requiredRoles: string[],
+        timestamp: number,
+        toolCallCount: number,
+        bankId?: string | null
+      }
     | { type: 'thread_sync', threadId: string }
     | { type: 'error', messageId?: string, error: string }
+    | { type: 'auth_refresh_needed' }

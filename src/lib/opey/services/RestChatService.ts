@@ -68,6 +68,28 @@ export class RestChatService implements ChatService {
 		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
 	}
 
+	async sendConsentResponse(toolCallId: string, consentJwt: string | null, threadId: string): Promise<void> {
+		logger.info(`Sending consent response for toolCallId=${toolCallId}, threadId=${threadId}, hasJwt=${!!consentJwt}`);
+
+		const payload = {
+			message: "",
+			thread_id: threadId,
+			tool_call_approval: consentJwt !== null
+				? { consent_jwt: consentJwt }
+				: { consent_denied: true }
+		};
+
+		logger.info(`Consent payload:`, JSON.stringify(payload, null, 2));
+
+		const init = await this.buildInit({
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+
+		return this.handleStreamingResponse(`${this.baseUrl}/stream`, init);
+	}
+
 	async regenerate(messageId: string, threadId: string): Promise<void> {
 		logger.info(`Regenerating response from messageId=${messageId}, threadId=${threadId}`);
 		
@@ -129,6 +151,13 @@ export class RestChatService implements ChatService {
 			}
 
 			if (!res.ok) {
+				// Handle 401 - token expired, need to refresh session
+				if (res.status === 401) {
+					logger.info('Received 401 from Opey - token may have expired, requesting auth refresh');
+					this.streamEventCallback?.({ type: 'auth_refresh_needed' });
+					return;
+				}
+
 				let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
 
 				try {
@@ -302,6 +331,18 @@ export class RestChatService implements ChatService {
 						method: tc.method
 					})),
 					options: eventData.options || []
+				});
+				break;
+			case 'consent_request':
+				this.streamEventCallback?.({
+					type: 'consent_request',
+					toolCallId: eventData.tool_call_id,
+					toolName: eventData.tool_name,
+					operationId: eventData.operation_id || null,
+					requiredRoles: eventData.required_roles || [],
+					timestamp: eventData.timestamp || Date.now() / 1000,
+					toolCallCount: eventData.tool_call_count ?? 1,
+					bankId: eventData.bank_id || null
 				});
 				break;
 			default:

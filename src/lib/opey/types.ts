@@ -51,6 +51,25 @@ export interface ToolMessage extends BaseMessage {
 	similarOperationsCount?: number;
 	availableApprovalLevels?: string[];
 	defaultApprovalLevel?: string;
+	// Consent request fields (for consent_request events)
+	waitingForConsent?: boolean; // Whether tool is waiting for user to provide consent JWT
+	consentStatus?: 'pending' | 'granted' | 'denied'; // Status of the consent request
+	consentOperationId?: string; // OBP API operation that requires consent
+	consentRequiredRoles?: string[]; // OBP roles the user must consent to
+	consentToolCallCount?: number; // Number of pending tool calls this consent will cover
+	consentBankId?: string; // Bank ID for bank-scoped consent roles
+}
+
+/**
+ * Represents a consent_request event from the backend.
+ * Sent when an OBP API tool call returns a consent_required error.
+ */
+export interface ConsentRequest {
+	toolCallId: string;
+	toolName: string;
+	operationId: string | null;
+	requiredRoles: string[];
+	timestamp: number;
 }
 
 export interface ToolCall {

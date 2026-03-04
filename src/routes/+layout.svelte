@@ -154,10 +154,25 @@
 	<div
 		class="h-full bg-conic-250 from-30% via-40% to-50% dark:from-primary-950 dark:via-secondary-500/70 dark:to-primary-950"
 	>
-		<div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 80px);">
-			<PageHeader {isAuthenticated} username={data.username} />
+		<div class="flex flex-col backdrop-blur-2xl" style="height: calc(100vh - 48px);">
+			<div
+				class="bg-opacity-0 flex items-center justify-end px-4 py-2 shadow-md z-10"
+				style="height: 48px; flex-shrink: 0;"
+			>
+				{#if isAuthenticated}
+					<span class="mx-4 hover:text-tertiary-400"><a href="/user">{data.username}</a></span>
+					<button type="button" class="btn preset-outlined-primary-500"
+						><a href="/logout">Logout</a></button
+					>
+				{:else}
+					<span class="mx-4 hover:text-tertiary-400"><a href="/register">Register</a> </span>
+					<button type="button" class="btn preset-filled-surface-950-50"
+						><a href="/login">Login</a></button
+					>
+				{/if}
+			</div>
 
-			<main class="flex flex-col overflow-auto" style="height: calc(100vh - 80px);">
+			<main class="flex flex-col overflow-auto" style="height: calc(100vh - 48px);">
 				{@render children()}
 			</main>
 		</div>
