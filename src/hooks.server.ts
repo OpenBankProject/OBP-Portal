@@ -97,13 +97,13 @@ function needsAuthorization(routeId: string): boolean {
 
 const checkSessionValidity: Handle = async ({ event, resolve }) => {
 	const session = event.locals.session;
+	const routePath = event.url.pathname;
+
 	if (session.data.user) {
-		// Here you can add additional checks if needed
-		// For example, check if the session has expired based on your own logic
-		// or if certain required data is present in the session
+		const username = session.data.user.username || session.data.user.email;
 		const sessionOAuth = SessionOAuthHelper.getSessionOAuth(session);
 		if (!sessionOAuth) {
-			logger.warn('No valid OAuth data found in session. Destroying session.');
+			logger.warn(`Session for ${username} (${session.id}) has no valid OAuth data on ${routePath}. Destroying session.`);
 			await session.destroy();
 
 			// Redirect to trigger a fresh load instead of just resolving
@@ -116,18 +116,20 @@ const checkSessionValidity: Handle = async ({ event, resolve }) => {
 		// Check if the access token is expired,
 		// if it is, attempt to refresh it
 		if (sessionExpired) {
+			logger.info(`Access token expired for ${username} (${session.id}) on ${routePath}. Attempting refresh...`);
 			// will return true if the token is expired
 			try {
 				await SessionOAuthHelper.refreshAccessToken(session);
+				logger.info(`Token refreshed successfully for ${username} (${session.id})`);
 				return await resolve(event);
 			} catch (error) {
 				logger.info(
-					'Token refresh failed - redirecting user to login (normal OAuth behavior):',
+					`Token refresh failed for ${username} (${session.id}) on ${routePath}:`,
 					error
 				);
 				// If the refresh fails, redirect to login
 				// Destroy the session
-				logger.info('Destroying expired session.');
+				logger.info(`Destroying expired session for ${username} (${session.id})`);
 				await session.destroy();
 				// Redirect to trigger a fresh load and clear client-side cache
 				throw redirect(302, event.url.pathname);
@@ -135,8 +137,13 @@ const checkSessionValidity: Handle = async ({ event, resolve }) => {
 		}
 
 		// If we reach here, the session is valid (either not expired or successfully refreshed)
-		logger.debug('Session is valid for user:', session.data.user?.username);
+		logger.debug(`Session valid for ${username} (${session.id}) on ${routePath}`);
 		return await resolve(event);
+	}
+
+	// No user in session — log for API routes to help trace auth issues
+	if (routePath.startsWith('/api/')) {
+		logger.debug(`No session user for API request: ${routePath} (session ID: ${session?.id || 'none'})`);
 	}
 
 	// Always return a response, even when there's no session

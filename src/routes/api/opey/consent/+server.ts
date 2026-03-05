@@ -20,10 +20,27 @@ import { deduplicateRoles, pickConsentRole } from '$lib/opey/utils/roles';
 export async function POST(event: RequestEvent) {
 	try {
 		const session = event.locals.session;
+		const hasSession = !!session;
+		const hasUser = !!session?.data?.user;
+		const hasOAuth = !!session?.data?.oauth;
 		const accessToken = session?.data?.oauth?.access_token;
 
 		if (!accessToken) {
-			logger.warn('Consent creation attempted without authentication');
+			const reason = !hasSession
+				? 'no session object'
+				: !hasUser
+					? 'session exists but no user data (not logged in)'
+					: !hasOAuth
+						? 'session has user but no OAuth data'
+						: 'session has OAuth data but access_token is missing';
+			logger.warn(`Consent creation failed: ${reason}`, {
+				hasSession,
+				hasUser,
+				hasOAuth,
+				hasAccessToken: !!accessToken,
+				sessionId: session?.id || 'none',
+				username: session?.data?.user?.username || 'none'
+			});
 			return json({ error: 'Authentication required to create consent' }, { status: 401 });
 		}
 
