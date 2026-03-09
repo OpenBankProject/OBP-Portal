@@ -204,7 +204,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			}
 		});
 		await session.save();
-		logger.debug('Session data set:', session.data);
+		logger.info(`Session created for user ${user.username || user.email} (${user.user_id}), session ID: ${session.id}, provider: ${provider}`);
 		return new Response(null, {
 			status: 302,
 			headers: {

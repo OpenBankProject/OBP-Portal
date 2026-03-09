@@ -44,8 +44,8 @@ export async function load(event: RequestEvent) {
 		}
 	});
 
-	// Get information about the user from the session if they are logged in
-    if (session?.data?.user) {
+	// Only treat the user as logged in if they have both user data and a valid access token
+    if (session?.data?.user && session?.data?.oauth?.access_token) {
         data.userId = session.data.user.user_id;
         data.email = session.data.user.email;
         data.username = session.data.user.username;

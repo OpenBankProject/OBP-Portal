@@ -226,8 +226,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			}
 		});
 		await session.save();
-		logger.debug('Session data set:', session.data);
-		
+		logger.info(`Session created for user ${user.username || user.email} (${user.user_id}), session ID: ${session.id}, provider: ${provider}`);
 		// Optionally redirect to profile page if email is invalid
 		// Uncomment the following lines to force email update:
 		// if (!hasValidEmail) {

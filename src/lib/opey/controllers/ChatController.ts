@@ -7,6 +7,7 @@ import { ChatState } from '../state/ChatState';
 
 export class ChatController {
 	private toolInstanceCounts: Record<string, number> = {};
+	private authRefreshCallback?: () => Promise<void>;
 
 	constructor(
 		private service: ChatService,
@@ -17,6 +18,12 @@ export class ChatController {
 			logger.debug('Received stream event:', event);
 			try {
 				switch (event.type) {
+				case 'auth_refresh_needed':
+					logger.info('Auth refresh needed - triggering callback');
+					if (this.authRefreshCallback) {
+						this.authRefreshCallback();
+					}
+					break;
 				case 'user_message_confirmed':
 					logger.debug(`User message confirmed - backend ID: ${event.messageId}, correlation ID: ${event.correlationId}`);
 					state.syncUserMessage(event.messageId, event.correlationId);
@@ -137,6 +144,17 @@ export class ChatController {
 					case 'batch_approval_request':
 						logger.debug(`Received batch approval request for ${event.toolCalls.length} tools`);
 						state.addBatchApprovalRequest(event.toolCalls);
+						break;
+					case 'consent_request':
+						logger.debug(`Received consent request for tool ${event.toolCallId}, operation: ${event.operationId}, roles: ${JSON.stringify(event.requiredRoles)}, count: ${event.toolCallCount}, bankId: ${event.bankId}`);
+						state.addConsentRequest(
+							event.toolCallId,
+							event.toolName,
+							event.operationId,
+							event.requiredRoles,
+							event.toolCallCount,
+							event.bankId ?? undefined
+						);
 						break;
 				}
 			} catch (error) {
@@ -330,6 +348,61 @@ export class ChatController {
 	}
 
 	/**
+	 * Grant consent by sending the Consent-JWT back to the backend.
+	 * The backend will inject the JWT into the tool call headers and retry.
+	 */
+	async grantConsent(toolCallId: string, consentJwt: string): Promise<void> {
+		logger.debug(`Granting consent for tool call: ${toolCallId}`);
+
+		// Update state optimistically
+		this.state.updateConsentRequest(toolCallId, true);
+
+		try {
+			await this.service.sendConsentResponse(toolCallId, consentJwt, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send consent for ${toolCallId}:`, error);
+			// Revert optimistic update on error
+			this.state.updateToolMessage(toolCallId, {
+				waitingForConsent: true,
+				consentStatus: 'pending',
+				error: `Failed to send consent: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+			throw error;
+		}
+	}
+
+	/**
+	 * Deny consent — sends null consent_jwt to the backend.
+	 * The backend will handle the denial and the stream will continue.
+	 */
+	async denyConsent(toolCallId: string): Promise<void> {
+		logger.debug(`Denying consent for tool call: ${toolCallId}`);
+
+		// Update state
+		this.state.updateConsentRequest(toolCallId, false);
+		this.state.updateToolMessage(toolCallId, {
+			status: 'error',
+			toolOutput: 'Consent was denied by user'
+		});
+
+		try {
+			await this.service.sendConsentResponse(toolCallId, null, this.state.getThreadId());
+		} catch (error) {
+			logger.error(`Failed to send consent denial for ${toolCallId}:`, error);
+			this.state.updateToolMessage(toolCallId, {
+				error: `Failed to send consent denial: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		}
+	}
+
+	/**
+	 * Get all pending consent requests from the state.
+	 */
+	getPendingConsentRequests(): ToolMessage[] {
+		return this.state.getPendingConsentRequests();
+	}
+
+	/**
 	 * Get all pending approval requests from the state.
 	 */
 	getPendingApprovals(): ToolMessage[] {
@@ -391,5 +464,13 @@ export class ChatController {
 
 	async cancel(): Promise<void> {
 		await this.service.cancel(this.state.getThreadId());
+	}
+
+	/**
+	 * Register a callback to be called when auth refresh is needed (401 from Opey).
+	 * The callback should refresh the session and return a promise that resolves when done.
+	 */
+	onAuthRefreshNeeded(callback: () => Promise<void>): void {
+		this.authRefreshCallback = callback;
 	}
 }
