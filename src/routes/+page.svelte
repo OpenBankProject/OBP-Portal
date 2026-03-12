@@ -10,7 +10,6 @@
 	// Get the 'ask' query parameter from URL (used by "Tell Me More" links)
 	const askParam = $derived($page.url.searchParams.get('ask'));
 	let name = data.username || 'Guest';
-	let opeyConsentInfo = data.opeyConsentInfo;
 	let isAuthenticated = !!data.email;
 
 	// Configurable text via environment variables
@@ -58,7 +57,6 @@
 		displayHeader: false,
 		currentlyActiveUserName: name,
 		suggestedQuestions: suggestedQuestions,
-		currentConsentInfo: opeyConsentInfo ? opeyConsentInfo : undefined,
 		bodyClasses: 'bg-opacity-0',
 		footerClasses: 'bg-opacity-0',
 		displayConnectionPips: true,

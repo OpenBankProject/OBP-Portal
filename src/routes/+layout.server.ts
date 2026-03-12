@@ -1,8 +1,6 @@
 import { createLogger } from '$lib/utils/logger';
 const logger = createLogger('LayoutServer');
 import type { RequestEvent } from "@sveltejs/kit";
-import { obpIntegrationService } from '$lib/opey/services/OBPIntegrationService';
-import type { OBPConsentInfo } from '$lib/obp/types';
 import { obp_requests } from '$lib/obp/requests';
 // import { computePosition, autoUpdate, offset, shift, flip, arrow } from '@floating-ui/dom';
 // import { storePopup } from '@skeletonlabs/skeleton';
@@ -16,7 +14,6 @@ export interface RootLayoutData {
     userId?: string;
     email?: string;
     username?: string;
-    opeyConsentInfo?: OBPConsentInfo;
     externalLinks: Record<string, string>;
     showEarlyAccess?: boolean;
 }
@@ -50,16 +47,6 @@ export async function load(event: RequestEvent) {
         data.email = session.data.user.email;
         data.username = session.data.user.username;
     }
-
-	// Get Opey consent info if we have Opey consumer ID configured
-	try {
-		const currentConsentInfo = await obpIntegrationService.getCurrentConsentInfo(session)
-		if (currentConsentInfo) {
-			data.opeyConsentInfo = currentConsentInfo;
-		}
-	} catch (error) {
-		logger.error('Error fetching Opey consent info:', error);
-	}
 
 	// Check if user has EARLY_ACCESS personal data field set to YES
 	let showEarlyAccess = false;
