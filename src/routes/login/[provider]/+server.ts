@@ -71,6 +71,8 @@ export function GET(event: RequestEvent) {
 
     try {
         const url = oauthClient.createAuthorizationURL(auth_endpoint, encodedState, scopes);
+        logger.info(`Authorization redirect for provider "${provider}" - client_id: ${url.searchParams.get('client_id') || 'N/A'}, auth_endpoint: ${auth_endpoint}`);
+        logger.debug(`Full authorization URL: ${url.toString()}`);
 
         event.cookies.set('obp_oauth_state', encodedState, {
             httpOnly: true,

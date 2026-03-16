@@ -144,6 +144,7 @@ export class OAuth2ClientWithConfig extends OAuth2Client {
 		codeVerifier: string | null
 	): Promise<any> {
 		logger.debug('Validating authorization code with modern method (KeyCloak)');
+		logger.info(`Token exchange - client_id: ${this.storedClientId}, token_endpoint: ${tokenEndpoint}`);
 
 		const body = new URLSearchParams();
 		body.set('grant_type', 'authorization_code');
