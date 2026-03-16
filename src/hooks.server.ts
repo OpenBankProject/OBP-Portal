@@ -238,5 +238,10 @@ declare module 'svelte-kit-sessions' {
 			refresh_token?: string;
 			provider: string;
 		};
+		obpConsentFlow?: {
+			oidcReturnUrl: string;
+			consentRequestId: string;
+			bankId: string;
+		};
 	}
 }

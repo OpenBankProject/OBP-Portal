@@ -205,6 +205,39 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		});
 		await session.save();
 		logger.info(`Session created for user ${user.username || user.email} (${user.user_id}), session ID: ${session.id}, provider: ${provider}`);
+
+		// Check if there's a pending OBP consent flow
+		const consentFlowCookie = event.cookies.get('obp_consent_flow');
+		logger.info(`Checking for consent flow cookie: ${consentFlowCookie ? 'FOUND' : 'NOT FOUND'}`);
+		if (consentFlowCookie) {
+			try {
+				const consentFlow = JSON.parse(consentFlowCookie);
+				// Clean up the cookie
+				event.cookies.delete('obp_consent_flow', { path: '/' });
+
+				if (consentFlow.consent_request_id) {
+					const redirectUrl = new URL('/obp-consent-request', event.url.origin);
+					redirectUrl.searchParams.set('CONSENT_REQUEST_ID', consentFlow.consent_request_id);
+					if (consentFlow.bank_id) {
+						redirectUrl.searchParams.set('bank_id', consentFlow.bank_id);
+					}
+					if (consentFlow.oidc_return_url) {
+						redirectUrl.searchParams.set('oidc_return_url', consentFlow.oidc_return_url);
+					}
+					logger.info(`Redirecting to OBP consent flow: ${redirectUrl.pathname}${redirectUrl.search}`);
+					return new Response(null, {
+						status: 302,
+						headers: {
+							Location: redirectUrl.pathname + redirectUrl.search
+						}
+					});
+				}
+			} catch (e) {
+				logger.warn('Failed to parse consent flow cookie:', e);
+				event.cookies.delete('obp_consent_flow', { path: '/' });
+			}
+		}
+
 		return new Response(null, {
 			status: 302,
 			headers: {
