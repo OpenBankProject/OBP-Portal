@@ -60,11 +60,17 @@
 
 	let isPasswordValid = $derived(checkPasswordAgainstPolicy(password));
 	let arePasswordsMatching = $derived(checkPasswordsMatching());
+	let isUsernameValid = $derived(username.length >= 8);
 
 	function handleSubmit(event: Event) {
 		if (!termsAccepted || !privacyAccepted) {
 			event.preventDefault();
 			alert('Please accept both the Terms of Service and Privacy Policy to continue.');
+			return;
+		}
+
+		if (!isUsernameValid) {
+			event.preventDefault();
 			return;
 		}
 
@@ -88,7 +94,7 @@
 	}
 
 	let canSubmit = $derived(
-		termsAccepted && privacyAccepted && password === repeatPassword && password.length > 0
+		termsAccepted && privacyAccepted && password === repeatPassword && password.length > 0 && isUsernameValid
 	);
 </script>
 
@@ -130,7 +136,10 @@
 			<!-- --- -->
 			<label class="label">
 				<span class="label-text">Username</span>
-				<input type="text" class="input" name="username" placeholder="coffeespoon123" bind:value={username} oninput={handleUsernameInput} required />
+				<input type="text" class="input" name="username" placeholder="coffeespoon123" bind:value={username} oninput={handleUsernameInput} minlength="8" required />
+				{#if username.length > 0 && !isUsernameValid}
+					<p class="text-error-500 text-xs">Username must be at least 8 characters long.</p>
+				{/if}
 			</label>
 
 			<label class="label">

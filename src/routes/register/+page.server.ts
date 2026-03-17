@@ -28,6 +28,14 @@ export const actions = {
             username: formEntries.username as string
         };
 
+        // Validate username length before hitting the API
+        if (requestBody.username.length < 8) {
+            return {
+                error: 'Username must be at least 8 characters long.',
+                formData: formDataToReturn
+            };
+        }
+
         // Make request to OBP to register the consumer
         try {
             const response = await obp_requests.post(`/obp/v6.0.0/users`, requestBody);
