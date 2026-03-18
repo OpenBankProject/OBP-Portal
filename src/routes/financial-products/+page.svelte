@@ -71,10 +71,7 @@
 	{:else}
 		<div class="rounded-lg bg-gray-100 p-8 text-center dark:bg-gray-800">
 			<p class="text-gray-600 dark:text-gray-400">
-				No financial products are available at this time.
-			</p>
-			<p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
-				Please check back later or contact support for more information.
+				No Products Defined.
 			</p>
 		</div>
 	{/if}

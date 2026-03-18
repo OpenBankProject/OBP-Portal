@@ -92,7 +92,12 @@ export async function load(event: RequestEvent) {
 				warnings.push(`Request timed out loading products from bank "${bank.id}". Some products may be missing.`);
 			}
 			if (e instanceof OBPRequestError) {
-				warnings.push(e.message);
+				// OBP-30001 (Bank not found) is expected for banks without products
+				if (e.obpErrorCode !== 'OBP-30001') {
+					warnings.push(`Bank "${bank.id}": ${e.message}`);
+				} else {
+					logger.info(`Bank "${bank.id}" does not support products endpoint, skipping.`);
+				}
 			}
 		}
 	}
