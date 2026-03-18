@@ -29,7 +29,7 @@
 		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === 'TRUE' ||
 		env.PUBLIC_UNDOCUMENTED_FEATURE_1_ENABLED === 'True'
 	);
-	let isAuthenticated = $state(!!data.email);
+	let isAuthenticated = $state(!!data.userId);
 	let displayMode: 'dark' | 'light' = $state('dark');
 
 	// Some items in the menu are rendered conditionally based on the presence of URLs set in the environment variables.

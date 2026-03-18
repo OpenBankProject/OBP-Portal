@@ -63,7 +63,15 @@ export async function POST(event: RequestEvent) {
 
 		// First, get the user's current roles to check what they have access to
 		logger.info('Fetching user entitlements to check available roles...');
+
+		// Debug: check which user OBP thinks we are (TEMPORARY - remove after debugging)
+		logger.debug('Access token for curl testing:', accessToken);
+		const currentUser = await obp_requests.get('/obp/v5.1.0/users/current', accessToken);
+		logger.debug('OBP current user for this token:', JSON.stringify({ user_id: currentUser.user_id, username: currentUser.username, email: currentUser.email }));
+		logger.debug('Session user:', JSON.stringify({ user_id: session?.data?.user?.user_id, username: session?.data?.user?.username }));
+
 		const userEntitlements = await obp_requests.get('/obp/v5.1.0/my/entitlements', accessToken);
+		logger.debug('Raw entitlements response:', JSON.stringify(userEntitlements));
 		const userRoleNames: string[] = (userEntitlements.list || []).map((e: any) => e.role_name);
 		const userRolesSet = new Set(userRoleNames);
 		logger.info(`User has ${userRoleNames.length} roles:`, userRoleNames);

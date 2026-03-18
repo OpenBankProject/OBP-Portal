@@ -10,7 +10,7 @@
 	// Get the 'ask' query parameter from URL (used by "Tell Me More" links)
 	const askParam = $derived($page.url.searchParams.get('ask'));
 	let name = data.username || 'Guest';
-	let isAuthenticated = !!data.email;
+	let isAuthenticated = !!data.userId;
 
 	// Configurable text via environment variables
 	const welcomeTitle = env.PUBLIC_WELCOME_TITLE || 'Welcome!';
