@@ -3,6 +3,7 @@
 		ChevronLeft,
 		ChevronRight,
 		User,
+		Code,
 		ChevronDown
 	} from '@lucide/svelte';
 	import LightSwitch from '$lib/components/LightSwitch.svelte';
@@ -18,6 +19,7 @@
 	interface NavigationSidebarProps {
 		menuItems: NavigationItem[];
 		myAccountItems?: NavigationItem[];
+		developerItems?: NavigationItem[];
 		logoUrl: string;
 		logoWidth?: string;
 		collapsedLogoUrl?: string;
@@ -37,6 +39,7 @@
 	let {
 		menuItems,
 		myAccountItems = [],
+		developerItems = [],
 		logoUrl,
 		logoWidth = '100%',
 		collapsedLogoUrl,
@@ -55,8 +58,10 @@
 
 	let isNavExpanded = $state(true);
 	let isMyAccountExpanded = $state(false);
+	let isDevelopersExpanded = $state(false);
 
 	let isMyAccountActive = $derived(currentPathname.startsWith('/user'));
+	let isDevelopersActive = $derived(currentPathname.startsWith('/developers'));
 
 	$effect(() => {
 		if (isMyAccountActive) {
@@ -64,8 +69,18 @@
 		}
 	});
 
+	$effect(() => {
+		if (isDevelopersActive) {
+			isDevelopersExpanded = true;
+		}
+	});
+
 	function toggleMyAccount() {
 		isMyAccountExpanded = !isMyAccountExpanded;
+	}
+
+	function toggleDevelopers() {
+		isDevelopersExpanded = !isDevelopersExpanded;
 	}
 
 	function toggleNav() {
@@ -140,6 +155,62 @@
 					</li>
 				{/each}
 			</ul>
+
+			{#if developerItems.length > 0}
+				<!-- Developers -->
+				<div class="mt-2 px-3">
+					{#if isNavExpanded}
+						<button
+							type="button"
+							class="hover:bg-surface-100-800 flex w-full items-center justify-between rounded-md p-3 text-left transition-colors"
+							class:bg-primary-100-800={isDevelopersActive}
+							onclick={toggleDevelopers}
+						>
+							<div class="flex items-center gap-3 whitespace-nowrap overflow-hidden">
+								<Code class="h-5 w-5 shrink-0" />
+								<span>Developers</span>
+							</div>
+							{#if isDevelopersExpanded}
+								<ChevronDown class="h-4 w-4 shrink-0" />
+							{:else}
+								<ChevronRight class="h-4 w-4 shrink-0" />
+							{/if}
+						</button>
+
+						{#if isDevelopersExpanded}
+							<ul class="mt-1 ml-4 flex flex-col gap-1">
+								{#each developerItems as subItem}
+									{@const Icon = subItem.iconComponent}
+									<li>
+										<a
+											href={subItem.href}
+											class="btn w-full justify-start gap-3 px-2 pl-6 text-sm whitespace-nowrap overflow-hidden hover:preset-tonal"
+											class:preset-filled-secondary-50-950={currentPathname === subItem.href}
+											class:border-l-2={currentPathname === subItem.href}
+											class:border-primary-500={currentPathname === subItem.href}
+											title={subItem.label}
+											aria-label={subItem.label}
+										>
+											<Icon class="size-4 shrink-0" />
+											<span>{subItem.label}</span>
+										</a>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					{:else}
+						<a
+							href="/developers/getting-started"
+							class="btn w-full justify-start gap-3 px-3 py-2 hover:preset-tonal"
+							class:preset-filled-primary-50-950={isDevelopersActive}
+							title="Developers"
+							aria-label="Developers"
+						>
+							<Code class="size-5" />
+						</a>
+					{/if}
+				</div>
+			{/if}
 
 			{#if isAuthenticated}
 				<!-- My Account -->

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
-	import { myAccountItems } from '$lib/config/navigation';
+	import { myAccountItems, developerItems } from '$lib/config/navigation';
 	import Toast from '$lib/components/Toast.svelte';
 	import WelcomeBubble from '$lib/components/WelcomeBubble.svelte';
 	import NavigationSidebar from '$lib/components/NavigationSidebar.svelte';
@@ -136,6 +136,7 @@
 	<NavigationSidebar
 		{menuItems}
 		{myAccountItems}
+		{developerItems}
 		{logoUrl}
 		{logoWidth}
 		{isAuthenticated}
