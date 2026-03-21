@@ -74,11 +74,13 @@ export async function load(event: RequestEvent) {
 			entitiesWithData.push(entity);
 		}
 
-		// Filter to only include entities with hasPersonalEntity: true
-		const personalEntities = entitiesWithData.filter(entity => entity.hasPersonalEntity);
+		// Filter to only include entities with data
+		const entitiesWithRecords = entitiesWithData.filter(
+			entity => entity.hasPersonalEntity && entity.data && entity.data.length > 0
+		);
 
 		// Deduplicate by dynamicEntityId
-		const uniqueEntities = personalEntities.filter(
+		const uniqueEntities = entitiesWithRecords.filter(
 			(entity, index, self) =>
 				index === self.findIndex(e => e.dynamicEntityId === entity.dynamicEntityId)
 		);
