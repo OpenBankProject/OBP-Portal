@@ -17,11 +17,7 @@
                     {formatEntityName(entity.entityName)}
                 </h2>
 
-                {#if entity.dataError}
-                    <div class="rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                        Error: {entity.dataError}
-                    </div>
-                {:else if entity.data && entity.data.length > 0}
+                {#if entity.data && entity.data.length > 0}
                     <div class="space-y-3">
                         {#each entity.data as item, index}
                             <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-900">

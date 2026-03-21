@@ -18,7 +18,6 @@ export interface DynamicEntityWithData {
 	hasPersonalEntity: boolean;
 	schema: Record<string, unknown>;
 	data: Record<string, unknown>[] | null;
-	dataError?: string;
 }
 
 export async function load(event: RequestEvent) {
@@ -60,17 +59,16 @@ export async function load(event: RequestEvent) {
 			};
 
 			if (entity.hasPersonalEntity && entity.entityName) {
-				try {
-					const dataResponse = await obp_requests.get(
-						`/obp/dynamic-entity/my/${entity.entityName}`,
-						token
-					);
-					// API returns list key in snake_case format
-					const listKey = `${toSnakeCase(entity.entityName)}_list`;
-					entity.data = dataResponse[listKey] || [];
-				} catch (e: unknown) {
-					entity.dataError = e instanceof Error ? e.message : String(e);
-				}
+				const dataPath = entity.bankId
+					? `/obp/dynamic-entity/banks/${entity.bankId}/my/${entity.entityName}`
+					: `/obp/dynamic-entity/my/${entity.entityName}`;
+				const dataResponse = await obp_requests.get(
+					dataPath,
+					token
+				);
+				// API returns list key in snake_case format
+				const listKey = `${toSnakeCase(entity.entityName)}_list`;
+				entity.data = dataResponse[listKey] || [];
 			}
 
 			entitiesWithData.push(entity);
