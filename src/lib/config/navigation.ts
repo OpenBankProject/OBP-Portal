@@ -1,4 +1,4 @@
-import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard, Database, FolderKanban, UserPlus, LayoutList, FileText, HandCoins, FileCheck, ArrowRightLeft, ScanEye, Code, Rocket, BookOpen, KeySquare, LogIn, ShieldCheck, Bot, Cpu, Workflow, SendHorizontal, Compass, ScrollText, Repeat, Eye, Wallet, AppWindow } from '@lucide/svelte';
+import { User, ShieldUser, KeyRound, IdCardLanyard, CreditCard, Database, FolderKanban, UserPlus, LayoutList, FileText, HandCoins, FileCheck, ArrowRightLeft, ScanEye, Code, Rocket, BookOpen, KeySquare, LogIn, ShieldCheck, Bot, Cpu, Workflow, SendHorizontal, Compass, ScrollText, Repeat, Eye, Wallet, AppWindow, Package } from '@lucide/svelte';
 import { env } from '$env/dynamic/public';
 
 export interface NavigationItem {
@@ -63,6 +63,7 @@ export const developerItems: NavigationItem[] = [
     { href: '/developers/api-explorer', label: 'API Explorer', iconComponent: Compass, description: 'Browse and test all OBP API endpoints.' },
     { href: '/developers/opey', label: 'Opey', iconComponent: Bot, description: 'The OBP AI assistant for exploring the API.' },
     { href: '/developers/agents-and-mcp', label: 'Agents and MCP', iconComponent: Workflow, description: 'Use AI agents and the Model Context Protocol with OBP.' },
+    { href: '/developers/sdks', label: 'SDKs', iconComponent: Package, description: 'Client SDKs for the OBP API in multiple programming languages.' },
 ];
 
 export function getActiveDeveloperItem(pathname: string) {
