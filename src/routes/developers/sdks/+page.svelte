@@ -75,31 +75,8 @@
     <h3>Getting Started</h3>
 
     <p>
-        Pick the SDK for your language, follow the installation instructions in its
-        <a href="https://github.com/OpenBankProject/OBP-SDKs" target="_blank" rel="noopener noreferrer">README</a>,
-        and configure it with your OBP API host and authentication token.
+        Pick the SDK for your language and follow the installation and authentication instructions in its
+        <a href="https://github.com/OpenBankProject/OBP-SDKs" target="_blank" rel="noopener noreferrer">README</a>.
     </p>
 
-    <ol>
-        <li>
-            <strong>Install the SDK</strong> for your language from the
-            <a href="https://github.com/OpenBankProject/OBP-SDKs" target="_blank" rel="noopener noreferrer">OBP-SDKs repository</a>.
-        </li>
-        <li>
-            <strong>Authenticate</strong> &mdash; obtain a token via
-            <a href="/developers/direct-login">Direct Login</a> or
-            <a href="/developers/oauth2-oidc">OAuth2 / OIDC</a>.
-        </li>
-        <li>
-            <strong>Make API calls</strong> using the SDK's typed methods.
-        </li>
-    </ol>
-
-    <h3>Contributing</h3>
-
-    <p>
-        The SDKs are open source. If you find an issue or want to improve a particular language SDK,
-        contributions are welcome via the
-        <a href="https://github.com/OpenBankProject/OBP-SDKs" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
-    </p>
 </div>

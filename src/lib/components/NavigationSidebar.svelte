@@ -88,7 +88,7 @@
 	}
 </script>
 
-<div class="relative h-full">
+<div class="relative h-full overflow-hidden">
 	{#if isNavExpanded}
 		<button
 			type="button"
@@ -102,12 +102,12 @@
 	{/if}
 
 	<nav
-		class="flex h-full flex-col gap-4 overflow-hidden preset-filled-primary-50-950
+		class="flex h-full min-h-0 flex-col gap-4 overflow-hidden preset-filled-primary-50-950
 		       transition-[width] duration-200 ease-[cubic-bezier(0.165,0.85,0.45,1)]"
 		style="width: {isNavExpanded ? '256px' : '64px'}"
 	>
 		<!-- Header -->
-		<header class="relative px-3 py-4">
+		<header class="relative px-3 py-4 flex-shrink-0">
 			<a
 				href="/"
 				class="flex w-full items-center justify-center transition-opacity duration-200"
@@ -130,7 +130,7 @@
 		</header>
 
 		<!-- Content -->
-		<div class="flex-1 overflow-y-auto overflow-x-hidden">
+		<div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
 			<!-- Main Menu -->
 			<ul class="flex flex-col gap-2 px-3">
 				{#each menuItems as item}
@@ -272,7 +272,7 @@
 		</div>
 
 		<!-- Footer -->
-		<footer class="px-3 py-4">
+		<footer class="px-3 py-4 flex-shrink-0">
 			{#if !isNavExpanded && collapsedLogoUrl}
 				<div class="flex justify-center">
 					<a href="/" title="Home">
