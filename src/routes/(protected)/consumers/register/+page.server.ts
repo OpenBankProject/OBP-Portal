@@ -20,6 +20,7 @@ export const actions = {
             developer_email: formEntries.developer_email as string,
             description: formEntries.description as string,
             company: formEntries.company as string,
+            ...(formEntries.client_certificate ? { client_certificate: formEntries.client_certificate as string } : {}),
             enabled: true
         };
 

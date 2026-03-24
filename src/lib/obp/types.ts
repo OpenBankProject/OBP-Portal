@@ -78,6 +78,7 @@ export interface OBPConsumerRequestBody {
     developer_email: string,
     description: string,
     company: string
+    client_certificate?: string
     enabled: boolean
 }
 

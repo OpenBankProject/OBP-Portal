@@ -58,25 +58,29 @@ export async function load(event: RequestEvent) {
 				data: null
 			};
 
-			if (entity.hasPersonalEntity && entity.entityName) {
-				const dataPath = entity.bankId
-					? `/obp/dynamic-entity/banks/${entity.bankId}/my/${entity.entityName}`
-					: `/obp/dynamic-entity/my/${entity.entityName}`;
-				const dataResponse = await obp_requests.get(
-					dataPath,
-					token
-				);
-				// API returns list key in snake_case format
-				const listKey = `${toSnakeCase(entity.entityName)}_list`;
-				entity.data = dataResponse[listKey] || [];
+			if (entity.entityName) {
+				try {
+					const dataPath = entity.bankId
+						? `/obp/dynamic-entity/banks/${entity.bankId}/my/${entity.entityName}`
+						: `/obp/dynamic-entity/my/${entity.entityName}`;
+					const dataResponse = await obp_requests.get(
+						dataPath,
+						token
+					);
+					// API returns list key in snake_case format
+					const listKey = `${toSnakeCase(entity.entityName)}_list`;
+					entity.data = dataResponse[listKey] || [];
+				} catch {
+					entity.data = [];
+				}
 			}
 
 			entitiesWithData.push(entity);
 		}
 
-		// Filter to only include entities with data
+		// Only include entities where the current user has data
 		const entitiesWithRecords = entitiesWithData.filter(
-			entity => entity.hasPersonalEntity && entity.data && entity.data.length > 0
+			entity => entity.data && entity.data.length > 0
 		);
 
 		// Deduplicate by dynamicEntityId
