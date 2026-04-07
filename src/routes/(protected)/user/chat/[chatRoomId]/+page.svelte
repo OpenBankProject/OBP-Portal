@@ -61,6 +61,8 @@
         if (!existingIds.has(msg.chat_message_id)) {
             messages = [...messages, msg];
             scrollToBottom();
+            // If mouse is in the messages area, mark as read
+            if (mouseInMessages) markAsReadIfNeeded();
         }
     }
 
@@ -281,13 +283,16 @@
     onMount(() => {
         connectSSE();
         loadReactions();
-        // Mark room as read when entering
-        fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
+        // Mark as read on initial load (mouse is likely already in the area)
+        markAsReadIfNeeded();
+        window.addEventListener('focus', handleWindowFocus);
     });
 
     onDestroy(() => {
         eventSource?.close();
         if (pollInterval) clearInterval(pollInterval);
+        if (readMarkerTimeout) clearTimeout(readMarkerTimeout);
+        window.removeEventListener('focus', handleWindowFocus);
     });
 
     async function sendMessage(event: SubmitEvent) {
@@ -482,6 +487,39 @@
         return segments.length > 0 ? segments : [{ type: 'text', text: content }];
     }
 
+    // --- Read marker logic ---
+    // Track when we last marked the room as read, to avoid redundant PUTs.
+    let lastMarkedReadAt: string = $state('');
+    let readMarkerTimeout: ReturnType<typeof setTimeout> | null = null;
+    let mouseInMessages = $state(false);
+
+    function markAsReadIfNeeded() {
+        if (!latestTimestamp || latestTimestamp === lastMarkedReadAt) return;
+        if (!document.hasFocus()) return;
+
+        // Debounce: wait 1s of inactivity before sending
+        if (readMarkerTimeout) clearTimeout(readMarkerTimeout);
+        readMarkerTimeout = setTimeout(() => {
+            lastMarkedReadAt = latestTimestamp;
+            fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
+        }, 1000);
+    }
+
+    function handleMessagesMouseEnter() {
+        mouseInMessages = true;
+        markAsReadIfNeeded();
+    }
+
+    function handleMessagesMouseLeave() {
+        mouseInMessages = false;
+    }
+
+    function handleWindowFocus() {
+        if (mouseInMessages) {
+            markAsReadIfNeeded();
+        }
+    }
+
     // Close emoji picker when clicking outside
     function handleWindowClick(event: MouseEvent) {
         const target = event.target as HTMLElement;
@@ -584,6 +622,8 @@
     class="mb-4 space-y-3 rounded-lg border border-surface-300-600 bg-surface-50-900 p-4"
     style="min-height: 300px; max-height: 60vh; overflow-y: auto;"
     data-testid="messages-container"
+    onmouseenter={handleMessagesMouseEnter}
+    onmouseleave={handleMessagesMouseLeave}
 >
     {#if messages.length > 0}
         {#each messages as message (message.chat_message_id)}
