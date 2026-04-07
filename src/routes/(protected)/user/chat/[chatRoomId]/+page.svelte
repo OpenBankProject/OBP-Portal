@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
-    import { ArrowLeft, Send, Users, Settings } from '@lucide/svelte';
+    import { ArrowLeft, Send, Users, Settings, Pencil, Check, X } from '@lucide/svelte';
 
     console.log('[chat-sse] chat room component module loaded');
 
@@ -16,6 +16,8 @@
     let messagesContainer: HTMLDivElement | undefined = $state();
     let streamConnected = $state(false);
     let transportReason = $state('connecting…');
+    let editingMessageId: string | null = $state(null);
+    let editContent = $state('');
 
     function scrollToBottom() {
         if (messagesContainer) {
@@ -43,13 +45,13 @@
     }
 
     function handleMessageEvent(event: any) {
-        if (event.event_type === 'message_deleted') {
+        if (event.event_type === 'deleted') {
             messages = messages.map(m =>
                 m.chat_message_id === event.chat_message_id
                     ? { ...m, is_deleted: true, content: '' }
                     : m
             );
-        } else if (event.event_type === 'message_edited') {
+        } else if (event.event_type === 'updated') {
             const existing = messages.find(m => m.chat_message_id === event.chat_message_id);
             if (existing) {
                 messages = messages.map(m =>
@@ -204,6 +206,63 @@
             sending = false;
         }
     }
+
+    function startEdit(message: any) {
+        editingMessageId = message.chat_message_id;
+        editContent = message.content;
+    }
+
+    function cancelEdit() {
+        editingMessageId = null;
+        editContent = '';
+    }
+
+    async function saveEdit() {
+        if (!editingMessageId || !editContent.trim()) return;
+
+        const originalMessage = messages.find(m => m.chat_message_id === editingMessageId);
+        if (!originalMessage || originalMessage.content === editContent.trim()) {
+            cancelEdit();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_message_id: editingMessageId,
+                    content: editContent.trim()
+                })
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                errorMessage = result.error || 'Failed to edit message.';
+                return;
+            }
+
+            // Update locally (the gRPC stream will also broadcast the edit to all participants)
+            messages = messages.map(m =>
+                m.chat_message_id === editingMessageId
+                    ? { ...m, content: editContent.trim(), updated_at: result.updated_at || new Date().toISOString() }
+                    : m
+            );
+            cancelEdit();
+        } catch {
+            errorMessage = 'Failed to edit message. Please try again.';
+        }
+    }
+
+    function handleEditKeydown(event: KeyboardEvent) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            saveEdit();
+        } else if (event.key === 'Escape') {
+            cancelEdit();
+        }
+    }
 </script>
 
 <!-- Chat Room Header -->
@@ -295,9 +354,20 @@
         {#each messages as message (message.chat_message_id)}
             {@const isOwn = message.sender_user_id === data.currentUserId}
             <div
-                class="flex {isOwn ? 'justify-end' : 'justify-start'}"
+                class="group flex {isOwn ? 'justify-end' : 'justify-start'}"
                 data-testid="message-{message.chat_message_id}"
             >
+                {#if isOwn && !message.is_deleted && editingMessageId !== message.chat_message_id}
+                    <button
+                        type="button"
+                        class="mr-1 self-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onclick={() => startEdit(message)}
+                        title="Edit message"
+                        data-testid="edit-message-{message.chat_message_id}"
+                    >
+                        <Pencil class="size-3.5 text-surface-500 hover:text-surface-700" />
+                    </button>
+                {/if}
                 <div class="max-w-[75%] rounded-lg px-4 py-2 {isOwn ? 'bg-primary-500 text-white' : 'bg-surface-200-700 text-surface-900-50'}">
                     {#if !isOwn}
                         <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
@@ -306,11 +376,44 @@
                     {/if}
                     {#if message.is_deleted}
                         <p class="italic opacity-50">This message was deleted.</p>
+                    {:else if editingMessageId === message.chat_message_id}
+                        <div class="flex flex-col gap-1" data-testid="edit-message-form">
+                            <textarea
+                                bind:value={editContent}
+                                onkeydown={handleEditKeydown}
+                                class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50"
+                                rows="2"
+                                data-testid="edit-message-input"
+                            ></textarea>
+                            <div class="flex justify-end gap-1">
+                                <button
+                                    type="button"
+                                    onclick={cancelEdit}
+                                    class="rounded p-1 hover:bg-white/20"
+                                    title="Cancel (Esc)"
+                                    data-testid="edit-cancel-button"
+                                >
+                                    <X class="size-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onclick={saveEdit}
+                                    class="rounded p-1 hover:bg-white/20"
+                                    title="Save (Enter)"
+                                    data-testid="edit-save-button"
+                                >
+                                    <Check class="size-3.5" />
+                                </button>
+                            </div>
+                        </div>
                     {:else}
                         <p class="whitespace-pre-wrap break-words">{message.content}</p>
                     {/if}
                     <p class="mt-1 text-xs opacity-50">
                         {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {#if message.updated_at && message.updated_at !== message.created_at}
+                            <span data-testid="message-edited-indicator">(edited)</span>
+                        {/if}
                     </p>
                 </div>
             </div>

@@ -88,7 +88,7 @@ export function formatTimestamp(ts: any): string {
  */
 export function formatMessageEvent(event: any): ChatMessageEvent {
 	return {
-		event_type: event.event_type || 'new_message',
+		event_type: event.event_type || 'new',
 		chat_message_id: event.chat_message_id,
 		chat_room_id: event.chat_room_id,
 		sender_user_id: event.sender_user_id,

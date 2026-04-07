@@ -32,6 +32,36 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 	}
 };
 
+export const PUT: RequestHandler = async ({ locals, params, request }) => {
+	const session = locals.session;
+	if (!session?.data?.user) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
+
+	const accessToken = session.data.oauth?.access_token;
+	const chatRoomId = params.chatRoomId;
+	const body = await request.json();
+
+	if (!body.chat_message_id || !body.content) {
+		return json({ error: 'chat_message_id and content are required' }, { status: 400 });
+	}
+
+	try {
+		const message = await obp_requests.put(
+			`/obp/v6.0.0/chat-rooms/${chatRoomId}/messages/${body.chat_message_id}`,
+			{ content: body.content },
+			accessToken
+		);
+		return json(message);
+	} catch (error: any) {
+		logger.error('Error editing message:', error);
+		return json(
+			{ error: error.message || 'Failed to edit message' },
+			{ status: error.code || 500 }
+		);
+	}
+};
+
 export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const session = locals.session;
 	if (!session?.data?.user) {
