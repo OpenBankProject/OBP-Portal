@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn } from '@lucide/svelte';
+    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn, Globe } from '@lucide/svelte';
     import { page } from '$app/state';
 
     let { data, form } = $props();
@@ -159,6 +159,12 @@
                                 data-testid="unread-badge-{room.chat_room_id}"
                             >
                                 {unread > 99 ? '99+' : unread}
+                            </span>
+                        {/if}
+                        {#if room.is_open_room}
+                            <span class="flex items-center gap-1 rounded-full bg-primary-500/10 px-2 py-0.5 text-xs text-primary-600 dark:text-primary-400" data-testid="open-room-badge-{room.chat_room_id}">
+                                <Globe class="size-3" />
+                                Open
                             </span>
                         {/if}
                         {#if room.is_archived}
