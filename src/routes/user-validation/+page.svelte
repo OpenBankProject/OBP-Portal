@@ -13,7 +13,7 @@
 	</header>
 	<article class="space-y-4 p-4">
 		{#if data.success}
-			<div class="preset-filled-success-50-950 shadow-md rounded-lg p-6 m-1.5 text-center">
+			<div class="preset-filled-success-50-950 shadow-md rounded-lg p-6 m-1.5 text-center" data-testid="validation-success">
 				<div class="flex justify-center mb-4">
 					<CheckCircle class="h-16 w-16 text-success-500" />
 				</div>
@@ -26,13 +26,14 @@
 					<a
 						href="/login"
 						class="btn preset-filled-primary-500 hover:preset-filled-primary-600"
+						data-testid="go-to-login"
 					>
 						Go to Login
 					</a>
 				</div>
 			</div>
 		{:else}
-			<div class="preset-filled-error-50-950 shadow-md rounded-lg p-6 m-1.5 text-center">
+			<div class="preset-filled-error-50-950 shadow-md rounded-lg p-6 m-1.5 text-center" data-testid="validation-error">
 				<div class="flex justify-center mb-4">
 					<XCircle class="h-16 w-16 text-error-500" />
 				</div>

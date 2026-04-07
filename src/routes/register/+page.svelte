@@ -107,7 +107,7 @@
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
 			{#if showError && form?.error}
-				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
+				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center" data-testid="registration-error">
 					<p class="text-error-500 font-semibold">{form?.error}</p>
 				</div>
 			{/if}
@@ -291,7 +291,7 @@
 			</div>
 			<hr class="hr" />
 			{#if showError && form?.error}
-				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
+				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center" data-testid="registration-error">
 					<p class="text-error-500 font-semibold">{form?.error}</p>
 				</div>
 			{/if}
@@ -300,6 +300,7 @@
 				disabled={!canSubmit}
 				class="btn preset-filled-primary-500 mt-5 w-full disabled:cursor-not-allowed disabled:opacity-50"
 				aria-label="submit"
+				data-testid="submit-registration"
 			>
 				{#if !termsAccepted || !privacyAccepted}
 					Please Accept Legal Documents
