@@ -1,13 +1,11 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
-    import { ArrowLeft, Send, Users, Settings, Pencil, Check, X } from '@lucide/svelte';
+    import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply } from '@lucide/svelte';
 
-    console.log('[chat-sse] chat room component module loaded');
+    const EMOJI_CHOICES = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
     let { data } = $props();
 
-    console.log('[chat-sse] first message from REST (JSON):', JSON.stringify(data.messages[0]));
-    console.log('[chat-sse] created_at type:', typeof data.messages[0]?.created_at, 'value:', data.messages[0]?.created_at);
     let messages: any[] = $state([...data.messages]);
     let messageContent = $state('');
     let sending = $state(false);
@@ -18,6 +16,28 @@
     let transportReason = $state('connecting…');
     let editingMessageId: string | null = $state(null);
     let editContent = $state('');
+
+    // Reactions state: { [messageId]: [{emoji, user_id, username}] }
+    let reactions: Record<string, Array<{emoji: string, user_id: string, username: string}>> = $state({});
+    let emojiPickerMessageId: string | null = $state(null);
+
+    // Reply state
+    let replyingTo: any | null = $state(null);
+
+    // Mention state
+    let showMentionDropdown = $state(false);
+    let mentionFilter = $state('');
+    let mentionStartIndex = $state(0);
+    let selectedMentionIndex = $state(0);
+    let mentionedUserIds: string[] = $state([]);
+    let messageInputEl: HTMLInputElement | undefined = $state();
+
+    let filteredParticipants = $derived(
+        data.participants.filter((p: any) => {
+            const name = (p.username || p.user_id).toLowerCase();
+            return name.includes(mentionFilter.toLowerCase());
+        })
+    );
 
     function scrollToBottom() {
         if (messagesContainer) {
@@ -62,8 +82,118 @@
             } else {
                 appendMessage(event);
             }
+        } else if (event.event_type === 'reacted') {
+            const msgId = event.chat_message_id;
+            const existing = reactions[msgId] || [];
+            // Deduplicate: don't add if this user already has this emoji
+            const alreadyExists = existing.some(
+                r => r.emoji === event.content && r.user_id === event.sender_user_id
+            );
+            if (!alreadyExists) {
+                reactions[msgId] = [...existing, {
+                    emoji: event.content,
+                    user_id: event.sender_user_id,
+                    username: event.sender_username
+                }];
+            }
+        } else if (event.event_type === 'unreacted') {
+            const msgId = event.chat_message_id;
+            const existing = reactions[msgId] || [];
+            reactions[msgId] = existing.filter(
+                r => !(r.emoji === event.content && r.user_id === event.sender_user_id)
+            );
         } else {
             appendMessage(event);
+        }
+    }
+
+    // Group reactions by emoji for display
+    function groupedReactions(messageId: string): Array<{emoji: string, count: number, userIds: string[], reactedByMe: boolean}> {
+        const list = reactions[messageId] || [];
+        const groups: Record<string, {emoji: string, userIds: string[]}> = {};
+        for (const r of list) {
+            if (!groups[r.emoji]) {
+                groups[r.emoji] = { emoji: r.emoji, userIds: [] };
+            }
+            groups[r.emoji].userIds.push(r.user_id);
+        }
+        return Object.values(groups).map(g => ({
+            emoji: g.emoji,
+            count: g.userIds.length,
+            userIds: g.userIds,
+            reactedByMe: g.userIds.includes(data.currentUserId)
+        }));
+    }
+
+    // Fetch reactions for all loaded messages on mount
+    async function loadReactions() {
+        const promises = messages.map(async (msg) => {
+            try {
+                const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${msg.chat_message_id}/reactions`);
+                if (!res.ok) return;
+                const result = await res.json();
+                if (result.reactions && result.reactions.length > 0) {
+                    reactions[msg.chat_message_id] = result.reactions.map((r: any) => ({
+                        emoji: r.emoji,
+                        user_id: r.user_id,
+                        username: r.username
+                    }));
+                }
+            } catch {
+                // Silently ignore
+            }
+        });
+        await Promise.all(promises);
+    }
+
+    async function toggleReaction(messageId: string, emoji: string) {
+        const existing = reactions[messageId] || [];
+        const myReaction = existing.find(r => r.emoji === emoji && r.user_id === data.currentUserId);
+
+        if (myReaction) {
+            // Optimistic remove
+            reactions[messageId] = existing.filter(r => !(r.emoji === emoji && r.user_id === data.currentUserId));
+            try {
+                await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emoji })
+                });
+            } catch {
+                // Revert on failure
+                reactions[messageId] = [...(reactions[messageId] || []), myReaction];
+            }
+        } else {
+            // Optimistic add
+            const newReaction = { emoji, user_id: data.currentUserId, username: '' };
+            reactions[messageId] = [...existing, newReaction];
+            try {
+                const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emoji })
+                });
+                if (!res.ok) {
+                    // Revert on failure
+                    reactions[messageId] = (reactions[messageId] || []).filter(r => r !== newReaction);
+                }
+            } catch {
+                reactions[messageId] = (reactions[messageId] || []).filter(r => r !== newReaction);
+            }
+        }
+    }
+
+    function addReactionFromPicker(messageId: string, emoji: string) {
+        emojiPickerMessageId = null;
+        toggleReaction(messageId, emoji);
+    }
+
+    function scrollToMessage(messageId: string) {
+        const el = messagesContainer?.querySelector(`[data-testid="message-${messageId}"]`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-2', 'ring-primary-500/50');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-primary-500/50'), 1500);
         }
     }
 
@@ -72,17 +202,10 @@
     let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     function connectSSE() {
-        console.log('[chat-sse] connectSSE: creating EventSource');
         eventSource = new EventSource(`/api/chat/${data.chatRoom.chat_room_id}/stream`);
 
         eventSource.onopen = () => {
-            console.log('[chat-sse] onopen fired');
             streamConnected = true;
-            // Don't clear transportReason here — the server may immediately follow
-            // with a `transport-error` event, and clearing here would race with that
-            // handler. We'll let the next transport-error (or the next onerror
-            // fallback) overwrite it.
-            // Stop polling if it was running as fallback
             if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
@@ -90,8 +213,6 @@
         };
 
         eventSource.onmessage = (event) => {
-            // A real data message proves the gRPC stream is flowing — safe to
-            // clear any stale reason from a previous failure.
             transportReason = '';
             try {
                 const msg = JSON.parse(event.data);
@@ -102,7 +223,6 @@
         };
 
         eventSource.addEventListener('transport-error', (event: MessageEvent) => {
-            console.log('[chat-sse] transport-error event:', event.data);
             try {
                 const payload = JSON.parse(event.data);
                 transportReason = payload.reason || 'gRPC transport error';
@@ -112,23 +232,17 @@
         });
 
         eventSource.onerror = () => {
-            console.log('[chat-sse] onerror fired, readyState=', eventSource?.readyState);
             streamConnected = false;
-            // Only fall back to the generic message if we never got a specific
-            // `transport-error` event with the real reason.
             if (!transportReason || transportReason === 'connecting…') {
                 transportReason = 'SSE connection to server failed';
             }
             eventSource?.close();
             eventSource = null;
-            // Fall back to polling
             startPolling();
-            // Try to reconnect SSE after 10 seconds
             setTimeout(connectSSE, 10000);
         };
     }
 
-    // Track the latest message timestamp for polling fallback
     let latestTimestamp = $derived.by(() => {
         if (messages.length === 0) return '';
         return messages.reduce((latest, msg) => {
@@ -137,7 +251,7 @@
     });
 
     function startPolling() {
-        if (pollInterval) return; // Already polling
+        if (pollInterval) return;
         pollInterval = setInterval(async () => {
             try {
                 let url = `/api/chat/${data.chatRoom.chat_room_id}/messages`;
@@ -164,10 +278,11 @@
         }, 4000);
     }
 
-    // Start with SSE — browser only (EventSource is not defined during SSR).
     onMount(() => {
-        console.log('[chat-sse] onMount fired');
         connectSSE();
+        loadReactions();
+        // Mark room as read when entering
+        fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
     });
 
     onDestroy(() => {
@@ -184,10 +299,16 @@
         errorMessage = '';
 
         try {
+            const body: any = { content, mentioned_user_ids: mentionedUserIds };
+            if (replyingTo) {
+                body.reply_to_message_id = replyingTo.chat_message_id;
+                body.thread_id = replyingTo.chat_message_id;
+            }
+
             const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
+                body: JSON.stringify(body)
             });
 
             const result = await res.json();
@@ -197,9 +318,10 @@
                 return;
             }
 
-            // Append the sent message locally (stream will deduplicate)
             appendMessage(result);
             messageContent = '';
+            replyingTo = null;
+            mentionedUserIds = [];
         } catch {
             errorMessage = 'Failed to send message. Please try again.';
         } finally {
@@ -243,7 +365,6 @@
                 return;
             }
 
-            // Update locally (the gRPC stream will also broadcast the edit to all participants)
             messages = messages.map(m =>
                 m.chat_message_id === editingMessageId
                     ? { ...m, content: editContent.trim(), updated_at: result.updated_at || new Date().toISOString() }
@@ -263,7 +384,121 @@
             cancelEdit();
         }
     }
+
+    // --- Mention autocomplete ---
+    function handleMessageInput() {
+        if (!messageInputEl) return;
+        const pos = messageInputEl.selectionStart || 0;
+        const text = messageContent.slice(0, pos);
+
+        // Only show mention autocomplete for rooms with a curated participant list.
+        // is_open_room = "open room" (planned rename to is_open_room)
+        if (data.chatRoom.is_open_room) {
+            showMentionDropdown = false;
+            return;
+        }
+
+        // Find the last @ that starts a mention (preceded by whitespace or start of string)
+        const match = text.match(/(?:^|[\s])@([^\s]*)$/);
+        if (match) {
+            mentionFilter = match[1];
+            mentionStartIndex = pos - match[1].length - 1; // position of the @
+            selectedMentionIndex = 0;
+            showMentionDropdown = true;
+        } else {
+            showMentionDropdown = false;
+        }
+    }
+
+    function insertMention(participant: any) {
+        const username = participant.username || participant.user_id;
+        const before = messageContent.slice(0, mentionStartIndex);
+        const after = messageContent.slice(mentionStartIndex + 1 + mentionFilter.length);
+        messageContent = `${before}@${username} ${after}`;
+        if (!mentionedUserIds.includes(participant.user_id)) {
+            mentionedUserIds = [...mentionedUserIds, participant.user_id];
+        }
+        showMentionDropdown = false;
+        // Restore focus and cursor position
+        setTimeout(() => {
+            if (messageInputEl) {
+                messageInputEl.focus();
+                const newPos = before.length + 1 + username.length + 1;
+                messageInputEl.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    }
+
+    function handleMentionKeydown(event: KeyboardEvent) {
+        if (!showMentionDropdown || filteredParticipants.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            selectedMentionIndex = (selectedMentionIndex + 1) % filteredParticipants.length;
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            selectedMentionIndex = (selectedMentionIndex - 1 + filteredParticipants.length) % filteredParticipants.length;
+        } else if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault();
+            insertMention(filteredParticipants[selectedMentionIndex]);
+        } else if (event.key === 'Escape') {
+            showMentionDropdown = false;
+        }
+    }
+
+    // Parse message content into segments for rendering mentions
+    function parseMessageContent(message: any): Array<{type: 'text' | 'mention', text: string}> {
+        const content = message.content || '';
+        const mentionIds: string[] = message.mentioned_user_ids || [];
+        if (mentionIds.length === 0) return [{ type: 'text', text: content }];
+
+        // Build a set of usernames for mentioned users
+        const mentionedUsernames = new Set<string>();
+        for (const uid of mentionIds) {
+            const p = data.participants.find((p: any) => p.user_id === uid);
+            if (p) mentionedUsernames.add(p.username || p.user_id);
+        }
+        if (mentionedUsernames.size === 0) return [{ type: 'text', text: content }];
+
+        // Build regex to match @username for any mentioned user
+        const escaped = [...mentionedUsernames].map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const regex = new RegExp(`(@(?:${escaped.join('|')}))(?=\\s|$)`, 'g');
+
+        const segments: Array<{type: 'text' | 'mention', text: string}> = [];
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                segments.push({ type: 'text', text: content.slice(lastIndex, match.index) });
+            }
+            segments.push({ type: 'mention', text: match[1] });
+            lastIndex = regex.lastIndex;
+        }
+        if (lastIndex < content.length) {
+            segments.push({ type: 'text', text: content.slice(lastIndex) });
+        }
+
+        return segments.length > 0 ? segments : [{ type: 'text', text: content }];
+    }
+
+    // Close emoji picker when clicking outside
+    function handleWindowClick(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (emojiPickerMessageId) {
+            if (!target.closest('[data-testid^="emoji-picker-"]') && !target.closest('[data-testid^="emoji-button-"]')) {
+                emojiPickerMessageId = null;
+            }
+        }
+        if (showMentionDropdown) {
+            if (!target.closest('[data-testid="mention-dropdown"]') && !target.closest('[data-testid="message-input"]')) {
+                showMentionDropdown = false;
+            }
+        }
+    }
 </script>
+
+<svelte:window onclick={handleWindowClick} />
 
 <!-- Chat Room Header -->
 <div class="mb-4 flex items-center justify-between gap-3">
@@ -353,68 +588,143 @@
     {#if messages.length > 0}
         {#each messages as message (message.chat_message_id)}
             {@const isOwn = message.sender_user_id === data.currentUserId}
+            {@const msgReactions = groupedReactions(message.chat_message_id)}
             <div
                 class="group flex {isOwn ? 'justify-end' : 'justify-start'}"
                 data-testid="message-{message.chat_message_id}"
             >
-                {#if isOwn && !message.is_deleted && editingMessageId !== message.chat_message_id}
-                    <button
-                        type="button"
-                        class="mr-1 self-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        onclick={() => startEdit(message)}
-                        title="Edit message"
-                        data-testid="edit-message-{message.chat_message_id}"
-                    >
-                        <Pencil class="size-3.5 text-surface-500 hover:text-surface-700" />
-                    </button>
-                {/if}
-                <div class="max-w-[75%] rounded-lg px-4 py-2 {isOwn ? 'bg-primary-500 text-white' : 'bg-surface-200-700 text-surface-900-50'}">
-                    {#if !isOwn}
-                        <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
-                            {message.sender_username || message.sender_user_id}
-                        </p>
-                    {/if}
-                    {#if message.is_deleted}
-                        <p class="italic opacity-50">This message was deleted.</p>
-                    {:else if editingMessageId === message.chat_message_id}
-                        <div class="flex flex-col gap-1" data-testid="edit-message-form">
-                            <textarea
-                                bind:value={editContent}
-                                onkeydown={handleEditKeydown}
-                                class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50"
-                                rows="2"
-                                data-testid="edit-message-input"
-                            ></textarea>
-                            <div class="flex justify-end gap-1">
-                                <button
-                                    type="button"
-                                    onclick={cancelEdit}
-                                    class="rounded p-1 hover:bg-white/20"
-                                    title="Cancel (Esc)"
-                                    data-testid="edit-cancel-button"
-                                >
-                                    <X class="size-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onclick={saveEdit}
-                                    class="rounded p-1 hover:bg-white/20"
-                                    title="Save (Enter)"
-                                    data-testid="edit-save-button"
-                                >
-                                    <Check class="size-3.5" />
-                                </button>
-                            </div>
-                        </div>
-                    {:else}
-                        <p class="whitespace-pre-wrap break-words">{message.content}</p>
-                    {/if}
-                    <p class="mt-1 text-xs opacity-50">
-                        {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {#if message.updated_at && message.updated_at !== message.created_at}
-                            <span data-testid="message-edited-indicator">(edited)</span>
+                {#if !message.is_deleted && editingMessageId !== message.chat_message_id}
+                    <div class="flex items-center gap-0.5 mr-1 self-center opacity-0 group-hover:opacity-100 transition-opacity {isOwn ? 'order-first' : 'order-last ml-1 mr-0'}">
+                        {#if isOwn}
+                            <button
+                                type="button"
+                                onclick={() => startEdit(message)}
+                                title="Edit message"
+                                data-testid="edit-message-{message.chat_message_id}"
+                            >
+                                <Pencil class="size-3.5 text-surface-500 hover:text-surface-700" />
+                            </button>
                         {/if}
-                    </p>
+                        <button
+                            type="button"
+                            onclick={() => emojiPickerMessageId = emojiPickerMessageId === message.chat_message_id ? null : message.chat_message_id}
+                            title="Add reaction"
+                            data-testid="emoji-button-{message.chat_message_id}"
+                        >
+                            <SmilePlus class="size-3.5 text-surface-500 hover:text-surface-700" />
+                        </button>
+                        <button
+                            type="button"
+                            onclick={() => { replyingTo = message; }}
+                            title="Reply"
+                            data-testid="reply-button-{message.chat_message_id}"
+                        >
+                            <Reply class="size-3.5 text-surface-500 hover:text-surface-700" />
+                        </button>
+                    </div>
+                {/if}
+                <div class="relative max-w-[75%]">
+                    <!-- Emoji picker popup -->
+                    {#if emojiPickerMessageId === message.chat_message_id}
+                        <div
+                            class="absolute {isOwn ? 'right-0' : 'left-0'} bottom-full mb-1 z-10 flex gap-1 rounded-lg border border-surface-300-600 bg-surface-50-900 p-2 shadow-lg"
+                            data-testid="emoji-picker-{message.chat_message_id}"
+                        >
+                            {#each EMOJI_CHOICES as emoji}
+                                <button
+                                    type="button"
+                                    class="rounded p-1 text-lg hover:bg-surface-200-700 transition-colors"
+                                    onclick={() => addReactionFromPicker(message.chat_message_id, emoji)}
+                                    data-testid="emoji-choice-{emoji}"
+                                >
+                                    {emoji}
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                    <div class="rounded-lg px-4 py-2 {isOwn ? 'bg-primary-500 text-white' : 'bg-surface-200-700 text-surface-900-50'}">
+                        {#if !isOwn}
+                            <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
+                                {message.sender_username || message.sender_user_id}
+                            </p>
+                        {/if}
+                        {#if message.reply_to_message_id}
+                            {@const parent = messages.find(m => m.chat_message_id === message.reply_to_message_id)}
+                            <button
+                                type="button"
+                                class="mb-1 block w-full text-left border-l-2 {isOwn ? 'border-white/40' : 'border-surface-400'} pl-2 text-xs opacity-60 truncate"
+                                onclick={() => parent && scrollToMessage(parent.chat_message_id)}
+                                data-testid="reply-ref-{message.chat_message_id}"
+                            >
+                                {#if parent}
+                                    {parent.sender_username || parent.sender_user_id}: {parent.content?.slice(0, 80)}{parent.content?.length > 80 ? '...' : ''}
+                                {:else}
+                                    Reply to a message
+                                {/if}
+                            </button>
+                        {/if}
+                        {#if message.is_deleted}
+                            <p class="italic opacity-50">This message was deleted.</p>
+                        {:else if editingMessageId === message.chat_message_id}
+                            <div class="flex flex-col gap-1" data-testid="edit-message-form">
+                                <textarea
+                                    bind:value={editContent}
+                                    onkeydown={handleEditKeydown}
+                                    class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50"
+                                    rows="2"
+                                    data-testid="edit-message-input"
+                                ></textarea>
+                                <div class="flex justify-end gap-1">
+                                    <button
+                                        type="button"
+                                        onclick={cancelEdit}
+                                        class="rounded p-1 hover:bg-white/20"
+                                        title="Cancel (Esc)"
+                                        data-testid="edit-cancel-button"
+                                    >
+                                        <X class="size-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onclick={saveEdit}
+                                        class="rounded p-1 hover:bg-white/20"
+                                        title="Save (Enter)"
+                                        data-testid="edit-save-button"
+                                    >
+                                        <Check class="size-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        {:else}
+                            <p class="whitespace-pre-wrap break-words">{#each parseMessageContent(message) as segment}{#if segment.type === 'mention'}<span class="font-semibold {isOwn ? 'bg-white/20' : 'bg-primary-500/20'} rounded px-0.5" data-testid="mention">{segment.text}</span>{:else}{segment.text}{/if}{/each}</p>
+                        {/if}
+                        <p class="mt-1 text-xs opacity-50">
+                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {#if message.updated_at && message.updated_at !== message.created_at}
+                                <span data-testid="message-edited-indicator">(edited)</span>
+                            {/if}
+                        </p>
+                    </div>
+                    <!-- Reaction badges -->
+                    {#if msgReactions.length > 0}
+                        <div class="flex flex-wrap gap-1 mt-1 {isOwn ? 'justify-end' : 'justify-start'}" data-testid="reactions-{message.chat_message_id}">
+                            {#each msgReactions as reaction}
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors
+                                        {reaction.reactedByMe
+                                            ? 'border-primary-500 bg-primary-500/10 text-primary-700'
+                                            : 'border-surface-300-600 bg-surface-100-800 text-surface-700-300 hover:border-surface-400'}"
+                                    onclick={() => toggleReaction(message.chat_message_id, reaction.emoji)}
+                                    title={reaction.reactedByMe ? 'Remove your reaction' : 'Add reaction'}
+                                    data-testid="reaction-badge-{message.chat_message_id}-{reaction.emoji}"
+                                >
+                                    <span>{reaction.emoji}</span>
+                                    <span>{reaction.count}</span>
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
             </div>
         {/each}
@@ -427,17 +737,57 @@
 
 <!-- Send Message -->
 {#if !data.chatRoom.is_archived}
+    {#if replyingTo}
+        <div class="flex items-center gap-2 mb-2 rounded-lg border border-surface-300-600 bg-surface-100-800 px-3 py-2" data-testid="reply-preview">
+            <div class="flex-1 min-w-0">
+                <p class="text-xs text-surface-500">Replying to <span class="font-semibold">{replyingTo.sender_username || replyingTo.sender_user_id}</span></p>
+                <p class="text-sm text-surface-700-300 truncate">{replyingTo.content}</p>
+            </div>
+            <button
+                type="button"
+                onclick={() => replyingTo = null}
+                class="shrink-0"
+                title="Cancel reply"
+                data-testid="cancel-reply-button"
+            >
+                <X class="size-4 text-surface-500 hover:text-surface-700" />
+            </button>
+        </div>
+    {/if}
     <form onsubmit={sendMessage} class="flex gap-2" data-testid="send-message-form">
-        <input
-            name="content"
-            type="text"
-            bind:value={messageContent}
-            class="input flex-1 rounded-md border border-surface-300-600 px-3 py-2"
-            placeholder="Type a message..."
-            disabled={sending}
-            autocomplete="off"
-            data-testid="message-input"
-        />
+        <div class="relative flex-1">
+            {#if showMentionDropdown && filteredParticipants.length > 0}
+                <div
+                    class="absolute bottom-full mb-1 left-0 z-10 w-full max-h-40 overflow-y-auto rounded-lg border border-surface-300-600 bg-surface-50-900 shadow-lg"
+                    data-testid="mention-dropdown"
+                >
+                    {#each filteredParticipants as participant, i (participant.user_id)}
+                        <button
+                            type="button"
+                            class="block w-full text-left px-3 py-1.5 text-sm transition-colors
+                                {i === selectedMentionIndex ? 'bg-primary-500/10 text-primary-700' : 'text-surface-700-300 hover:bg-surface-200-700'}"
+                            onclick={() => insertMention(participant)}
+                            data-testid="mention-option-{participant.user_id}"
+                        >
+                            @{participant.username || participant.user_id}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+            <input
+                bind:this={messageInputEl}
+                name="content"
+                type="text"
+                bind:value={messageContent}
+                oninput={handleMessageInput}
+                onkeydown={handleMentionKeydown}
+                class="input w-full rounded-md border border-surface-300-600 px-3 py-2"
+                placeholder={replyingTo ? 'Type your reply...' : 'Type a message...'}
+                disabled={sending}
+                autocomplete="off"
+                data-testid="message-input"
+            />
+        </div>
         <button
             type="submit"
             class="btn preset-filled-primary-500 gap-2"

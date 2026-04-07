@@ -14,9 +14,19 @@ export async function load(event: RequestEvent) {
 	}
 
 	try {
-		const response = await obp_requests.get('/obp/v6.0.0/chat-rooms', token);
+		const [response, unreadResponse] = await Promise.all([
+			obp_requests.get('/obp/v6.0.0/chat-rooms', token),
+			obp_requests.get('/obp/v6.0.0/users/current/chat-rooms/unread', token).catch(() => ({ unread_counts: [] }))
+		]);
+
+		const unreadCounts: Record<string, number> = {};
+		for (const uc of unreadResponse.unread_counts || []) {
+			unreadCounts[uc.chat_room_id] = uc.unread_count;
+		}
+
 		return {
-			chatRooms: response.chat_rooms || []
+			chatRooms: response.chat_rooms || [],
+			unreadCounts
 		};
 	} catch (e) {
 		logger.error('Error fetching chat rooms:', e);

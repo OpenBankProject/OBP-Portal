@@ -78,9 +78,9 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 			{
 				content: body.content,
 				message_type: 'text',
-				mentioned_user_ids: [],
-				reply_to_message_id: '',
-				thread_id: ''
+				mentioned_user_ids: body.mentioned_user_ids || [],
+				reply_to_message_id: body.reply_to_message_id || '',
+				thread_id: body.thread_id || ''
 			},
 			accessToken
 		);
