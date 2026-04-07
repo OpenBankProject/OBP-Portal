@@ -21,7 +21,13 @@
 	} from '@lucide/svelte';
 
 	import { env } from '$env/dynamic/public';
+	import { unreadCount } from '$lib/stores/unreadCount.svelte';
 	let { data, children } = $props();
+
+	// Initialize unread count store from server data
+	$effect(() => {
+		unreadCount.set(data.totalUnreadCount || 0);
+	});
 
 	// Undocumented feature flag - accepts string values (env vars are always strings in SvelteKit)
 	let hideFooterExtras = $state(
@@ -164,12 +170,12 @@
 				{#if isAuthenticated}
 					<a href="/user/chat" class="relative mr-2" title="Chat" data-testid="chat-nav-icon">
 						<MessageSquare class="size-5 text-surface-300 hover:text-tertiary-400 transition-colors" />
-						{#if data.totalUnreadCount && data.totalUnreadCount > 0}
+						{#if unreadCount.total > 0}
 							<span
 								class="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full bg-primary-500 text-white text-[10px] font-bold min-w-[1rem] h-4 px-1"
 								data-testid="chat-unread-badge"
 							>
-								{data.totalUnreadCount > 99 ? '99+' : data.totalUnreadCount}
+								{unreadCount.total > 99 ? '99+' : unreadCount.total}
 							</span>
 						{/if}
 					</a>

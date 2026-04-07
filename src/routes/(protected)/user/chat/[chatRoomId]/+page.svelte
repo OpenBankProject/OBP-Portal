@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
     import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply } from '@lucide/svelte';
+    import { unreadCount } from '$lib/stores/unreadCount.svelte';
 
     const EMOJI_CHOICES = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
@@ -492,6 +493,7 @@
     let lastMarkedReadAt: string = $state('');
     let readMarkerTimeout: ReturnType<typeof setTimeout> | null = null;
     let mouseInMessages = $state(false);
+    let roomCountCleared = false;
 
     function markAsReadIfNeeded() {
         if (!latestTimestamp || latestTimestamp === lastMarkedReadAt) return;
@@ -501,6 +503,11 @@
         if (readMarkerTimeout) clearTimeout(readMarkerTimeout);
         readMarkerTimeout = setTimeout(() => {
             lastMarkedReadAt = latestTimestamp;
+            if (!roomCountCleared) {
+                // First read in this room — subtract this room's unread from the header badge
+                unreadCount.clearRoom(data.roomUnreadCount || 0);
+                roomCountCleared = true;
+            }
             fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
         }, 1000);
     }

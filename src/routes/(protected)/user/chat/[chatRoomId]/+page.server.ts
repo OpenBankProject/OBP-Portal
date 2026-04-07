@@ -16,17 +16,22 @@ export async function load(event: RequestEvent) {
 	const chatRoomId = event.params.chatRoomId;
 
 	try {
-		const [chatRoom, messagesResponse, participantsResponse] = await Promise.all([
+		const [chatRoom, messagesResponse, participantsResponse, unreadResponse] = await Promise.all([
 			obp_requests.get(`/obp/v6.0.0/chat-rooms/${chatRoomId}`, token),
 			obp_requests.get(`/obp/v6.0.0/chat-rooms/${chatRoomId}/messages`, token),
-			obp_requests.get(`/obp/v6.0.0/chat-rooms/${chatRoomId}/participants`, token)
+			obp_requests.get(`/obp/v6.0.0/chat-rooms/${chatRoomId}/participants`, token),
+			obp_requests.get('/obp/v6.0.0/users/current/chat-rooms/unread', token).catch(() => ({ unread_counts: [] }))
 		]);
+
+		const unreadCounts = unreadResponse.unread_counts || [];
+		const roomUnread = unreadCounts.find((uc: any) => uc.chat_room_id === chatRoomId);
 
 		return {
 			chatRoom,
 			messages: messagesResponse.messages || [],
 			participants: participantsResponse.participants || [],
-			currentUserId: event.locals.session.data.user?.user_id || ''
+			currentUserId: event.locals.session.data.user?.user_id || '',
+			roomUnreadCount: roomUnread?.unread_count || 0
 		};
 	} catch (e) {
 		logger.error('Error fetching chat room:', e);
