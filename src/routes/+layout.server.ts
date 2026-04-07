@@ -19,6 +19,7 @@ export interface RootLayoutData {
     opeyConsentInfo?: OBPConsentInfo;
     externalLinks: Record<string, string>;
     showEarlyAccess?: boolean;
+    totalUnreadCount?: number;
 }
 
 export async function load(event: RequestEvent) {
@@ -63,22 +64,29 @@ export async function load(event: RequestEvent) {
 
 	// Check if user has EARLY_ACCESS personal data field set to YES
 	let showEarlyAccess = false;
+	let totalUnreadCount = 0;
 	const accessToken = session?.data?.oauth?.access_token;
 	if (accessToken) {
 		try {
-			const response = await obp_requests.get('/obp/v6.0.0/my/personal-data-fields', accessToken);
-			const fields = response.user_attributes || [];
+			const [personalDataResponse, unreadResponse] = await Promise.all([
+				obp_requests.get('/obp/v6.0.0/my/personal-data-fields', accessToken).catch(() => ({ user_attributes: [] })),
+				obp_requests.get('/obp/v6.0.0/users/current/chat-rooms/unread', accessToken).catch(() => ({ unread_counts: [] }))
+			]);
+			const fields = personalDataResponse.user_attributes || [];
 			showEarlyAccess = fields.some(
 				(f: { name: string; value: string }) => f.name === 'EARLY_ACCESS' && f.value === 'YES'
 			);
+			const unreadCounts = unreadResponse.unread_counts || [];
+			totalUnreadCount = unreadCounts.reduce((sum: number, uc: any) => sum + (uc.unread_count || 0), 0);
 		} catch (error) {
-			logger.debug('Could not fetch personal data fields for early access check:', error);
+			logger.debug('Could not fetch layout data:', error);
 		}
 	}
 
 	return {
 		...data,
 		externalLinks: validExternalLinks,
-		showEarlyAccess
+		showEarlyAccess,
+		totalUnreadCount
 	} as RootLayoutData
 }
