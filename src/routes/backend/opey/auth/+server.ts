@@ -4,6 +4,7 @@ import { extractUsernameFromJWT } from '$lib/utils/jwt';
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { obpIntegrationService } from '$lib/opey/services/OBPIntegrationService';
+import { obpErrorResponse } from '$lib/obp/errors';
 import { env } from '$env/dynamic/private';
 import type { Session } from 'svelte-kit-sessions';
 
@@ -28,17 +29,19 @@ export async function POST(event: RequestEvent) {
 			try {
 				// AUTHENTICATED FLOW - Create consent and authenticated Opey session
 				return await _getAuthenticatedSession(opeyConsumerId, session);
-			} catch (error: any) {
+			} catch (error: unknown) {
 				logger.info('JWT expired for Opey session - user needs to re-authenticate:', error);
-				return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+				const { body, status } = obpErrorResponse(error);
+				return json(body, { status });
 			}
 		} else {
 			// ANONYMOUS FLOW - Create anonymous Opey session
 			return await _getAnonymousSession();
 		}
-	} catch (error: any) {
+	} catch (error: unknown) {
 		logger.error('Opey Auth error:', error);
-		return json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+		const { body, status } = obpErrorResponse(error);
+		return json(body, { status });
 	}
 }
 
@@ -115,7 +118,7 @@ async function _getAnonymousSession(error?: string) {
 	const responseData: any = { success: true, authenticated: false };
 
 	if (error) {
-		responseData.error = error;
+		responseData.message = error;
 	}
 
 	return json(

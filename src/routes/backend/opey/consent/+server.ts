@@ -3,6 +3,7 @@ const logger = createLogger('OpeyConsentAPI');
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { obp_requests } from '$lib/obp/requests';
+import { obpErrorResponse } from '$lib/obp/errors';
 import { env } from '$env/dynamic/private';
 import { deduplicateRoles, pickConsentRole } from '$lib/opey/utils/roles';
 
@@ -41,7 +42,7 @@ export async function POST(event: RequestEvent) {
 				sessionId: session?.id || 'none',
 				username: session?.data?.user?.username || 'none'
 			});
-			return json({ error: 'Authentication required to create consent' }, { status: 401 });
+			return json({ message: 'Authentication required to create consent', code: 401 }, { status: 401 });
 		}
 
 		const body = await event.request.json();
@@ -52,13 +53,13 @@ export async function POST(event: RequestEvent) {
 
 		if (!Array.isArray(normalizedRequiredRoles)) {
 			logger.warn('Invalid required_roles:', required_roles);
-			return json({ error: 'required_roles must be an array when provided' }, { status: 400 });
+			return json({ message: 'required_roles must be an array when provided', code: 400 }, { status: 400 });
 		}
 
 		const opeyConsumerId = env.OPEY_CONSUMER_ID;
 		if (!opeyConsumerId) {
 			logger.error('OPEY_CONSUMER_ID not configured');
-			return json({ error: 'Server configuration error: OPEY_CONSUMER_ID not set' }, { status: 500 });
+			return json({ message: 'Server configuration error: OPEY_CONSUMER_ID not set', code: 500 }, { status: 500 });
 		}
 
 		// First, get the user's current roles to check what they have access to
@@ -90,7 +91,8 @@ export async function POST(event: RequestEvent) {
 			logger.error(`User cannot satisfy roles:`, unsatisfiable);
 			logger.error(`User has roles:`, userRoleNames);
 			return json({
-				error: `You don't have the required roles. Missing: ${unsatisfiable.join(', ')}. You have: ${userRoleNames.join(', ')}`
+				message: `You don't have the required roles. Missing: ${unsatisfiable.join(', ')}. You have: ${userRoleNames.join(', ')}`,
+				code: 403
 			}, { status: 403 });
 		}
 
@@ -130,10 +132,9 @@ export async function POST(event: RequestEvent) {
 			status: consent.status,
 			roles: normalizedRequiredRoles
 		});
-	} catch (error: any) {
-		logger.error('Failed to create consent:', error);
-		const message = error?.message || 'Failed to create consent';
-		const status = error?.code || 500;
-		return json({ error: message }, { status: typeof status === 'number' ? status : 500 });
+	} catch (err: unknown) {
+		logger.error('Failed to create consent:', err);
+		const { body, status } = obpErrorResponse(err);
+		return json(body, { status });
 	}
 }

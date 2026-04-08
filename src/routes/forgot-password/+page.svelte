@@ -59,9 +59,9 @@
 		{:else}
 			<!-- Request Form -->
 			<form class="mx-auto w-full max-w-md space-y-6" method="POST">
-				{#if form?.error}
+				{#if form?.message}
 					<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center">
-						<p class="text-error-500 font-semibold">{form.error}</p>
+						<p class="text-error-500 font-semibold">{form.message}</p>
 					</div>
 				{/if}
 

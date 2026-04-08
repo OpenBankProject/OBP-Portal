@@ -40,7 +40,7 @@ export const actions = {
 	create: async ({ request, locals }) => {
 		const token = locals.session.data.oauth?.access_token;
 		if (!token) {
-			return { error: 'No access token found in session.' };
+			return { message: 'No access token found in session.' };
 		}
 
 		const formData = await request.formData();
@@ -48,7 +48,7 @@ export const actions = {
 		const description = formData.get('description')?.toString()?.trim() || '';
 
 		if (!name) {
-			return { error: 'Chat room name is required.' };
+			return { message: 'Chat room name is required.' };
 		}
 
 		try {
@@ -64,7 +64,7 @@ export const actions = {
 			if (err instanceof OBPRequestError) {
 				errorMessage = err.message;
 			}
-			return { error: errorMessage };
+			return { message: errorMessage };
 		}
 	}
 } satisfies Actions;

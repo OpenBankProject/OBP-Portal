@@ -103,7 +103,7 @@ export const actions = {
 
 		if (!consentId) {
 			return {
-				error: 'Consent ID is required.'
+				message: 'Consent ID is required.'
 			};
 		}
 
@@ -112,7 +112,7 @@ export const actions = {
 
 		if (!token) {
 			return {
-				error: 'No access token found in session.'
+				message: 'No access token found in session.'
 			};
 		}
 
@@ -128,7 +128,7 @@ export const actions = {
 				errorMessage = err.message;
 			}
 			return {
-				error: errorMessage
+				message: errorMessage
 			};
 		}
 

@@ -31,7 +31,7 @@ export const actions = {
         // Validate username length before hitting the API
         if (requestBody.username.length < 8) {
             return {
-                error: 'Username must be at least 8 characters long.',
+                message: 'Username must be at least 8 characters long.',
                 formData: formDataToReturn
             };
         }
@@ -57,13 +57,13 @@ export const actions = {
             if (error instanceof OBPRequestError) {
                 // Return the OBP error message directly - it already contains the error code and description
                 return {
-                    error: error.message,
+                    message: error.message,
                     formData: formDataToReturn
                 };
             }
             logger.error("Error registering user:", error);
             return {
-                error: `Failed to register user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                message: `Failed to register user: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 formData: formDataToReturn
             };
         }

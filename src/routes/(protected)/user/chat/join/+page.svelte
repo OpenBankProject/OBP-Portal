@@ -26,9 +26,9 @@
             Paste a join link or joining key to join a chat room. You can get one from someone who created or manages the room.
         </p>
 
-        {#if form?.error}
+        {#if form?.message}
             <div class="bg-error-500/10 border-error-500 mb-4 rounded-lg border p-3 text-center">
-                <p class="text-error-500 text-sm font-semibold">{form.error}</p>
+                <p class="text-error-500 text-sm font-semibold">{form.message}</p>
             </div>
         {/if}
 

@@ -60,9 +60,9 @@
 	</div>
 {/if}
 
-{#if form?.error && form?.action !== 'create'}
+{#if form?.message && form?.action !== 'create'}
 	<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-		<p class="text-sm text-red-800 dark:text-red-200">{form.error}</p>
+		<p class="text-sm text-red-800 dark:text-red-200">{form.message}</p>
 	</div>
 {/if}
 
@@ -160,9 +160,9 @@
 
 <h2 class="mt-8 mb-4 text-xl font-semibold">Add New Field</h2>
 
-{#if form?.error && form?.action === 'create'}
+{#if form?.message && form?.action === 'create'}
 	<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-		<p class="text-sm text-red-800 dark:text-red-200">{form.error}</p>
+		<p class="text-sm text-red-800 dark:text-red-200">{form.message}</p>
 	</div>
 {/if}
 

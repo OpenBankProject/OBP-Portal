@@ -18,7 +18,7 @@
 	let privacyAccepted = $state(false);
 	let showPassword = $state(false);
 	let passwordVisibilityType = $derived.by(() => (showPassword ? 'text' : 'password'));
-	let showError = $state(!!form?.error);
+	let showError = $state(!!form?.message);
 
 	// Clear error when username or password fields are modified
 	function handleUsernameInput() {
@@ -106,9 +106,9 @@
 	</header>
 	<article class="space-y-4 p-4">
 		<form class="mx-auto w-full max-w-md space-y-6" method="POST">
-			{#if showError && form?.error}
+			{#if showError && form?.message}
 				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center" data-testid="registration-error">
-					<p class="text-error-500 font-semibold">{form?.error}</p>
+					<p class="text-error-500 font-semibold">{form?.message}</p>
 				</div>
 			{/if}
 			<!-- --- -->
@@ -290,9 +290,9 @@
 				</div>
 			</div>
 			<hr class="hr" />
-			{#if showError && form?.error}
+			{#if showError && form?.message}
 				<div class="bg-error-500/10 border-error-500 rounded-lg border p-4 text-center" data-testid="registration-error">
-					<p class="text-error-500 font-semibold">{form?.error}</p>
+					<p class="text-error-500 font-semibold">{form?.message}</p>
 				</div>
 			{/if}
 			<button

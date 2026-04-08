@@ -119,7 +119,7 @@ export const actions = {
 
 		const token = locals.session.data.oauth?.access_token;
 		if (!token) {
-			return { error: 'No access token found in session.' };
+			return { message: 'No access token found in session.' };
 		}
 
 		try {
@@ -138,7 +138,7 @@ export const actions = {
 			if (e instanceof OBPRequestError) {
 				errorMessage = e.message;
 			}
-			return { error: errorMessage };
+			return { message: errorMessage };
 		}
 	},
 

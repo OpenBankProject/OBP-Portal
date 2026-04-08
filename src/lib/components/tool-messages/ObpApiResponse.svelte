@@ -16,9 +16,7 @@
     });
     
     let isError = $derived(
-        parsedOutput?.error || 
-        parsedOutput?.message || 
-        (parsedOutput?.code && parsedOutput.code !== 200) ||
+        (parsedOutput?.message && parsedOutput?.code && parsedOutput.code !== 200) ||
         (parsedOutput?.status && parsedOutput.status >= 400)
     );
 
@@ -84,7 +82,7 @@
     {#if isError}
         <div class="mb-3 rounded-lg bg-error-100-900 p-3">
             <div class="text-sm font-medium text-error-950-50">
-                {parsedOutput?.message || parsedOutput?.error || 'Request failed'}
+                {parsedOutput?.message}
             </div>
             {#if parsedOutput?.code || parsedOutput?.status}
                 <div class="mt-1 text-xs text-error-700-300">

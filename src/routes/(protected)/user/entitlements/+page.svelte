@@ -85,7 +85,7 @@
 		</label>
 
 		{#if form?.missing}<p class="text-error-500 text-xs">Please select an entitlement to add.</p>{/if}
-		{#if form?.error}<p class="text-error-500 text-xs">{form.error}</p>{/if}
+		{#if form?.message}<p class="text-error-500 text-xs">{form.message}</p>{/if}
 
 		{#if selectedEntitlement.requires_bank_id}
 			<label class="label">

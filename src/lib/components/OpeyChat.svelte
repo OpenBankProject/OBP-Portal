@@ -341,12 +341,12 @@
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to initialize session');
+				throw new Error(data.message);
 			}
 
 			logger.debug('Opey session initialized:', data);
-			if (data.error) {
-				logger.warn('Opey session initialization warning:', data.error);
+			if (data.message) {
+				logger.warn('Opey session initialization warning:', data.message);
 			}
 
 			// Update session state based on response

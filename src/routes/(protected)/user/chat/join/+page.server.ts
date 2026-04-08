@@ -61,14 +61,14 @@ export const actions = {
 	join: async ({ request, locals }) => {
 		const token = locals.session.data.oauth?.access_token;
 		if (!token) {
-			return { error: 'No access token found in session.' };
+			return { message: 'No access token found in session.' };
 		}
 
 		const formData = await request.formData();
 		const rawInput = formData.get('key')?.toString()?.trim();
 
 		if (!rawInput) {
-			return { error: 'Please enter a joining key or join link.' };
+			return { message: 'Please enter a joining key or join link.' };
 		}
 
 		const key = extractKey(rawInput);
@@ -84,7 +84,7 @@ export const actions = {
 			if (e instanceof OBPRequestError) {
 				errorMessage = e.message;
 			}
-			return { error: errorMessage };
+			return { message: errorMessage };
 		}
 	}
 } satisfies Actions;

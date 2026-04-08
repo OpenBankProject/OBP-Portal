@@ -40,9 +40,9 @@
         </h2>
     </div>
 
-    {#if form?.error}
+    {#if form?.message}
         <div class="bg-error-500/10 border-error-500 mb-6 rounded-lg border p-4 text-center">
-            <p class="text-error-500 font-semibold">{form.error}</p>
+            <p class="text-error-500 font-semibold">{form.message}</p>
         </div>
     {/if}
 

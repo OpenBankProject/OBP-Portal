@@ -4,6 +4,18 @@
 
     let { data, form } = $props();
     let showCreateForm = $state(false);
+
+    // Sort rooms: unread first (highest count first), then alphabetically
+    let sortedRooms = $derived(
+        [...(data.chatRooms || [])].sort((a: any, b: any) => {
+            const unreadA = data.unreadCounts?.[a.chat_room_id] || 0;
+            const unreadB = data.unreadCounts?.[b.chat_room_id] || 0;
+            // Rooms with unread messages first, sorted by count descending
+            if (unreadA !== unreadB) return unreadB - unreadA;
+            // Then alphabetically by name
+            return (a.name || '').localeCompare(b.name || '');
+        })
+    );
     let copiedJoinLink = $state(false);
 
     function joinLink(joiningKey: string): string {
@@ -21,9 +33,9 @@
     }
 </script>
 
-{#if form?.error}
+{#if form?.message}
     <div class="bg-error-500/10 border-error-500 mb-6 rounded-lg border p-4 text-center">
-        <p class="text-error-500 font-semibold">{form.error}</p>
+        <p class="text-error-500 font-semibold">{form.message}</p>
     </div>
 {/if}
 
@@ -126,7 +138,7 @@
 <!-- Chat Rooms List -->
 {#if data.chatRooms && data.chatRooms.length > 0}
     <div class="space-y-3">
-        {#each data.chatRooms as room (room.chat_room_id)}
+        {#each sortedRooms as room (room.chat_room_id)}
             {@const unread = data.unreadCounts?.[room.chat_room_id] || 0}
             <div
                 class="rounded-lg border border-surface-300-600 bg-surface-50-900 p-4 transition-colors hover:bg-surface-100-800"

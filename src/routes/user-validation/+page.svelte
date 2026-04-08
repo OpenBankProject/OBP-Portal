@@ -38,7 +38,7 @@
 					<XCircle class="h-16 w-16 text-error-500" />
 				</div>
 				<h2 class="h5 mb-2">Validation Failed</h2>
-				<p class="text-lg mb-4">{data.error}</p>
+				<p class="text-lg mb-4">{data.message}</p>
 				{#if data.errorCode}
 					<p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
 						Error Code: {data.errorCode}

@@ -332,7 +332,7 @@
             const result = await res.json();
 
             if (!res.ok) {
-                errorMessage = result.error || 'Failed to send message.';
+                errorMessage = result.message;
                 return;
             }
 
@@ -380,7 +380,7 @@
             const result = await res.json();
 
             if (!res.ok) {
-                errorMessage = result.error || 'Failed to edit message.';
+                errorMessage = result.message;
                 return;
             }
 

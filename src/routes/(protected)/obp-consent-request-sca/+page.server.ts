@@ -36,16 +36,16 @@ export const actions = {
 		const bankId = formData.get('bankId') as string;
 
 		if (!otp) {
-			return { error: 'Please enter the OTP code.' };
+			return { message: 'Please enter the OTP code.' };
 		}
 
 		const token = locals.session.data.oauth?.access_token;
 		if (!token) {
-			return { error: 'No access token found in session.' };
+			return { message: 'No access token found in session.' };
 		}
 
 		if (!bankId) {
-			return { error: 'Missing bank_id parameter.' };
+			return { message: 'Missing bank_id parameter.' };
 		}
 
 		try {
@@ -60,7 +60,7 @@ export const actions = {
 			}
 
 			return {
-				error: `Challenge was not accepted. Status: ${response.status}`
+				message: `Challenge was not accepted. Status: ${response.status}`
 			};
 		} catch (e) {
 			if (isRedirect(e)) throw e;
@@ -69,7 +69,7 @@ export const actions = {
 			if (e instanceof OBPRequestError) {
 				errorMessage = e.message;
 			}
-			return { error: errorMessage };
+			return { message: errorMessage };
 		}
 	}
 } satisfies Actions;

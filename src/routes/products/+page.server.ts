@@ -63,7 +63,7 @@ export async function load(event: RequestEvent) {
 		return {
 			products: [],
 			warnings: [],
-			error: errorMsg,
+			message: errorMsg,
 			apiExplorerUrl,
 			isLoggedIn
 		};
@@ -102,7 +102,7 @@ export async function load(event: RequestEvent) {
 		return {
 			products: [],
 			warnings: [],
-			error: errorMsg,
+			message: errorMsg,
 			apiExplorerUrl,
 			isLoggedIn,
 			debug: debugInfo

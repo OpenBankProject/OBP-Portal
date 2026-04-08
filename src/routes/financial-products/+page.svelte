@@ -37,9 +37,9 @@
 		</div>
 	{/if}
 
-	{#if data.error}
+	{#if data.message}
 		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-center dark:border-red-800 dark:bg-red-900/20">
-			<p class="text-red-600 dark:text-red-400">{data.error}</p>
+			<p class="text-red-600 dark:text-red-400">{data.message}</p>
 		</div>
 	{:else if sortedProducts.length > 0}
 		<!-- Products Grid -->

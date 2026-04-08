@@ -29,7 +29,7 @@ export async function load(event: RequestEvent) {
 		return {
 			products: [] as OBPProduct[],
 			warnings: [],
-			error: errorMsg,
+			message: errorMsg,
 			apiExplorerUrl,
 			isLoggedIn
 		};
@@ -54,7 +54,7 @@ export async function load(event: RequestEvent) {
 		return {
 			products: [] as OBPProduct[],
 			warnings: [],
-			error: errorMsg,
+			message: errorMsg,
 			apiExplorerUrl,
 			isLoggedIn
 		};

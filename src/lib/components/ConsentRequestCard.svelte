@@ -74,7 +74,7 @@
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || `Failed to create consent (HTTP ${response.status})`);
+				throw new Error(errorData.message);
 			}
 
 			const data = await response.json();
