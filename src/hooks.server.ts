@@ -141,9 +141,9 @@ const checkSessionValidity: Handle = async ({ event, resolve }) => {
 		return await resolve(event);
 	}
 
-	// No user in session — log for API routes to help trace auth issues
-	if (routePath.startsWith('/api/')) {
-		logger.debug(`No session user for API request: ${routePath} (session ID: ${session?.id || 'none'})`);
+	// No user in session — log for backend/proxy routes to help trace auth issues
+	if (routePath.startsWith('/backend/') || routePath.startsWith('/proxy/')) {
+		logger.debug(`No session user for backend request: ${routePath} (session ID: ${session?.id || 'none'})`);
 	}
 
 	// Always return a response, even when there's no session

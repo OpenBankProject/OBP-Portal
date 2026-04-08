@@ -169,7 +169,7 @@
             // Optimistic remove
             reactions[messageId] = existing.filter(r => !(r.emoji === emoji && r.user_id === data.currentUserId));
             try {
-                await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
+                await fetch(`/proxy/obp/v6.0.0/chat-rooms/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ emoji })
@@ -183,7 +183,7 @@
             const newReaction = { emoji, user_id: data.currentUserId, username: '' };
             reactions[messageId] = [...existing, newReaction];
             try {
-                const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
+                const res = await fetch(`/proxy/obp/v6.0.0/chat-rooms/${data.chatRoom.chat_room_id}/messages/${messageId}/reactions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ emoji })
@@ -217,7 +217,7 @@
     let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     function connectSSE() {
-        eventSource = new EventSource(`/api/chat/${data.chatRoom.chat_room_id}/stream`);
+        eventSource = new EventSource(`/backend/chat/${data.chatRoom.chat_room_id}/stream`);
 
         eventSource.onopen = () => {
             streamConnected = true;
@@ -269,7 +269,7 @@
         if (pollInterval) return;
         pollInterval = setInterval(async () => {
             try {
-                let url = `/api/chat/${data.chatRoom.chat_room_id}/messages`;
+                let url = `/proxy/obp/v6.0.0/chat-rooms/${data.chatRoom.chat_room_id}/messages`;
                 if (latestTimestamp) {
                     url += `?from_date=${encodeURIComponent(latestTimestamp)}`;
                 }
@@ -323,7 +323,7 @@
                 body.thread_id = replyingTo.chat_message_id;
             }
 
-            const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages`, {
+            const res = await fetch(`/proxy/obp/v6.0.0/chat-rooms/${data.chatRoom.chat_room_id}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -368,7 +368,7 @@
         }
 
         try {
-            const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages`, {
+            const res = await fetch(`/proxy/obp/v6.0.0/chat-rooms/${data.chatRoom.chat_room_id}/messages`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -551,7 +551,7 @@
                 unreadCount.set(0);
                 roomCountCleared = true;
             }
-            fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
+            fetch(`/proxy/obp/v6.0.0/users/current/chat-rooms/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
         }, 1000);
     }
 

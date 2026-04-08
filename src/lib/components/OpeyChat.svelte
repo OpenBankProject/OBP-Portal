@@ -88,7 +88,7 @@
 
 	async function fetchHealthStatus() {
 		try {
-			const response = await fetch('/api/status');
+			const response = await fetch('/backend/status');
 			if (response.ok) {
 				const data = await response.json();
 				const opeySnapshot = data.services['Opey II'];
@@ -333,7 +333,7 @@
 		try {
 			sessionState.setStatus('loading');
 
-			const response = await fetch('/api/opey/auth', {
+			const response = await fetch('/backend/opey/auth', {
 				method: 'POST',
 				credentials: 'include'
 			});

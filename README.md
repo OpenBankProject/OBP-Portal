@@ -139,6 +139,44 @@ npm run dev
 # User should log out and back in to get fresh JWTs
 ```
 
+## Architecture: OBP-API Proxy
+
+The SvelteKit Node backend acts as an **authenticated proxy** to the OBP-API. The browser never talks to the OBP-API directly — the user's OAuth token is held server-side in the session and added to each request.
+
+### Generic proxy (`/proxy/obp/...`)
+
+For endpoints that only need authentication forwarding (no request/response transformation), use the generic catch-all proxy at `src/routes/proxy/obp/[...path]/+server.ts`.
+
+The browser calls `/proxy/obp/v6.0.0/some/endpoint` and the proxy forwards it to `OBP_API_URL/obp/v6.0.0/some/endpoint` with the OAuth `Authorization` header. Responses and errors are passed through unmodified — the Portal does not reshape the OBP-API's JSON.
+
+```
+Browser → /proxy/obp/v6.0.0/chat-rooms/{id}/messages → OBP-API
+                    ↑ adds Authorization header
+```
+
+This means:
+- No boilerplate API route files per endpoint
+- The OBP-API path is visible in the browser URL (e.g. in DevTools network tab)
+- Error responses match the OBP-API format (`{ code, message }`)
+- Adding a new proxied endpoint requires zero Portal code changes
+
+### Dedicated routes (`/backend/...`)
+
+For endpoints that need **custom logic beyond auth forwarding**, use dedicated API routes under `src/routes/backend/`. Examples:
+
+- **gRPC → SSE bridge** (`/backend/chat/[chatRoomId]/stream`): Converts the OBP-API's gRPC stream into Server-Sent Events for the browser. This can't be a simple proxy because the transport protocol changes.
+
+### When to use which
+
+| Scenario | Use |
+|---|---|
+| Simple CRUD (GET/POST/PUT/DELETE to OBP-API) | `/proxy/obp/...` |
+| Protocol bridging (gRPC, WebSocket) | Dedicated `/backend/...` route |
+| Response transformation or aggregation | Dedicated `/backend/...` route |
+| Custom server-side validation | Dedicated `/backend/...` route |
+
+For more details, see [docs/obp-proxy.md](./docs/obp-proxy.md).
+
 ## Theming
 
 Themes should be created using the (skeleton UI designer)[https://themes.skeleton.dev/themes/create]. Then you can replace obp-theme.css with your file.
