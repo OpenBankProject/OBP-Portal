@@ -1,7 +1,21 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
-    import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply } from '@lucide/svelte';
+    import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply, Bold, Italic, Code, Link, List, SquareCode } from '@lucide/svelte';
     import { unreadCount } from '$lib/stores/unreadCount.svelte';
+    import { browser } from '$app/environment';
+
+    // Both renderMarkdown (Prism) and DOMPurify require browser globals — lazy-load them
+    let renderMarkdown: ((content: string) => string) | null = $state(null);
+    let DOMPurify: any = $state(null);
+    if (browser) {
+        Promise.all([
+            import('$lib/markdown/helper-funcs'),
+            import('dompurify')
+        ]).then(([mdModule, dpModule]) => {
+            renderMarkdown = mdModule.renderMarkdown;
+            DOMPurify = dpModule.default;
+        });
+    }
 
     const EMOJI_CHOICES = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
@@ -31,7 +45,7 @@
     let mentionStartIndex = $state(0);
     let selectedMentionIndex = $state(0);
     let mentionedUserIds: string[] = $state([]);
-    let messageInputEl: HTMLInputElement | undefined = $state();
+    let messageInputEl: HTMLTextAreaElement | undefined = $state();
 
     let filteredParticipants = $derived(
         data.participants.filter((p: any) => {
@@ -129,24 +143,22 @@
     }
 
     // Fetch reactions for all loaded messages on mount
-    async function loadReactions() {
-        const promises = messages.map(async (msg) => {
-            try {
-                const res = await fetch(`/api/chat/${data.chatRoom.chat_room_id}/messages/${msg.chat_message_id}/reactions`);
-                if (!res.ok) return;
-                const result = await res.json();
-                if (result.reactions && result.reactions.length > 0) {
-                    reactions[msg.chat_message_id] = result.reactions.map((r: any) => ({
-                        emoji: r.emoji,
-                        user_id: r.user_id,
-                        username: r.username
-                    }));
+    /**
+     * Populate the reactions state from the reaction summaries already
+     * embedded in the messages response (no extra API calls needed).
+     */
+    function loadReactionsFromMessages() {
+        for (const msg of messages) {
+            if (msg.reactions && msg.reactions.length > 0) {
+                const flat: Array<{emoji: string, user_id: string, username: string}> = [];
+                for (const r of msg.reactions) {
+                    for (const uid of r.user_ids || []) {
+                        flat.push({ emoji: r.emoji, user_id: uid, username: '' });
+                    }
                 }
-            } catch {
-                // Silently ignore
+                reactions[msg.chat_message_id] = flat;
             }
-        });
-        await Promise.all(promises);
+        }
     }
 
     async function toggleReaction(messageId: string, emoji: string) {
@@ -283,7 +295,7 @@
 
     onMount(() => {
         connectSSE();
-        loadReactions();
+        loadReactionsFromMessages();
         // Mark as read on initial load (mouse is likely already in the area)
         markAsReadIfNeeded();
         window.addEventListener('focus', handleWindowFocus);
@@ -327,6 +339,7 @@
             appendMessage(result);
             messageContent = '';
             replyingTo = null;
+            if (messageInputEl) messageInputEl.style.height = 'auto';
             mentionedUserIds = [];
         } catch {
             errorMessage = 'Failed to send message. Please try again.';
@@ -435,57 +448,87 @@
         }, 0);
     }
 
-    function handleMentionKeydown(event: KeyboardEvent) {
-        if (!showMentionDropdown || filteredParticipants.length === 0) return;
+    function handleInputKeydown(event: KeyboardEvent) {
+        // Mention dropdown takes priority when open
+        if (showMentionDropdown && filteredParticipants.length > 0) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                selectedMentionIndex = (selectedMentionIndex + 1) % filteredParticipants.length;
+                return;
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                selectedMentionIndex = (selectedMentionIndex - 1 + filteredParticipants.length) % filteredParticipants.length;
+                return;
+            } else if (event.key === 'Enter' || event.key === 'Tab') {
+                event.preventDefault();
+                insertMention(filteredParticipants[selectedMentionIndex]);
+                return;
+            } else if (event.key === 'Escape') {
+                showMentionDropdown = false;
+                return;
+            }
+        }
 
-        if (event.key === 'ArrowDown') {
+        // Enter sends, Shift+Enter inserts newline
+        if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            selectedMentionIndex = (selectedMentionIndex + 1) % filteredParticipants.length;
-        } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            selectedMentionIndex = (selectedMentionIndex - 1 + filteredParticipants.length) % filteredParticipants.length;
-        } else if (event.key === 'Enter' || event.key === 'Tab') {
-            event.preventDefault();
-            insertMention(filteredParticipants[selectedMentionIndex]);
-        } else if (event.key === 'Escape') {
-            showMentionDropdown = false;
+            if (messageContent.trim() && !sending) {
+                messageInputEl?.form?.requestSubmit();
+            }
+        }
+    }
+
+    // Auto-resize textarea to fit content
+    function autoResize() {
+        if (messageInputEl) {
+            messageInputEl.style.height = 'auto';
+            messageInputEl.style.height = Math.min(messageInputEl.scrollHeight, 150) + 'px';
         }
     }
 
     // Parse message content into segments for rendering mentions
-    function parseMessageContent(message: any): Array<{type: 'text' | 'mention', text: string}> {
+    /**
+     * Render a chat message as sanitized HTML with markdown and @mention highlighting.
+     * Markdown is rendered first, then @mentions are highlighted in the HTML text nodes.
+     */
+    function renderChatMessage(message: any, isOwn: boolean): string {
         const content = message.content || '';
+        if (!content) return '';
+
+        // Before markdown/DOMPurify are loaded, show plain text (escaped)
+        if (!renderMarkdown || !DOMPurify) {
+            const escaped = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<p>${escaped}</p>`;
+        }
+
+        // Render markdown to HTML, then make links open in new tabs
+        let html = renderMarkdown(content)
+            .replace(/<a href="/g, '<a target="_blank" rel="noopener noreferrer" href="');
+
+        // Highlight @mentions in the rendered HTML
         const mentionIds: string[] = message.mentioned_user_ids || [];
-        if (mentionIds.length === 0) return [{ type: 'text', text: content }];
-
-        // Build a set of usernames for mentioned users
-        const mentionedUsernames = new Set<string>();
-        for (const uid of mentionIds) {
-            const p = data.participants.find((p: any) => p.user_id === uid);
-            if (p) mentionedUsernames.add(p.username || p.user_id);
-        }
-        if (mentionedUsernames.size === 0) return [{ type: 'text', text: content }];
-
-        // Build regex to match @username for any mentioned user
-        const escaped = [...mentionedUsernames].map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        const regex = new RegExp(`(@(?:${escaped.join('|')}))(?=\\s|$)`, 'g');
-
-        const segments: Array<{type: 'text' | 'mention', text: string}> = [];
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
-
-        while ((match = regex.exec(content)) !== null) {
-            if (match.index > lastIndex) {
-                segments.push({ type: 'text', text: content.slice(lastIndex, match.index) });
+        if (mentionIds.length > 0) {
+            const mentionedUsernames = new Set<string>();
+            for (const uid of mentionIds) {
+                const p = data.participants.find((p: any) => p.user_id === uid);
+                if (p) mentionedUsernames.add(p.username || p.user_id);
             }
-            segments.push({ type: 'mention', text: match[1] });
-            lastIndex = regex.lastIndex;
-        }
-        if (lastIndex < content.length) {
-            segments.push({ type: 'text', text: content.slice(lastIndex) });
+            if (mentionedUsernames.size > 0) {
+                const escaped = [...mentionedUsernames].map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                const mentionRegex = new RegExp(`(@(?:${escaped.join('|')}))(?=\\s|[<&]|$)`, 'g');
+                const mentionClass = isOwn ? 'bg-white/20' : 'bg-primary-500/20';
+                html = html.replace(mentionRegex, `<span class="font-semibold ${mentionClass} rounded px-0.5">$1</span>`);
+            }
         }
 
-        return segments.length > 0 ? segments : [{ type: 'text', text: content }];
+        // Sanitize to prevent XSS — allow class attributes for styling
+        if (!DOMPurify) return html; // SSR fallback — will be re-rendered client-side with sanitization
+        return DOMPurify.sanitize(html, {
+            ADD_ATTR: ['class'],
+            ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'a', 'ul', 'ol', 'li',
+                           'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'span', 'del', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+            ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+        });
     }
 
     // --- Read marker logic ---
@@ -505,7 +548,7 @@
             lastMarkedReadAt = latestTimestamp;
             if (!roomCountCleared) {
                 // First read in this room — subtract this room's unread from the header badge
-                unreadCount.clearRoom(data.roomUnreadCount || 0);
+                unreadCount.set(0);
                 roomCountCleared = true;
             }
             fetch(`/api/chat/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });
@@ -525,6 +568,39 @@
         if (mouseInMessages) {
             markAsReadIfNeeded();
         }
+    }
+
+    // Auto-resize edit textarea on mount to fit existing content
+    function autoResizeEdit(node: HTMLTextAreaElement) {
+        setTimeout(() => {
+            node.style.height = 'auto';
+            node.style.height = Math.min(node.scrollHeight, 300) + 'px';
+            node.focus();
+            node.setSelectionRange(node.value.length, node.value.length);
+        }, 0);
+    }
+
+    // --- Markdown formatting toolbar ---
+    function insertFormatting(before: string, after: string, placeholder: string) {
+        if (!messageInputEl) return;
+        const start = messageInputEl.selectionStart || 0;
+        const end = messageInputEl.selectionEnd || 0;
+        const selected = messageContent.slice(start, end);
+        const text = selected || placeholder;
+        const newContent = messageContent.slice(0, start) + before + text + after + messageContent.slice(end);
+        messageContent = newContent;
+        // Place cursor after inserted text (or select the placeholder)
+        setTimeout(() => {
+            if (messageInputEl) {
+                messageInputEl.focus();
+                if (selected) {
+                    const pos = start + before.length + text.length + after.length;
+                    messageInputEl.setSelectionRange(pos, pos);
+                } else {
+                    messageInputEl.setSelectionRange(start + before.length, start + before.length + text.length);
+                }
+            }
+        }, 0);
     }
 
     // Close emoji picker when clicking outside
@@ -670,7 +746,7 @@
                         </button>
                     </div>
                 {/if}
-                <div class="relative max-w-[75%]">
+                <div class="relative {editingMessageId === message.chat_message_id ? 'max-w-full w-full' : 'max-w-[75%]'}">
                     <!-- Emoji picker popup -->
                     {#if emojiPickerMessageId === message.chat_message_id}
                         <div
@@ -717,8 +793,10 @@
                                 <textarea
                                     bind:value={editContent}
                                     onkeydown={handleEditKeydown}
-                                    class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50"
-                                    rows="2"
+                                    oninput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 300) + 'px'; }}
+                                    use:autoResizeEdit
+                                    class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50 resize overflow-auto"
+                                    rows="3"
                                     data-testid="edit-message-input"
                                 ></textarea>
                                 <div class="flex justify-end gap-1">
@@ -743,7 +821,7 @@
                                 </div>
                             </div>
                         {:else}
-                            <p class="whitespace-pre-wrap break-words">{#each parseMessageContent(message) as segment}{#if segment.type === 'mention'}<span class="font-semibold {isOwn ? 'bg-white/20' : 'bg-primary-500/20'} rounded px-0.5" data-testid="mention">{segment.text}</span>{:else}{segment.text}{/if}{/each}</p>
+                            <div class="chat-markdown break-words">{@html renderChatMessage(message, isOwn)}</div>
                         {/if}
                         <p class="mt-1 text-xs opacity-50">
                             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -821,19 +899,39 @@
                     {/each}
                 </div>
             {/if}
-            <input
+            <textarea
                 bind:this={messageInputEl}
                 name="content"
-                type="text"
                 bind:value={messageContent}
-                oninput={handleMessageInput}
-                onkeydown={handleMentionKeydown}
-                class="input w-full rounded-md border border-surface-300-600 px-3 py-2"
-                placeholder={replyingTo ? 'Type your reply...' : 'Type a message...'}
+                oninput={() => { handleMessageInput(); autoResize(); }}
+                onkeydown={handleInputKeydown}
+                class="input w-full rounded-md border border-surface-300-600 px-3 py-2 resize-none overflow-hidden"
+                placeholder={replyingTo ? 'Type your reply... (Shift+Enter for new line)' : 'Type a message... (Shift+Enter for new line)'}
                 disabled={sending}
                 autocomplete="off"
+                rows="1"
                 data-testid="message-input"
-            />
+            ></textarea>
+            <div class="flex gap-0.5 mt-1" data-testid="formatting-toolbar">
+                <button type="button" onclick={() => insertFormatting('**', '**', 'bold')} title="Bold" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <Bold class="size-3.5" />
+                </button>
+                <button type="button" onclick={() => insertFormatting('*', '*', 'italic')} title="Italic" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <Italic class="size-3.5" />
+                </button>
+                <button type="button" onclick={() => insertFormatting('`', '`', 'code')} title="Inline code" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <Code class="size-3.5" />
+                </button>
+                <button type="button" onclick={() => insertFormatting('```\n', '\n```', 'code block')} title="Code block" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <SquareCode class="size-3.5" />
+                </button>
+                <button type="button" onclick={() => insertFormatting('[', '](url)', 'link text')} title="Link" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <Link class="size-3.5" />
+                </button>
+                <button type="button" onclick={() => insertFormatting('- ', '', 'list item')} title="List" class="p-1 rounded text-surface-500 hover:text-surface-700 hover:bg-surface-200-700 transition-colors">
+                    <List class="size-3.5" />
+                </button>
+            </div>
         </div>
         <button
             type="submit"
