@@ -14,18 +14,17 @@ export async function load(event: RequestEvent) {
 	}
 
 	try {
-		const [response, unreadResponse] = await Promise.all([
-			obp_requests.get('/obp/v6.0.0/chat-rooms', token),
-			obp_requests.get('/obp/v6.0.0/users/current/chat-rooms/unread', token).catch(() => ({ unread_counts: [] }))
-		]);
+		const response = await obp_requests.get('/obp/v6.0.0/chat-rooms', token);
+		const chatRooms = response.chat_rooms || [];
 
+		// The chat-rooms endpoint returns unread_count on each room directly
 		const unreadCounts: Record<string, number> = {};
-		for (const uc of unreadResponse.unread_counts || []) {
-			unreadCounts[uc.chat_room_id] = uc.unread_count;
+		for (const room of chatRooms) {
+			unreadCounts[room.chat_room_id] = room.unread_count || 0;
 		}
 
 		return {
-			chatRooms: response.chat_rooms || [],
+			chatRooms,
 			unreadCounts
 		};
 	} catch (e) {

@@ -305,7 +305,9 @@
         eventSource?.close();
         if (pollInterval) clearInterval(pollInterval);
         if (readMarkerTimeout) clearTimeout(readMarkerTimeout);
-        window.removeEventListener('focus', handleWindowFocus);
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('focus', handleWindowFocus);
+        }
     });
 
     async function sendMessage(event: SubmitEvent) {
@@ -547,7 +549,7 @@
             lastMarkedReadAt = latestTimestamp;
             if (!roomCountCleared) {
                 // First read in this room — subtract this room's unread from the header badge
-                unreadCount.set(0);
+                unreadCount.clearRoom(data.chatRoom.unread_count || 0);
                 roomCountCleared = true;
             }
             fetch(`/proxy/obp/v6.0.0/users/current/chat-rooms/${data.chatRoom.chat_room_id}/read-marker`, { method: 'PUT' });

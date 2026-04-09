@@ -67,18 +67,28 @@ export async function load(event: RequestEvent) {
 	const accessToken = session?.data?.oauth?.access_token;
 	if (accessToken) {
 		try {
-			const [personalDataResponse, unreadResponse] = await Promise.all([
-				obp_requests.get('/obp/v6.0.0/my/personal-data-fields', accessToken).catch(() => ({ user_attributes: [] })),
-				obp_requests.get('/obp/v6.0.0/users/current/chat-rooms/unread', accessToken).catch(() => ({ unread_counts: [] }))
+			const [personalDataResponse, chatRoomsResponse] = await Promise.all([
+				obp_requests.get('/obp/v6.0.0/my/personal-data-fields', accessToken).catch((err) => {
+					logger.warn('Failed to fetch personal data fields:', err);
+					return { user_attributes: [] };
+				}),
+				obp_requests.get('/obp/v6.0.0/chat-rooms', accessToken).catch((err) => {
+					logger.warn('Failed to fetch chat rooms for unread count:', err);
+					return { chat_rooms: [] };
+				})
 			]);
 			const fields = personalDataResponse.user_attributes || [];
 			showEarlyAccess = fields.some(
 				(f: { name: string; value: string }) => f.name === 'EARLY_ACCESS' && f.value === 'YES'
 			);
-			const unreadCounts = unreadResponse.unread_counts || [];
-			totalUnreadCount = unreadCounts.reduce((sum: number, uc: any) => sum + (uc.unread_count || 0), 0);
+			// The chat-rooms endpoint returns unread_count on each room directly
+			const chatRooms = chatRoomsResponse.chat_rooms || [];
+			totalUnreadCount = chatRooms.reduce(
+				(sum: number, room: { unread_count?: number }) => sum + (room.unread_count || 0),
+				0
+			);
 		} catch (error) {
-			logger.debug('Could not fetch layout data:', error);
+			logger.warn('Could not fetch layout data:', error);
 		}
 	}
 
