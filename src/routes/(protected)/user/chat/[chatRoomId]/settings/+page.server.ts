@@ -22,7 +22,8 @@ export async function load(event: RequestEvent) {
 	} catch (e) {
 		logger.error('Error fetching chat room:', e);
 		if (e instanceof OBPRequestError) {
-			error(e.code >= 400 && e.code < 500 ? e.code : 500, { message: e.message });
+			const code = parseInt(e.code);
+			error(code >= 400 && code < 500 ? code : 500, { message: e.message });
 		}
 		error(500, { message: 'Could not fetch chat room settings.' });
 	}

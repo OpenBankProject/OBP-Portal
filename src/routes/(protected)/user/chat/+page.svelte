@@ -6,14 +6,18 @@
     let showCreateForm = $state(false);
 
     // Sort rooms: unread first (highest count first), then alphabetically
+    // Sort rooms: unread first, then by most recent activity
     let sortedRooms = $derived(
         [...(data.chatRooms || [])].sort((a: any, b: any) => {
             const unreadA = data.unreadCounts?.[a.chat_room_id] || 0;
             const unreadB = data.unreadCounts?.[b.chat_room_id] || 0;
-            // Rooms with unread messages first, sorted by count descending
-            if (unreadA !== unreadB) return unreadB - unreadA;
-            // Then alphabetically by name
-            return (a.name || '').localeCompare(b.name || '');
+            // Rooms with unread messages first
+            if (unreadA > 0 && unreadB === 0) return -1;
+            if (unreadA === 0 && unreadB > 0) return 1;
+            // Then by most recent message activity
+            const timeA = new Date(a.last_message_at || a.created_at).getTime();
+            const timeB = new Date(b.last_message_at || b.created_at).getTime();
+            return timeB - timeA;
         })
     );
     let copiedJoinLink = $state(false);
@@ -151,15 +155,23 @@
                             <h3 class="font-semibold text-surface-900-50 truncate">
                                 {room.name}
                             </h3>
-                            {#if room.description}
+                            {#if room.last_message_preview}
+                                <p class="mt-1 text-sm text-surface-600-400 truncate">
+                                    <span class="font-medium">{room.last_message_sender || 'Someone'}:</span> {room.last_message_preview}
+                                </p>
+                            {:else if room.description}
                                 <p class="mt-1 text-sm text-surface-600-400 line-clamp-2">
                                     {room.description}
                                 </p>
                             {/if}
                             <p class="mt-2 text-xs text-surface-500">
-                                Created {new Date(room.created_at).toLocaleDateString()}
-                                {#if room.created_by_username}
-                                    by {room.created_by_username}
+                                {#if room.last_message_at}
+                                    {new Date(room.last_message_at).toLocaleDateString([], { month: 'short', day: 'numeric' })} {new Date(room.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {:else}
+                                    Created {new Date(room.created_at).toLocaleDateString()}
+                                    {#if room.created_by_username}
+                                        by {room.created_by_username}
+                                    {/if}
                                 {/if}
                             </p>
                         </div>

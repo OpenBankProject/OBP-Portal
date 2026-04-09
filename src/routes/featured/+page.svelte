@@ -154,15 +154,6 @@
 		}
 	}
 
-	function toggleExpanded(operationId: string) {
-		if (expandedIds.has(operationId)) {
-			expandedIds.delete(operationId);
-		} else {
-			expandedIds.add(operationId);
-		}
-		expandedIds = new Set(expandedIds); // Trigger reactivity
-	}
-
 	function getMethodColor(method: string): string {
 		switch (method.toUpperCase()) {
 			case 'GET':

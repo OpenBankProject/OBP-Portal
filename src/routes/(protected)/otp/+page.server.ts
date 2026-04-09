@@ -28,7 +28,7 @@ export async function load(event: RequestEvent) {
 					};
 		}
 
-		return { flow, paymentService, paymentProduct, paymentId, userEntitlements };
+		return { flow, paymentService, paymentProduct, paymentId };
 	}
 
 	// transaction_request flow

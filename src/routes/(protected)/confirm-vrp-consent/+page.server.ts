@@ -16,7 +16,7 @@ export async function load(event: RequestEvent) {
 			};
 	}
 
-	return { consentId, userEntitlements };
+	return { consentId };
 }
 
 export const actions = {

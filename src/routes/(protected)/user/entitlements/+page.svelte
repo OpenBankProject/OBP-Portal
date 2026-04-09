@@ -4,7 +4,7 @@
 	const allEntitlements = data.allAvailableEntitlements;
 	const allBanks = data.allBanks;
 
-	const canCreateEntitlements = userEntitlements.some((entitlement) =>
+	const canCreateEntitlements = userEntitlements.some((entitlement: { role_name: string }) =>
 			['CanCreateEntitlementAtAnyBank', 'CanCreateEntitlementAtOneBank'].includes(
 				entitlement.role_name
 			)

@@ -491,7 +491,7 @@
      * Render a chat message as sanitized HTML with markdown and @mention highlighting.
      * Markdown is rendered first, then @mentions are highlighted in the HTML text nodes.
      */
-    function renderChatMessage(message: any, isOwn: boolean): string {
+    function renderChatMessage(message: any): string {
         const content = message.content || '';
         if (!content) return '';
 
@@ -516,8 +516,7 @@
             if (mentionedUsernames.size > 0) {
                 const escaped = [...mentionedUsernames].map(u => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
                 const mentionRegex = new RegExp(`(@(?:${escaped.join('|')}))(?=\\s|[<&]|$)`, 'g');
-                const mentionClass = isOwn ? 'bg-white/20' : 'bg-primary-500/20';
-                html = html.replace(mentionRegex, `<span class="font-semibold ${mentionClass} rounded px-0.5">$1</span>`);
+                html = html.replace(mentionRegex, `<span class="font-semibold bg-primary-500/20 rounded px-0.5">$1</span>`);
             }
         }
 
@@ -713,11 +712,114 @@
             {@const isOwn = message.sender_user_id === data.currentUserId}
             {@const msgReactions = groupedReactions(message.chat_message_id)}
             <div
-                class="group flex {isOwn ? 'justify-end' : 'justify-start'}"
+                class="group flex gap-2"
                 data-testid="message-{message.chat_message_id}"
             >
+                <div class="relative flex-1 min-w-0">
+                    <!-- Emoji picker popup -->
+                    {#if emojiPickerMessageId === message.chat_message_id}
+                        <div
+                            class="absolute right-0 bottom-full mb-1 z-10 flex gap-1 rounded-lg border border-surface-300-600 bg-surface-50-900 p-2 shadow-lg"
+                            data-testid="emoji-picker-{message.chat_message_id}"
+                        >
+                            {#each EMOJI_CHOICES as emoji}
+                                <button
+                                    type="button"
+                                    class="rounded p-1 text-lg hover:bg-surface-200-700 transition-colors"
+                                    onclick={() => addReactionFromPicker(message.chat_message_id, emoji)}
+                                    data-testid="emoji-choice-{emoji}"
+                                >
+                                    {emoji}
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                    <div class="rounded-lg px-4 py-2 bg-surface-100-800 text-surface-900-50 border-l-2 {isOwn ? 'border-primary-500' : 'border-transparent'}">
+                        <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
+                            {message.sender_username || message.sender_user_id}
+                        </p>
+                        {#if message.reply_to_message_id}
+                            {@const parent = messages.find(m => m.chat_message_id === message.reply_to_message_id)}
+                            <button
+                                type="button"
+                                class="mb-1 block w-full text-left border-l-2 border-surface-400 pl-2 text-xs opacity-60 truncate"
+                                onclick={() => parent && scrollToMessage(parent.chat_message_id)}
+                                data-testid="reply-ref-{message.chat_message_id}"
+                            >
+                                {#if parent}
+                                    {parent.sender_username || parent.sender_user_id}: {parent.content?.slice(0, 80)}{parent.content?.length > 80 ? '...' : ''}
+                                {:else}
+                                    Reply to a message
+                                {/if}
+                            </button>
+                        {/if}
+                        {#if message.is_deleted}
+                            <p class="italic opacity-50">This message was deleted.</p>
+                        {:else if editingMessageId === message.chat_message_id}
+                            <div class="flex flex-col gap-1" data-testid="edit-message-form">
+                                <textarea
+                                    bind:value={editContent}
+                                    onkeydown={handleEditKeydown}
+                                    oninput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 300) + 'px'; }}
+                                    use:autoResizeEdit
+                                    class="w-full rounded border border-surface-400 bg-surface-50-900 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-primary-500 resize overflow-auto"
+                                    rows="3"
+                                    data-testid="edit-message-input"
+                                ></textarea>
+                                <div class="flex justify-end gap-1">
+                                    <button
+                                        type="button"
+                                        onclick={cancelEdit}
+                                        class="rounded p-1 hover:bg-surface-200-700"
+                                        title="Cancel (Esc)"
+                                        data-testid="edit-cancel-button"
+                                    >
+                                        <X class="size-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onclick={saveEdit}
+                                        class="rounded p-1 hover:bg-surface-200-700"
+                                        title="Save (Enter)"
+                                        data-testid="edit-save-button"
+                                    >
+                                        <Check class="size-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        {:else}
+                            <div class="chat-markdown break-words">{@html renderChatMessage(message)}</div>
+                        {/if}
+                        <p class="mt-1 text-xs opacity-50">
+                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {#if message.updated_at && message.updated_at !== message.created_at}
+                                <span data-testid="message-edited-indicator">(edited)</span>
+                            {/if}
+                        </p>
+                    </div>
+                    <!-- Reaction badges -->
+                    {#if msgReactions.length > 0}
+                        <div class="flex flex-wrap gap-1 mt-1 justify-start" data-testid="reactions-{message.chat_message_id}">
+                            {#each msgReactions as reaction}
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors
+                                        {reaction.reactedByMe
+                                            ? 'border-primary-500 bg-primary-500/10 text-primary-700'
+                                            : 'border-surface-300-600 bg-surface-100-800 text-surface-700-300 hover:border-surface-400'}"
+                                    onclick={() => toggleReaction(message.chat_message_id, reaction.emoji)}
+                                    title={reaction.reactedByMe ? 'Remove your reaction' : 'Add reaction'}
+                                    data-testid="reaction-badge-{message.chat_message_id}-{reaction.emoji}"
+                                >
+                                    <span>{reaction.emoji}</span>
+                                    <span>{reaction.count}</span>
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
                 {#if !message.is_deleted && editingMessageId !== message.chat_message_id}
-                    <div class="flex items-center gap-0.5 mr-1 self-center opacity-0 group-hover:opacity-100 transition-opacity {isOwn ? 'order-first' : 'order-last ml-1 mr-0'}">
+                    <div class="flex items-center gap-0.5 self-start mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {#if isOwn}
                             <button
                                 type="button"
@@ -746,111 +848,6 @@
                         </button>
                     </div>
                 {/if}
-                <div class="relative {editingMessageId === message.chat_message_id ? 'max-w-full w-full' : 'max-w-[75%]'}">
-                    <!-- Emoji picker popup -->
-                    {#if emojiPickerMessageId === message.chat_message_id}
-                        <div
-                            class="absolute {isOwn ? 'right-0' : 'left-0'} bottom-full mb-1 z-10 flex gap-1 rounded-lg border border-surface-300-600 bg-surface-50-900 p-2 shadow-lg"
-                            data-testid="emoji-picker-{message.chat_message_id}"
-                        >
-                            {#each EMOJI_CHOICES as emoji}
-                                <button
-                                    type="button"
-                                    class="rounded p-1 text-lg hover:bg-surface-200-700 transition-colors"
-                                    onclick={() => addReactionFromPicker(message.chat_message_id, emoji)}
-                                    data-testid="emoji-choice-{emoji}"
-                                >
-                                    {emoji}
-                                </button>
-                            {/each}
-                        </div>
-                    {/if}
-                    <div class="rounded-lg px-4 py-2 {isOwn ? 'bg-primary-500 text-white' : 'bg-surface-200-700 text-surface-900-50'}">
-                        {#if !isOwn}
-                            <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
-                                {message.sender_username || message.sender_user_id}
-                            </p>
-                        {/if}
-                        {#if message.reply_to_message_id}
-                            {@const parent = messages.find(m => m.chat_message_id === message.reply_to_message_id)}
-                            <button
-                                type="button"
-                                class="mb-1 block w-full text-left border-l-2 {isOwn ? 'border-white/40' : 'border-surface-400'} pl-2 text-xs opacity-60 truncate"
-                                onclick={() => parent && scrollToMessage(parent.chat_message_id)}
-                                data-testid="reply-ref-{message.chat_message_id}"
-                            >
-                                {#if parent}
-                                    {parent.sender_username || parent.sender_user_id}: {parent.content?.slice(0, 80)}{parent.content?.length > 80 ? '...' : ''}
-                                {:else}
-                                    Reply to a message
-                                {/if}
-                            </button>
-                        {/if}
-                        {#if message.is_deleted}
-                            <p class="italic opacity-50">This message was deleted.</p>
-                        {:else if editingMessageId === message.chat_message_id}
-                            <div class="flex flex-col gap-1" data-testid="edit-message-form">
-                                <textarea
-                                    bind:value={editContent}
-                                    onkeydown={handleEditKeydown}
-                                    oninput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 300) + 'px'; }}
-                                    use:autoResizeEdit
-                                    class="w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit focus:outline-none focus:ring-1 focus:ring-white/50 resize overflow-auto"
-                                    rows="3"
-                                    data-testid="edit-message-input"
-                                ></textarea>
-                                <div class="flex justify-end gap-1">
-                                    <button
-                                        type="button"
-                                        onclick={cancelEdit}
-                                        class="rounded p-1 hover:bg-white/20"
-                                        title="Cancel (Esc)"
-                                        data-testid="edit-cancel-button"
-                                    >
-                                        <X class="size-3.5" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onclick={saveEdit}
-                                        class="rounded p-1 hover:bg-white/20"
-                                        title="Save (Enter)"
-                                        data-testid="edit-save-button"
-                                    >
-                                        <Check class="size-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        {:else}
-                            <div class="chat-markdown break-words">{@html renderChatMessage(message, isOwn)}</div>
-                        {/if}
-                        <p class="mt-1 text-xs opacity-50">
-                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {#if message.updated_at && message.updated_at !== message.created_at}
-                                <span data-testid="message-edited-indicator">(edited)</span>
-                            {/if}
-                        </p>
-                    </div>
-                    <!-- Reaction badges -->
-                    {#if msgReactions.length > 0}
-                        <div class="flex flex-wrap gap-1 mt-1 {isOwn ? 'justify-end' : 'justify-start'}" data-testid="reactions-{message.chat_message_id}">
-                            {#each msgReactions as reaction}
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors
-                                        {reaction.reactedByMe
-                                            ? 'border-primary-500 bg-primary-500/10 text-primary-700'
-                                            : 'border-surface-300-600 bg-surface-100-800 text-surface-700-300 hover:border-surface-400'}"
-                                    onclick={() => toggleReaction(message.chat_message_id, reaction.emoji)}
-                                    title={reaction.reactedByMe ? 'Remove your reaction' : 'Add reaction'}
-                                    data-testid="reaction-badge-{message.chat_message_id}-{reaction.emoji}"
-                                >
-                                    <span>{reaction.emoji}</span>
-                                    <span>{reaction.count}</span>
-                                </button>
-                            {/each}
-                        </div>
-                    {/if}
-                </div>
             </div>
         {/each}
     {:else}
