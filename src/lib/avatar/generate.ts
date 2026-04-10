@@ -24,6 +24,17 @@ export function userAvatarSeed(username: string): string {
 	return `${host}|${username}`;
 }
 
+/**
+ * Build a deterministic per-room avatar seed: `${OBP_BASE_URL}|room|${chatRoomId}`.
+ *
+ * The `room` segment ensures that a username and a chat_room_id which happen
+ * to look similar produce different identicons. Same host-namespacing as users.
+ */
+export function roomAvatarSeed(chatRoomId: string): string {
+	const host = env.PUBLIC_OBP_BASE_URL ?? '';
+	return `${host}|room|${chatRoomId}`;
+}
+
 /** FNV-1a 32-bit hash. */
 function hashSeed(seed: string): number {
 	let h = 2166136261 >>> 0;

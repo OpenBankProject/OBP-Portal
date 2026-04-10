@@ -5,8 +5,9 @@
     import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
     import Avatar from '$lib/components/Avatar.svelte';
-    import { userAvatarSeed } from '$lib/avatar/generate';
+    import { userAvatarSeed, roomAvatarSeed } from '$lib/avatar/generate';
     import { messageSenderName } from '$lib/chat/sender';
+    import { isDirectMessage } from '$lib/chat/room';
 
     // Both renderMarkdown (Prism) and DOMPurify require browser globals — lazy-load them
     let renderMarkdown: ((content: string) => string) | null = $state(null);
@@ -670,9 +671,20 @@
             <ArrowLeft class="size-4" />
             Back
         </a>
+        <Avatar
+            seed={roomAvatarSeed(data.chatRoom.chat_room_id)}
+            size={40}
+            shape="circle"
+            title="Icon for {data.chatRoom.name}"
+        />
         <div class="min-w-0">
-            <h2 class="text-lg font-semibold text-surface-900-50 truncate" data-testid="chat-room-name">
+            <h2 class="text-lg font-semibold text-surface-900-50 truncate flex items-center gap-2" data-testid="chat-room-name">
                 {data.chatRoom.name}
+                {#if isDirectMessage(data.chatRoom)}
+                    <span class="inline-flex items-center rounded-full bg-tertiary-500/10 px-2 py-0.5 text-xs font-normal text-tertiary-600 dark:text-tertiary-400" data-testid="dm-badge">
+                        DM
+                    </span>
+                {/if}
             </h2>
             {#if data.chatRoom.description}
                 <p class="text-sm text-surface-600-400 truncate">{data.chatRoom.description}</p>

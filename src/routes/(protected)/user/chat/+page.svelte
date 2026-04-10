@@ -1,6 +1,9 @@
 <script lang="ts">
-    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn, Globe } from '@lucide/svelte';
+    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn, Globe, User } from '@lucide/svelte';
     import { page } from '$app/state';
+    import Avatar from '$lib/components/Avatar.svelte';
+    import { roomAvatarSeed } from '$lib/avatar/generate';
+    import { isDirectMessage } from '$lib/chat/room';
 
     let { data, form } = $props();
     let showCreateForm = $state(false);
@@ -144,13 +147,19 @@
     <div class="space-y-3">
         {#each sortedRooms as room (room.chat_room_id)}
             {@const unread = data.unreadCounts?.[room.chat_room_id] || 0}
+            {@const isDm = isDirectMessage(room)}
             <div
                 class="rounded-lg border border-surface-300-600 bg-surface-50-900 p-4 transition-colors hover:bg-surface-100-800"
                 data-testid="chat-room-{room.chat_room_id}"
             >
                 <div class="flex items-start justify-between gap-3">
                     <a href="/user/chat/{room.chat_room_id}" class="flex items-start gap-3 min-w-0 flex-1">
-                        <MessageSquare class="mt-0.5 size-5 shrink-0 text-primary-500" />
+                        <Avatar
+                            seed={roomAvatarSeed(room.chat_room_id)}
+                            size={36}
+                            shape="circle"
+                            title="Icon for {room.name}"
+                        />
                         <div class="min-w-0">
                             <h3 class="font-semibold text-surface-900-50 truncate">
                                 {room.name}
@@ -189,6 +198,12 @@
                             <span class="flex items-center gap-1 rounded-full bg-primary-500/10 px-2 py-0.5 text-xs text-primary-600 dark:text-primary-400" data-testid="open-room-badge-{room.chat_room_id}">
                                 <Globe class="size-3" />
                                 Open
+                            </span>
+                        {/if}
+                        {#if isDm}
+                            <span class="flex items-center gap-1 rounded-full bg-tertiary-500/10 px-2 py-0.5 text-xs text-tertiary-600 dark:text-tertiary-400" data-testid="dm-badge-{room.chat_room_id}">
+                                <User class="size-3" />
+                                DM
                             </span>
                         {/if}
                         {#if room.is_archived}
