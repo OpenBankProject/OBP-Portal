@@ -684,6 +684,11 @@
                     <span class="inline-flex items-center rounded-full bg-tertiary-500/10 px-2 py-0.5 text-xs font-normal text-tertiary-600 dark:text-tertiary-400" data-testid="dm-badge">
                         DM
                     </span>
+                {:else}
+                    <span class="inline-flex items-center gap-1 text-xs font-normal text-surface-500" data-testid="participant-count">
+                        <Users class="size-3" />
+                        {data.chatRoom.participant_count}
+                    </span>
                 {/if}
             </h2>
             {#if data.chatRoom.description}

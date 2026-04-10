@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn, Globe, User } from '@lucide/svelte';
+    import { MessageSquare, Plus, Archive, Settings, Copy, Check, LogIn, Globe, User, Users } from '@lucide/svelte';
     import { page } from '$app/state';
     import Avatar from '$lib/components/Avatar.svelte';
     import { roomAvatarSeed } from '$lib/avatar/generate';
@@ -161,8 +161,14 @@
                             title="Icon for {room.name}"
                         />
                         <div class="min-w-0">
-                            <h3 class="font-semibold text-surface-900-50 truncate">
-                                {room.name}
+                            <h3 class="font-semibold text-surface-900-50 truncate flex items-center gap-2">
+                                <span class="truncate">{room.name}</span>
+                                {#if isDm}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-tertiary-500/10 px-2 py-0.5 text-xs font-normal text-tertiary-600 dark:text-tertiary-400 shrink-0" data-testid="dm-badge-{room.chat_room_id}">
+                                        <User class="size-3" />
+                                        DM
+                                    </span>
+                                {/if}
                             </h3>
                             {#if room.last_message_preview}
                                 <p class="mt-1 text-sm text-surface-600-400 truncate">
@@ -173,14 +179,23 @@
                                     {room.description}
                                 </p>
                             {/if}
-                            <p class="mt-2 text-xs text-surface-500">
+                            <p class="mt-2 flex items-center gap-2 text-xs text-surface-500">
+                                {#if !isDm}
+                                    <span class="inline-flex items-center gap-1" data-testid="participant-count-{room.chat_room_id}">
+                                        <Users class="size-3" />
+                                        {room.participant_count}
+                                    </span>
+                                    <span aria-hidden="true">·</span>
+                                {/if}
                                 {#if room.last_message_at}
-                                    {new Date(room.last_message_at).toLocaleDateString([], { month: 'short', day: 'numeric' })} {new Date(room.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    <span>
+                                        {new Date(room.last_message_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                        {new Date(room.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
                                 {:else}
-                                    Created {new Date(room.created_at).toLocaleDateString()}
-                                    {#if room.created_by_username}
-                                        by {room.created_by_username}
-                                    {/if}
+                                    <span>
+                                        Created {new Date(room.created_at).toLocaleDateString()}{#if room.created_by_username} by {room.created_by_username}{/if}
+                                    </span>
                                 {/if}
                             </p>
                         </div>
@@ -198,12 +213,6 @@
                             <span class="flex items-center gap-1 rounded-full bg-primary-500/10 px-2 py-0.5 text-xs text-primary-600 dark:text-primary-400" data-testid="open-room-badge-{room.chat_room_id}">
                                 <Globe class="size-3" />
                                 Open
-                            </span>
-                        {/if}
-                        {#if isDm}
-                            <span class="flex items-center gap-1 rounded-full bg-tertiary-500/10 px-2 py-0.5 text-xs text-tertiary-600 dark:text-tertiary-400" data-testid="dm-badge-{room.chat_room_id}">
-                                <User class="size-3" />
-                                DM
                             </span>
                         {/if}
                         {#if room.is_archived}
