@@ -3,6 +3,7 @@
     import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply, Bold, Italic, Code, Link, List, SquareCode } from '@lucide/svelte';
     import { unreadCount } from '$lib/stores/unreadCount.svelte';
     import { browser } from '$app/environment';
+    import { goto } from '$app/navigation';
     import Avatar from '$lib/components/Avatar.svelte';
     import { userAvatarSeed } from '$lib/avatar/generate';
     import { messageSenderName } from '$lib/chat/sender';
@@ -358,6 +359,39 @@
         editContent = message.content;
     }
 
+    let startingDm = $state(false);
+    let dmStatus = $state('');
+    async function startDm(targetUserId: string) {
+        if (!targetUserId || targetUserId === data.currentUserId || startingDm) return;
+        startingDm = true;
+        dmStatus = 'Opening chat…';
+        try {
+            const res = await fetch('/backend/chat/start-dm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: targetUserId })
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                errorMessage = result.message || 'Failed to start chat';
+                dmStatus = '';
+                return;
+            }
+            if (result.chat_room_id === data.chatRoom.chat_room_id) {
+                dmStatus = 'You are already in this chat.';
+                setTimeout(() => { dmStatus = ''; }, 2500);
+                return;
+            }
+            await goto(`/user/chat/${result.chat_room_id}`);
+            dmStatus = '';
+        } catch (err) {
+            errorMessage = err instanceof Error ? err.message : 'Failed to start chat';
+            dmStatus = '';
+        } finally {
+            startingDm = false;
+        }
+    }
+
     function cancelEdit() {
         editingMessageId = null;
         editContent = '';
@@ -703,6 +737,12 @@
     </div>
 {/if}
 
+{#if dmStatus}
+    <div class="bg-primary-500/10 border-primary-500 mb-4 rounded-lg border p-3 text-center" data-testid="dm-status">
+        <p class="text-surface-900-50 text-sm font-semibold">{dmStatus}</p>
+    </div>
+{/if}
+
 <!-- Messages -->
 <div
     bind:this={messagesContainer}
@@ -722,11 +762,28 @@
                 data-testid="message-{message.chat_message_id}"
             >
                 <div class="shrink-0 mt-1">
-                    <Avatar
-                        seed={userAvatarSeed(senderName)}
-                        size={32}
-                        title="Avatar for {senderName}"
-                    />
+                    {#if isOwn}
+                        <Avatar
+                            seed={userAvatarSeed(senderName)}
+                            size={32}
+                            title="Avatar for {senderName}"
+                        />
+                    {:else}
+                        <button
+                            type="button"
+                            class="block rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-wait"
+                            onclick={() => startDm(message.sender_user_id)}
+                            disabled={startingDm}
+                            title="Start a chat with {senderName}"
+                            data-testid="avatar-start-dm-{message.chat_message_id}"
+                        >
+                            <Avatar
+                                seed={userAvatarSeed(senderName)}
+                                size={32}
+                                title="Avatar for {senderName}"
+                            />
+                        </button>
+                    {/if}
                 </div>
                 <div class="relative flex-1 min-w-0">
                     <!-- Emoji picker popup -->
@@ -749,7 +806,20 @@
                     {/if}
                     <div class="rounded-lg px-4 py-2 bg-surface-100-800 text-surface-900-50 border-l-2 {isOwn ? 'border-primary-500' : 'border-transparent'}">
                         <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
-                            {senderName}
+                            {#if isOwn}
+                                {senderName}
+                            {:else}
+                                <button
+                                    type="button"
+                                    class="hover:underline focus:underline focus:outline-none disabled:cursor-wait"
+                                    onclick={() => startDm(message.sender_user_id)}
+                                    disabled={startingDm}
+                                    title="Start a chat with {senderName}"
+                                    data-testid="sender-start-dm-{message.chat_message_id}"
+                                >
+                                    {senderName}
+                                </button>
+                            {/if}
                         </p>
                         {#if message.reply_to_message_id}
                             {@const parent = messages.find(m => m.chat_message_id === message.reply_to_message_id)}
