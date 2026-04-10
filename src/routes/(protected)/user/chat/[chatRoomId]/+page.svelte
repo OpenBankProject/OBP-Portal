@@ -3,6 +3,9 @@
     import { ArrowLeft, Send, Users, Settings, Pencil, Check, X, SmilePlus, Reply, Bold, Italic, Code, Link, List, SquareCode } from '@lucide/svelte';
     import { unreadCount } from '$lib/stores/unreadCount.svelte';
     import { browser } from '$app/environment';
+    import Avatar from '$lib/components/Avatar.svelte';
+    import { userAvatarSeed } from '$lib/avatar/generate';
+    import { messageSenderName } from '$lib/chat/sender';
 
     // Both renderMarkdown (Prism) and DOMPurify require browser globals — lazy-load them
     let renderMarkdown: ((content: string) => string) | null = $state(null);
@@ -713,10 +716,18 @@
         {#each messages as message (message.chat_message_id)}
             {@const isOwn = message.sender_user_id === data.currentUserId}
             {@const msgReactions = groupedReactions(message.chat_message_id)}
+            {@const senderName = messageSenderName(message)}
             <div
                 class="group flex gap-2"
                 data-testid="message-{message.chat_message_id}"
             >
+                <div class="shrink-0 mt-1">
+                    <Avatar
+                        seed={userAvatarSeed(senderName)}
+                        size={32}
+                        title="Avatar for {senderName}"
+                    />
+                </div>
                 <div class="relative flex-1 min-w-0">
                     <!-- Emoji picker popup -->
                     {#if emojiPickerMessageId === message.chat_message_id}
@@ -738,7 +749,7 @@
                     {/if}
                     <div class="rounded-lg px-4 py-2 bg-surface-100-800 text-surface-900-50 border-l-2 {isOwn ? 'border-primary-500' : 'border-transparent'}">
                         <p class="mb-1 text-xs font-semibold opacity-70" data-testid="message-sender">
-                            {message.sender_username || message.sender_user_id}
+                            {senderName}
                         </p>
                         {#if message.reply_to_message_id}
                             {@const parent = messages.find(m => m.chat_message_id === message.reply_to_message_id)}
@@ -749,7 +760,7 @@
                                 data-testid="reply-ref-{message.chat_message_id}"
                             >
                                 {#if parent}
-                                    {parent.sender_username || parent.sender_user_id}: {parent.content?.slice(0, 80)}{parent.content?.length > 80 ? '...' : ''}
+                                    {messageSenderName(parent)}: {parent.content?.slice(0, 80)}{parent.content?.length > 80 ? '...' : ''}
                                 {:else}
                                     Reply to a message
                                 {/if}
@@ -864,7 +875,7 @@
     {#if replyingTo}
         <div class="flex items-center gap-2 mb-2 rounded-lg border border-surface-300-600 bg-surface-100-800 px-3 py-2" data-testid="reply-preview">
             <div class="flex-1 min-w-0">
-                <p class="text-xs text-surface-500">Replying to <span class="font-semibold">{replyingTo.sender_username || replyingTo.sender_user_id}</span></p>
+                <p class="text-xs text-surface-500">Replying to <span class="font-semibold">{messageSenderName(replyingTo)}</span></p>
                 <p class="text-sm text-surface-700-300 truncate">{replyingTo.content}</p>
             </div>
             <button
