@@ -26,7 +26,7 @@
     let copiedJoinLink = $state(false);
 
     function joinLink(joiningKey: string): string {
-        return `${page.url.origin}/user/chat/join?key=${encodeURIComponent(joiningKey)}`;
+        return `${page.url.origin}/user/chat/join?joining_key=${encodeURIComponent(joiningKey)}`;
     }
 
     async function copyJoinLink(joiningKey: string) {

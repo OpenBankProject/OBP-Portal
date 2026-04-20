@@ -52,7 +52,7 @@
                 <label for="joining-key" class="mb-1 block text-sm font-medium">Join Link or Key</label>
                 <input
                     id="joining-key"
-                    name="key"
+                    name="joining_key"
                     type="text"
                     required
                     class="input w-full rounded-md border border-surface-300-600 px-3 py-2 font-mono"

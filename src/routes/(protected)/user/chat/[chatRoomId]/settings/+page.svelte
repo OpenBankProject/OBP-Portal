@@ -9,8 +9,8 @@
     // Use the refreshed key if available, otherwise the one from the room data
     let joiningKey = $derived(form?.newJoiningKey || data.chatRoom.joining_key);
 
-    function joinLink(key: string): string {
-        return `${page.url.origin}/user/chat/join?key=${encodeURIComponent(key)}`;
+    function joinLink(joiningKey: string): string {
+        return `${page.url.origin}/user/chat/join?joining_key=${encodeURIComponent(joiningKey)}`;
     }
 
     async function copyJoinLink() {

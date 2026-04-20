@@ -7,24 +7,24 @@ import { OBPRequestError } from '$lib/obp/errors';
 
 /**
  * Extract the raw joining key from user input.
- * Accepts either a raw key or a full join URL containing ?key=...
+ * Accepts either a raw key or a full join URL containing ?joining_key=...
  */
-function extractKey(input: string): string {
+function extractJoiningKey(input: string): string {
 	try {
 		const url = new URL(input);
-		const keyParam = url.searchParams.get('key');
-		if (keyParam) return keyParam;
+		const joiningKeyParam = url.searchParams.get('joining_key');
+		if (joiningKeyParam) return joiningKeyParam;
 	} catch {
-		// Not a URL — treat as raw key
+		// Not a URL — treat as raw joining key
 	}
 	return input;
 }
 
-async function joinWithKey(key: string, token: string) {
-	logger.info('Attempting to join chat room with key:', key);
+async function joinWithJoiningKey(joiningKey: string, token: string) {
+	logger.info('Attempting to join chat room with joining_key:', joiningKey);
 	return await obp_requests.post(
 		'/obp/v6.0.0/chat-room-participants',
-		{ joining_key: key },
+		{ joining_key: joiningKey },
 		token
 	);
 }
@@ -35,13 +35,13 @@ export async function load(event: RequestEvent) {
 		error(401, { message: 'Unauthorized: No access token found in session.' });
 	}
 
-	const key = event.url.searchParams.get('key');
-	if (!key) {
+	const joiningKey = event.url.searchParams.get('joining_key');
+	if (!joiningKey) {
 		return { showForm: true };
 	}
 
 	try {
-		const participant = await joinWithKey(key, token);
+		const participant = await joinWithJoiningKey(joiningKey, token);
 		redirect(303, `/user/chat/${participant.chat_room_id}`);
 	} catch (e) {
 		if (isRedirect(e)) throw e;
@@ -65,16 +65,16 @@ export const actions = {
 		}
 
 		const formData = await request.formData();
-		const rawInput = formData.get('key')?.toString()?.trim();
+		const rawInput = formData.get('joining_key')?.toString()?.trim();
 
 		if (!rawInput) {
 			return { message: 'Please enter a joining key or join link.' };
 		}
 
-		const key = extractKey(rawInput);
+		const joiningKey = extractJoiningKey(rawInput);
 
 		try {
-			const participant = await joinWithKey(key, token);
+			const participant = await joinWithJoiningKey(joiningKey, token);
 			redirect(303, `/user/chat/${participant.chat_room_id}`);
 		} catch (e) {
 			if (isRedirect(e)) throw e;
