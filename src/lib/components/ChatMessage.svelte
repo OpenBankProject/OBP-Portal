@@ -52,6 +52,15 @@
 		}
 	}
 
+	async function handleCopyError(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.success('Error copied to clipboard');
+		} catch {
+			toast.error('Failed to copy');
+		}
+	}
+
 	// Format error messages - can be extended to handle specific error types
 	function getErrorMessage(error?: string): string {
 		if (!error) return 'Something went wrong. Please try again.';
@@ -167,10 +176,19 @@
 				<div class="prose max-w-full rounded-2xl p-2 text-left dark:prose-invert">
 					{@html renderMarkdown(message.message)}
 					{#if message.error}
-						<div class="mt-2">
-							<p class="text-sm text-error-500 dark:text-error-400">
+						<div class="mt-2 flex items-start gap-2">
+							<p class="text-sm text-error-500 dark:text-error-400 flex-1" data-testid="assistant-error">
 								{getErrorMessage(message.error)}
 							</p>
+							<button
+								onclick={() => handleCopyError(getErrorMessage(message.error))}
+								class="flex-shrink-0 rounded-full p-1.5 transition-transform hover:scale-120"
+								title="Copy error"
+								aria-label="Copy error"
+								data-testid="copy-error-button"
+							>
+								<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+							</button>
 						</div>
 					{/if}
 				</div>
@@ -196,10 +214,19 @@
 				{onConsentDeny}
 			/>
 		{:else if message.role === 'error'}
-			<div class="max-w-full p-2">
-				<p class="text-sm text-error-500 dark:text-error-400">
+			<div class="max-w-full p-2 flex items-start gap-2">
+				<p class="text-sm text-error-500 dark:text-error-400 flex-1" data-testid="error-message">
 					{getErrorMessage(message.error || message.message)}
 				</p>
+				<button
+					onclick={() => handleCopyError(getErrorMessage(message.error || message.message))}
+					class="flex-shrink-0 rounded-full p-1.5 transition-transform hover:scale-120"
+					title="Copy error"
+					aria-label="Copy error"
+					data-testid="copy-error-button"
+				>
+					<Copy class="h-4 w-4 text-surface-700 dark:text-surface-200" />
+				</button>
 			</div>
 		{/if}
 	</div>
