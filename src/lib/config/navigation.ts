@@ -14,7 +14,7 @@ function buildMyAccountItems(): NavigationItem[] {
     const items: NavigationItem[] = [
         { href: '/user', label: 'Profile', iconComponent: User },
         { href: '/user/consents', label: 'Consents', iconComponent: ShieldUser },
-        { href: '/user/consumers', label: 'Consumers', iconComponent: KeyRound },
+        { href: '/user/consumers', label: 'Consumers (Applications)', iconComponent: KeyRound },
         { href: '/user/entitlements', label: 'Entitlements', iconComponent: IdCardLanyard },
         { href: '/user/my-data', label: 'My Data', iconComponent: Database, description: 'View my own data.' },
         { href: '/user/personal-data-fields', label: 'Personal Data Fields', iconComponent: FileText, description: 'Manage your personal attributes.' },

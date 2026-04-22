@@ -99,7 +99,7 @@ GET /obp/v6.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account`}
         creating accounts or managing customers. Users are linked to Customers to access account data.
     </p>
 
-    <h3>Consumers</h3>
+    <h3>Consumers (Applications)</h3>
 
     <p>
         A <strong>Consumer</strong> represents a registered application. When you register your app,
