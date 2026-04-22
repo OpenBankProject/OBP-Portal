@@ -674,7 +674,7 @@
         <Avatar
             seed={roomAvatarSeed(data.chatRoom.chat_room_id)}
             size={40}
-            shape="circle"
+            shape="square"
             title="Icon for {data.chatRoom.name}"
         />
         <div class="min-w-0">
@@ -783,12 +783,13 @@
                         <Avatar
                             seed={userAvatarSeed(senderName)}
                             size={32}
+                            shape="circle"
                             title="Avatar for {senderName}"
                         />
                     {:else}
                         <button
                             type="button"
-                            class="block rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-wait"
+                            class="block rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-wait"
                             onclick={() => startDm(message.sender_user_id)}
                             disabled={startingDm}
                             title="Start a chat with {senderName}"
@@ -797,6 +798,7 @@
                             <Avatar
                                 seed={userAvatarSeed(senderName)}
                                 size={32}
+                                shape="circle"
                                 title="Avatar for {senderName}"
                             />
                         </button>

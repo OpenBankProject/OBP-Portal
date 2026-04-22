@@ -157,7 +157,7 @@
                         <Avatar
                             seed={roomAvatarSeed(room.chat_room_id)}
                             size={36}
-                            shape="circle"
+                            shape="square"
                             title="Icon for {room.name}"
                         />
                         <div class="min-w-0">
