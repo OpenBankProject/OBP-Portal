@@ -1,4 +1,9 @@
-41111## Getting Started
+# This repo has moved
+
+Please note! This repository has moved to [OBP Frontend - Portal](https://github.com/OpenBankProject/OBP-Frontend/tree/main/apps/portal)
+
+
+## Getting Started
 
 ### Install dependencies
 
